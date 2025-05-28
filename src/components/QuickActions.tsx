@@ -3,15 +3,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, FileText, Users, Settings, QrCode, Package } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
 const QuickActions = () => {
+  const navigate = useNavigate();
+  
   const actions = [
     {
       icon: Plus,
       label: 'Add Device',
       description: 'Register new asset',
       color: 'bg-blue-500 hover:bg-blue-600',
-      action: () => console.log('Add device')
+      action: () => navigate('/assets/add')
     },
     {
       icon: FileText,
