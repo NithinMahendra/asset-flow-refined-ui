@@ -9,15 +9,13 @@ import { CalendarIcon, Download, FileText, Printer, TrendingUp, TrendingDown, Ac
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { DateRange } from 'react-day-picker';
 import AnalyticsCharts from '@/components/AnalyticsCharts';
 import KPICards from '@/components/KPICards';
 import ExportOptions from '@/components/ExportOptions';
 
 const Analytics = () => {
-  const [dateRange, setDateRange] = useState<{
-    from: Date | undefined;
-    to: Date | undefined;
-  }>({
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: new Date(2024, 0, 20),
     to: new Date(),
   });
