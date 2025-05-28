@@ -63,7 +63,7 @@ const Hero = () => {
               <Button 
                 size="lg" 
                 className="h-14 px-8 text-lg rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-200 group"
-                onClick={() => navigate('/register')}
+                onClick={() => navigate('/dashboard')}
               >
                 Get Started Free
                 <ChevronRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
@@ -73,9 +73,9 @@ const Hero = () => {
                 variant="outline" 
                 size="lg" 
                 className="h-14 px-8 text-lg rounded-2xl border-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200"
-                onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+                onClick={() => navigate('/assets')}
               >
-                Learn More
+                View Assets
               </Button>
             </div>
 
