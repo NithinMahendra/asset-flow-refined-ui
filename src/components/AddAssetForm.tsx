@@ -15,7 +15,7 @@ import { Loader2, Save, X } from 'lucide-react';
 import QRCode from 'qrcode';
 
 const assetSchema = z.object({
-  device_type: z.string().min(1, 'Device type is required'),
+  device_type: z.enum(['laptop', 'desktop', 'server', 'monitor', 'tablet', 'smartphone', 'network_switch', 'router', 'printer', 'scanner', 'projector', 'other']),
   brand: z.string().min(1, 'Brand is required'),
   model: z.string().min(1, 'Model is required'),
   serial_number: z.string().min(1, 'Serial number is required'),
@@ -69,6 +69,15 @@ const AddAssetForm = ({ onClose, onSuccess }: AddAssetFormProps) => {
     { value: 'scanner', label: 'Scanner' },
     { value: 'projector', label: 'Projector' },
     { value: 'other', label: 'Other' }
+  ];
+
+  const statusOptions = [
+    { value: 'active', label: 'Active' },
+    { value: 'inactive', label: 'Inactive' },
+    { value: 'maintenance', label: 'In Maintenance' },
+    { value: 'retired', label: 'Retired' },
+    { value: 'missing', label: 'Missing' },
+    { value: 'damaged', label: 'Damaged' }
   ];
 
   const generateQRCode = async (assetData: AssetFormData) => {
@@ -174,7 +183,7 @@ const AddAssetForm = ({ onClose, onSuccess }: AddAssetFormProps) => {
               
               <div>
                 <Label htmlFor="device_type">Device Type *</Label>
-                <Select onValueChange={(value) => setValue('device_type', value)}>
+                <Select onValueChange={(value) => setValue('device_type', value as any)}>
                   <SelectTrigger className={errors.device_type ? 'border-red-500' : ''}>
                     <SelectValue placeholder="Select device type" />
                   </SelectTrigger>
@@ -257,12 +266,11 @@ const AddAssetForm = ({ onClose, onSuccess }: AddAssetFormProps) => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                    <SelectItem value="maintenance">Maintenance</SelectItem>
-                    <SelectItem value="retired">Retired</SelectItem>
-                    <SelectItem value="missing">Missing</SelectItem>
-                    <SelectItem value="damaged">Damaged</SelectItem>
+                    {statusOptions.map((status) => (
+                      <SelectItem key={status.value} value={status.value}>
+                        {status.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

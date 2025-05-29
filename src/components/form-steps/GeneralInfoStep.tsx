@@ -11,8 +11,15 @@ interface GeneralInfoStepProps {
 }
 
 const GeneralInfoStep = ({ formData, updateFormData }: GeneralInfoStepProps) => {
-  const deviceTypes = ['Laptop', 'Desktop', 'Monitor', 'Tablet', 'Phone', 'Printer', 'Other'];
-  const statuses = ['Available', 'In Use', 'In Repair', 'Faulty', 'Retired'];
+  const deviceTypes = ['laptop', 'desktop', 'monitor', 'tablet', 'smartphone', 'printer', 'router', 'scanner', 'projector', 'other'];
+  const statuses = [
+    { value: 'active', label: 'Active' },
+    { value: 'inactive', label: 'Inactive' },
+    { value: 'maintenance', label: 'In Maintenance' },
+    { value: 'retired', label: 'Retired' },
+    { value: 'missing', label: 'Missing' },
+    { value: 'damaged', label: 'Damaged' }
+  ];
   const locations = ['Office A', 'Office B', 'Storage', 'Remote', 'Warehouse'];
 
   return (
@@ -34,7 +41,7 @@ const GeneralInfoStep = ({ formData, updateFormData }: GeneralInfoStepProps) => 
             value={formData.deviceName}
             onChange={(e) => updateFormData('deviceName', e.target.value)}
             placeholder="Enter device name"
-            className="transition-all duration-200 focus:ring-2 focus:ring-blue-500"
+            className="transition-all duration-200 focus:ring-2 focus:ring-indigo-500"
           />
         </div>
 
@@ -46,8 +53,8 @@ const GeneralInfoStep = ({ formData, updateFormData }: GeneralInfoStepProps) => 
             </SelectTrigger>
             <SelectContent>
               {deviceTypes.map((type) => (
-                <SelectItem key={type} value={type.toLowerCase()}>
-                  {type}
+                <SelectItem key={type} value={type}>
+                  {type.charAt(0).toUpperCase() + type.slice(1).replace('_', ' ')}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -118,8 +125,8 @@ const GeneralInfoStep = ({ formData, updateFormData }: GeneralInfoStepProps) => 
             </SelectTrigger>
             <SelectContent>
               {statuses.map((status) => (
-                <SelectItem key={status} value={status.toLowerCase()}>
-                  {status}
+                <SelectItem key={status.value} value={status.value}>
+                  {status.label}
                 </SelectItem>
               ))}
             </SelectContent>

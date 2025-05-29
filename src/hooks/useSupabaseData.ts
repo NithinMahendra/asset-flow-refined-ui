@@ -101,32 +101,44 @@ export const useSupabaseData = () => {
   const { toast } = useToast();
 
   // Transform database asset to UI asset format
-  const transformAsset = (dbAsset: any): Asset => ({
-    id: dbAsset.id,
-    device_type: dbAsset.device_type,
-    status: dbAsset.status || 'active',
-    assigned_to: dbAsset.assigned_to,
-    purchase_price: dbAsset.purchase_price,
-    location: dbAsset.location,
-    updated_at: dbAsset.updated_at,
-    serial_number: dbAsset.serial_number,
-    purchase_date: dbAsset.purchase_date,
-    warranty_expiry: dbAsset.warranty_expiry,
-    brand: dbAsset.brand,
-    model: dbAsset.model,
-    notes: dbAsset.notes,
-    asset_tag: dbAsset.asset_tag,
-    // Computed fields
-    name: `${dbAsset.brand} ${dbAsset.model}`,
-    category: dbAsset.device_type?.replace('_', ' ')?.replace(/\b\w/g, l => l.toUpperCase()) || 'Unknown',
-    assignee: dbAsset.assigned_to || '-',
-    value: dbAsset.purchase_price || 0,
-    last_updated: dbAsset.updated_at?.split('T')[0] || new Date().toISOString().split('T')[0],
-    qr_code: dbAsset.asset_tag || `QR${dbAsset.serial_number}`,
-    condition: 'Good', // Default since not in DB
-    department: '',
-    description: dbAsset.notes
-  });
+  const transformAsset = (dbAsset: any): Asset => {
+    // Create a mapping for status display
+    const statusDisplayMap = {
+      'active': 'Active',
+      'inactive': 'Inactive', 
+      'maintenance': 'In Maintenance',
+      'retired': 'Retired',
+      'missing': 'Missing',
+      'damaged': 'Damaged'
+    };
+
+    return {
+      id: dbAsset.id,
+      device_type: dbAsset.device_type,
+      status: dbAsset.status || 'active',
+      assigned_to: dbAsset.assigned_to,
+      purchase_price: dbAsset.purchase_price,
+      location: dbAsset.location,
+      updated_at: dbAsset.updated_at,
+      serial_number: dbAsset.serial_number,
+      purchase_date: dbAsset.purchase_date,
+      warranty_expiry: dbAsset.warranty_expiry,
+      brand: dbAsset.brand,
+      model: dbAsset.model,
+      notes: dbAsset.notes,
+      asset_tag: dbAsset.asset_tag,
+      // Computed fields
+      name: `${dbAsset.brand} ${dbAsset.model}`,
+      category: dbAsset.device_type?.replace('_', ' ')?.replace(/\b\w/g, l => l.toUpperCase()) || 'Unknown',
+      assignee: dbAsset.assigned_to || '-',
+      value: dbAsset.purchase_price || 0,
+      last_updated: dbAsset.updated_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+      qr_code: dbAsset.asset_tag || `QR${dbAsset.serial_number}`,
+      condition: 'Good', // Default since not in DB
+      department: '',
+      description: dbAsset.notes
+    };
+  };
 
   // Fetch all data from Supabase
   const fetchData = async () => {

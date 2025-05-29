@@ -24,7 +24,7 @@ const AddAsset = () => {
     serialNumber: '',
     assetTag: '',
     location: '',
-    status: 'available',
+    status: 'active', // Updated to use correct enum value
     
     // Assignment
     assignedTo: '',
@@ -152,7 +152,7 @@ const AddAsset = () => {
                 ) : (
                   <Button
                     onClick={handleSubmit}
-                    className="flex items-center space-x-2 bg-green-600 hover:bg-green-700"
+                    className="flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700"
                   >
                     <Check className="h-4 w-4" />
                     <span>Create Asset</span>
