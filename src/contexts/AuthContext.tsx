@@ -95,7 +95,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const signup = async (email: string, password: string, name: string, role: 'admin' | 'employee'): Promise<boolean> => {
     try {
       setIsLoading(true);
-      console.log('🚀 [AuthContext] Using new SignupService for:', email);
+      console.log('🚀 [AuthContext] Using simplified SignupService for:', email);
       
       const result = await SignupService.createEmployeeAccount(email, password, name);
       

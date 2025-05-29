@@ -1,11 +1,11 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Eye, EyeOff, ArrowLeft, AlertCircle, CheckCircle } from 'lucide-react';
+import { Users, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { SignupService } from '@/services/signupService';
@@ -18,76 +18,42 @@ const EmployeeSignup = () => {
     confirmPassword: ''
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.name.trim()) {
-      newErrors.name = 'Full name is required';
-    } else if (formData.name.trim().length < 2) {
-      newErrors.name = 'Name must be at least 2 characters';
-    }
-
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
-    }
-
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) {
-      toast.error('Please fix the errors below');
+    // Only check if fields are filled
+    if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      toast.error('Passwords do not match');
       return;
     }
 
     setIsLoading(true);
     console.log('🚀 [EmployeeSignup] Starting signup process');
 
-    try {
-      const result = await SignupService.createEmployeeAccount(
-        formData.email,
-        formData.password,
-        formData.name
-      );
+    const result = await SignupService.createEmployeeAccount(
+      formData.email,
+      formData.password,
+      formData.name
+    );
 
-      if (result.success) {
-        console.log('✅ [EmployeeSignup] Signup successful');
-        toast.success('Account created successfully! Please check your email to verify your account.');
-        navigate('/employee/login');
-      } else {
-        console.error('❌ [EmployeeSignup] Signup failed:', result.error);
-        toast.error(result.error || 'Failed to create account. Please try again.');
-        
-        // Set specific field errors if possible
-        if (result.error?.toLowerCase().includes('email')) {
-          setErrors(prev => ({ ...prev, email: result.error || 'Email error' }));
-        }
-      }
-    } catch (error: any) {
-      console.error('💥 [EmployeeSignup] Unexpected error:', error);
-      toast.error('An unexpected error occurred. Please try again.');
-    } finally {
-      setIsLoading(false);
+    if (result.success) {
+      console.log('✅ [EmployeeSignup] Signup successful');
+      toast.success('Account created successfully!');
+      navigate('/employee/login');
+    } else {
+      console.error('❌ [EmployeeSignup] Signup failed:', result.error);
+      toast.error(result.error || 'Signup failed');
     }
+
+    setIsLoading(false);
   };
 
   return (
@@ -126,15 +92,9 @@ const EmployeeSignup = () => {
                     placeholder="Jane Smith"
                     value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className={`h-12 ${errors.name ? 'border-red-500' : ''}`}
+                    className="h-12"
                     required
                   />
-                  {errors.name && (
-                    <p className="text-sm text-red-600 flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      {errors.name}
-                    </p>
-                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -142,18 +102,12 @@ const EmployeeSignup = () => {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="employee@gmail.com"
+                    placeholder="test@gmail.com"
                     value={formData.email}
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    className={`h-12 ${errors.email ? 'border-red-500' : ''}`}
+                    className="h-12"
                     required
                   />
-                  {errors.email && (
-                    <p className="text-sm text-red-600 flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      {errors.email}
-                    </p>
-                  )}
                 </div>
                 
                 <div className="space-y-2">
@@ -165,7 +119,7 @@ const EmployeeSignup = () => {
                       placeholder="Create a password"
                       value={formData.password}
                       onChange={(e) => setFormData({...formData, password: e.target.value})}
-                      className={`h-12 pr-12 ${errors.password ? 'border-red-500' : ''}`}
+                      className="h-12 pr-12"
                       required
                     />
                     <Button
@@ -178,12 +132,6 @@ const EmployeeSignup = () => {
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
                   </div>
-                  {errors.password && (
-                    <p className="text-sm text-red-600 flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      {errors.password}
-                    </p>
-                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -194,21 +142,9 @@ const EmployeeSignup = () => {
                     placeholder="Confirm your password"
                     value={formData.confirmPassword}
                     onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
-                    className={`h-12 ${errors.confirmPassword ? 'border-red-500' : ''}`}
+                    className="h-12"
                     required
                   />
-                  {errors.confirmPassword && (
-                    <p className="text-sm text-red-600 flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      {errors.confirmPassword}
-                    </p>
-                  )}
-                </div>
-
-                <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md">
-                  <p className="text-sm text-blue-700 dark:text-blue-300">
-                    <strong>Tip:</strong> Use a standard email provider like Gmail, Outlook, or Yahoo for the best experience.
-                  </p>
                 </div>
 
                 <Button 
