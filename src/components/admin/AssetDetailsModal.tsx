@@ -20,7 +20,7 @@ const AssetDetailsModal = ({ asset, isOpen, onClose }: AssetDetailsModalProps) =
       case 'Assigned':
         return 'bg-blue-100 text-blue-800';
       case 'In Repair':
-        return 'bg-red-100 text-red-800';
+        return 'bg-cyan-100 text-cyan-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -176,14 +176,14 @@ const AssetDetailsModal = ({ asset, isOpen, onClose }: AssetDetailsModalProps) =
                     </div>
                   </div>
                   
-                  <div className="flex items-center justify-between p-3 border rounded-lg bg-red-50">
+                  <div className="flex items-center justify-between p-3 border rounded-lg bg-cyan-50">
                     <div>
                       <p className="font-medium">Hardware Check</p>
                       <p className="text-sm text-gray-600">Screen calibration required</p>
                     </div>
                     <div className="text-right">
                       <p className="text-sm text-gray-600">Overdue: 2024-01-20</p>
-                      <Badge className="bg-red-100 text-red-800">Overdue</Badge>
+                      <Badge className="bg-cyan-100 text-cyan-800">Overdue</Badge>
                     </div>
                   </div>
                 </div>

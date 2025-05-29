@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,7 +40,7 @@ const Dashboard = () => {
   const statsCards = [
     { title: 'Total Devices', value: assetStats.total, color: 'bg-blue-500', icon: '📱' },
     { title: 'In Use', value: assetStats.inUse, color: 'bg-green-500', icon: '✅' },
-    { title: 'Available', value: assetStats.available, color: 'bg-yellow-500', icon: '🔄' },
+    { title: 'Available', value: assetStats.available, color: 'bg-indigo-500', icon: '🔄' },
     { title: 'Faulty', value: assetStats.faulty, color: 'bg-red-500', icon: '⚠️' },
   ];
 

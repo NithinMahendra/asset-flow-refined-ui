@@ -59,7 +59,7 @@ const MaintenanceTab = () => {
     switch (status) {
       case 'Completed': return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'In Progress': return <Clock className="h-4 w-4 text-blue-500" />;
-      case 'Pending': return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
+      case 'Pending': return <AlertTriangle className="h-4 w-4 text-cyan-500" />;
       default: return <Clock className="h-4 w-4 text-gray-400" />;
     }
   };
@@ -68,7 +68,7 @@ const MaintenanceTab = () => {
     switch (status) {
       case 'Completed': return <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Completed</Badge>;
       case 'In Progress': return <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">In Progress</Badge>;
-      case 'Pending': return <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">Pending</Badge>;
+      case 'Pending': return <Badge className="bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200">Pending</Badge>;
       default: return <Badge variant="secondary">{status}</Badge>;
     }
   };
@@ -76,7 +76,7 @@ const MaintenanceTab = () => {
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'High': return 'text-red-500';
-      case 'Medium': return 'text-yellow-500';
+      case 'Medium': return 'text-emerald-500';
       case 'Low': return 'text-green-500';
       default: return 'text-gray-500';
     }

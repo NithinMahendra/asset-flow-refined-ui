@@ -27,7 +27,7 @@ const KPICards = () => {
       change: '-1.5%',
       trend: 'down',
       icon: Clock,
-      color: 'bg-yellow-500',
+      color: 'bg-indigo-500',
     },
     {
       title: 'Under Repair',
