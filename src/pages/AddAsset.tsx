@@ -16,15 +16,15 @@ const AddAsset = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
-    // General Info
+    // General Info - using database enum values
     deviceName: '',
-    deviceType: '',
+    deviceType: 'laptop', // Default to valid enum value
     brand: '',
     model: '',
     serialNumber: '',
     assetTag: '',
     location: '',
-    status: 'active', // Updated to use correct enum value
+    status: 'active', // Default to valid enum value
     
     // Assignment
     assignedTo: '',
@@ -51,6 +51,7 @@ const AddAsset = () => {
   ];
 
   const updateFormData = (field: string, value: any) => {
+    console.log(`Updating ${field} to:`, value);
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -67,7 +68,7 @@ const AddAsset = () => {
   };
 
   const handleSubmit = () => {
-    console.log('Submitting asset:', formData);
+    console.log('Final form data being submitted:', formData);
     // Here you would submit to your backend
     navigate('/assets');
   };
@@ -90,32 +91,35 @@ const AddAsset = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-6">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <Button
             variant="ghost"
             onClick={() => navigate('/assets')}
-            className="mb-4"
+            className="mb-4 p-2 sm:p-3"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Assets
+            <span className="hidden sm:inline">Back to Assets</span>
+            <span className="sm:hidden">Back</span>
           </Button>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
             Add New Asset
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-2">
             Follow the steps below to register a new device in the system
           </p>
         </div>
 
         {/* Progress Indicator */}
-        <StepProgress steps={steps} currentStep={currentStep} />
+        <div className="mb-6 sm:mb-8">
+          <StepProgress steps={steps} currentStep={currentStep} />
+        </div>
 
         {/* Form Content */}
-        <Card className="glass-effect mt-8">
-          <CardContent className="p-8">
+        <Card className="glass-effect">
+          <CardContent className="p-4 sm:p-6 lg:p-8">
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentStep}
@@ -129,22 +133,22 @@ const AddAsset = () => {
             </AnimatePresence>
 
             {/* Navigation Buttons */}
-            <div className="flex justify-between mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex flex-col sm:flex-row justify-between mt-6 sm:mt-8 pt-6 border-t border-gray-200 dark:border-gray-700 space-y-3 sm:space-y-0">
               <Button
                 variant="outline"
                 onClick={prevStep}
                 disabled={currentStep === 1}
-                className="flex items-center space-x-2"
+                className="flex items-center justify-center space-x-2 w-full sm:w-auto"
               >
                 <ArrowLeft className="h-4 w-4" />
                 <span>Previous</span>
               </Button>
 
-              <div className="flex space-x-3">
+              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
                 {currentStep < steps.length ? (
                   <Button
                     onClick={nextStep}
-                    className="flex items-center space-x-2"
+                    className="flex items-center justify-center space-x-2 w-full sm:w-auto"
                   >
                     <span>Next</span>
                     <ArrowRight className="h-4 w-4" />
@@ -152,7 +156,7 @@ const AddAsset = () => {
                 ) : (
                   <Button
                     onClick={handleSubmit}
-                    className="flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700"
+                    className="flex items-center justify-center space-x-2 bg-emerald-600 hover:bg-emerald-700 w-full sm:w-auto"
                   >
                     <Check className="h-4 w-4" />
                     <span>Create Asset</span>

@@ -259,27 +259,40 @@ export const useSupabaseData = () => {
     }
   };
 
-  // Add asset to Supabase
+  // Add asset to Supabase with better data validation
   const addAsset = async (assetData: any) => {
     try {
       const assetTag = `QR${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
+      // Ensure clean data with proper enum validation
       const dbAssetData = {
-        device_type: assetData.device_type,
-        status: assetData.status,
-        assigned_to: assetData.assigned_to,
-        purchase_price: assetData.purchase_price,
-        location: assetData.location,
-        serial_number: assetData.serial_number,
-        purchase_date: assetData.purchase_date,
-        warranty_expiry: assetData.warranty_expiry,
-        brand: assetData.brand,
-        model: assetData.model,
-        notes: assetData.notes,
+        device_type: String(assetData.device_type), // Ensure string
+        status: String(assetData.status), // Ensure string
+        assigned_to: assetData.assigned_to || null,
+        purchase_price: Number(assetData.purchase_price) || 0,
+        location: String(assetData.location),
+        serial_number: String(assetData.serial_number),
+        purchase_date: assetData.purchase_date || null,
+        warranty_expiry: assetData.warranty_expiry || null,
+        brand: String(assetData.brand),
+        model: String(assetData.model),
+        notes: assetData.notes || null,
         asset_tag: assetTag
       };
 
-      console.log('Inserting asset data:', dbAssetData);
+      // Validate enum values before sending to database
+      const validDeviceTypes = ['laptop', 'desktop', 'server', 'monitor', 'tablet', 'smartphone', 'network_switch', 'router', 'printer', 'scanner', 'projector', 'other'];
+      const validStatuses = ['active', 'inactive', 'maintenance', 'retired', 'missing', 'damaged'];
+
+      if (!validDeviceTypes.includes(dbAssetData.device_type)) {
+        throw new Error(`Invalid device type: ${dbAssetData.device_type}. Must be one of: ${validDeviceTypes.join(', ')}`);
+      }
+
+      if (!validStatuses.includes(dbAssetData.status)) {
+        throw new Error(`Invalid status: ${dbAssetData.status}. Must be one of: ${validStatuses.join(', ')}`);
+      }
+
+      console.log('Validated asset data for insertion:', dbAssetData);
 
       const { data, error } = await supabase
         .from('assets')

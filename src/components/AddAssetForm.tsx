@@ -52,7 +52,16 @@ const AddAssetForm = ({ onClose, onSuccess }: AddAssetFormProps) => {
     resolver: zodResolver(assetSchema),
     defaultValues: {
       status: 'active',
-      assigned_to: ''
+      assigned_to: '',
+      device_type: 'laptop',
+      brand: '',
+      model: '',
+      serial_number: '',
+      location: '',
+      purchase_price: 0,
+      purchase_date: '',
+      warranty_expiry: '',
+      notes: ''
     }
   });
 
@@ -107,19 +116,19 @@ const AddAssetForm = ({ onClose, onSuccess }: AddAssetFormProps) => {
   };
 
   const onSubmit = async (data: AssetFormData) => {
-    console.log('Form submission data:', data);
+    console.log('Clean form submission data:', data);
     setIsSubmitting(true);
     
     try {
       // Generate QR code
       await generateQRCode(data);
       
-      // Prepare asset data matching the database schema exactly
-      const assetData = {
-        device_type: data.device_type,
-        status: data.status,
+      // Prepare clean asset data - no object wrapping, direct enum values
+      const cleanAssetData = {
+        device_type: data.device_type, // Direct enum value
+        status: data.status, // Direct enum value
         assigned_to: data.assigned_to || null,
-        purchase_price: data.purchase_price,
+        purchase_price: Number(data.purchase_price),
         location: data.location,
         serial_number: data.serial_number,
         purchase_date: data.purchase_date,
@@ -131,9 +140,9 @@ const AddAssetForm = ({ onClose, onSuccess }: AddAssetFormProps) => {
         updated_at: new Date().toISOString()
       };
 
-      console.log('Processed asset data for database:', assetData);
+      console.log('Clean asset data for database:', cleanAssetData);
 
-      await addAsset(assetData);
+      await addAsset(cleanAssetData);
       
       toast({
         title: 'Success!',
@@ -165,7 +174,7 @@ const AddAssetForm = ({ onClose, onSuccess }: AddAssetFormProps) => {
   return (
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
-        <CardTitle className="flex items-center justify-between">
+        <CardTitle className="flex items-center justify-between text-lg sm:text-xl">
           <span>Add New Asset</span>
           {onClose && (
             <Button variant="ghost" size="icon" onClick={handleCancel}>
@@ -175,16 +184,22 @@ const AddAssetForm = ({ onClose, onSuccess }: AddAssetFormProps) => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {/* Basic Information */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Basic Information</h3>
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Basic Information</h3>
               
               <div>
-                <Label htmlFor="device_type">Device Type *</Label>
-                <Select onValueChange={(value) => setValue('device_type', value as any)}>
-                  <SelectTrigger className={errors.device_type ? 'border-red-500' : ''}>
+                <Label htmlFor="device_type" className="text-sm font-medium">Device Type *</Label>
+                <Select 
+                  value={watch('device_type')} 
+                  onValueChange={(value) => {
+                    console.log('Setting device_type to:', value);
+                    setValue('device_type', value as any, { shouldValidate: true });
+                  }}
+                >
+                  <SelectTrigger className={`mt-1 ${errors.device_type ? 'border-red-500' : ''}`}>
                     <SelectValue placeholder="Select device type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -202,12 +217,12 @@ const AddAssetForm = ({ onClose, onSuccess }: AddAssetFormProps) => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="brand">Brand *</Label>
+                  <Label htmlFor="brand" className="text-sm font-medium">Brand *</Label>
                   <Input
                     id="brand"
                     {...register('brand')}
                     placeholder="e.g., Apple, Dell, HP"
-                    className={errors.brand ? 'border-red-500' : ''}
+                    className={`mt-1 ${errors.brand ? 'border-red-500' : ''}`}
                   />
                   {errors.brand && (
                     <p className="text-sm text-red-500 mt-1">{errors.brand.message}</p>
@@ -215,12 +230,12 @@ const AddAssetForm = ({ onClose, onSuccess }: AddAssetFormProps) => {
                 </div>
 
                 <div>
-                  <Label htmlFor="model">Model *</Label>
+                  <Label htmlFor="model" className="text-sm font-medium">Model *</Label>
                   <Input
                     id="model"
                     {...register('model')}
                     placeholder="e.g., MacBook Pro M3"
-                    className={errors.model ? 'border-red-500' : ''}
+                    className={`mt-1 ${errors.model ? 'border-red-500' : ''}`}
                   />
                   {errors.model && (
                     <p className="text-sm text-red-500 mt-1">{errors.model.message}</p>
@@ -229,12 +244,12 @@ const AddAssetForm = ({ onClose, onSuccess }: AddAssetFormProps) => {
               </div>
 
               <div>
-                <Label htmlFor="serial_number">Serial Number *</Label>
+                <Label htmlFor="serial_number" className="text-sm font-medium">Serial Number *</Label>
                 <Input
                   id="serial_number"
                   {...register('serial_number')}
                   placeholder="e.g., MP-2024-001"
-                  className={errors.serial_number ? 'border-red-500' : ''}
+                  className={`mt-1 ${errors.serial_number ? 'border-red-500' : ''}`}
                 />
                 {errors.serial_number && (
                   <p className="text-sm text-red-500 mt-1">{errors.serial_number.message}</p>
@@ -242,12 +257,12 @@ const AddAssetForm = ({ onClose, onSuccess }: AddAssetFormProps) => {
               </div>
 
               <div>
-                <Label htmlFor="location">Location *</Label>
+                <Label htmlFor="location" className="text-sm font-medium">Location *</Label>
                 <Input
                   id="location"
                   {...register('location')}
                   placeholder="e.g., Office Floor 2"
-                  className={errors.location ? 'border-red-500' : ''}
+                  className={`mt-1 ${errors.location ? 'border-red-500' : ''}`}
                 />
                 {errors.location && (
                   <p className="text-sm text-red-500 mt-1">{errors.location.message}</p>
@@ -257,12 +272,18 @@ const AddAssetForm = ({ onClose, onSuccess }: AddAssetFormProps) => {
 
             {/* Additional Details */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Additional Details</h3>
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Additional Details</h3>
               
               <div>
-                <Label htmlFor="status">Status</Label>
-                <Select onValueChange={(value) => setValue('status', value as any)} defaultValue="active">
-                  <SelectTrigger>
+                <Label htmlFor="status" className="text-sm font-medium">Status</Label>
+                <Select 
+                  value={watch('status')} 
+                  onValueChange={(value) => {
+                    console.log('Setting status to:', value);
+                    setValue('status', value as any, { shouldValidate: true });
+                  }}
+                >
+                  <SelectTrigger className="mt-1">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -276,23 +297,24 @@ const AddAssetForm = ({ onClose, onSuccess }: AddAssetFormProps) => {
               </div>
 
               <div>
-                <Label htmlFor="assigned_to">Assigned To</Label>
+                <Label htmlFor="assigned_to" className="text-sm font-medium">Assigned To</Label>
                 <Input
                   id="assigned_to"
                   {...register('assigned_to')}
                   placeholder="Employee name or email"
+                  className="mt-1"
                 />
               </div>
 
               <div>
-                <Label htmlFor="purchase_price">Purchase Price ($) *</Label>
+                <Label htmlFor="purchase_price" className="text-sm font-medium">Purchase Price ($) *</Label>
                 <Input
                   id="purchase_price"
                   type="number"
                   step="0.01"
                   {...register('purchase_price', { valueAsNumber: true })}
                   placeholder="0.00"
-                  className={errors.purchase_price ? 'border-red-500' : ''}
+                  className={`mt-1 ${errors.purchase_price ? 'border-red-500' : ''}`}
                 />
                 {errors.purchase_price && (
                   <p className="text-sm text-red-500 mt-1">{errors.purchase_price.message}</p>
@@ -301,12 +323,12 @@ const AddAssetForm = ({ onClose, onSuccess }: AddAssetFormProps) => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="purchase_date">Purchase Date *</Label>
+                  <Label htmlFor="purchase_date" className="text-sm font-medium">Purchase Date *</Label>
                   <Input
                     id="purchase_date"
                     type="date"
                     {...register('purchase_date')}
-                    className={errors.purchase_date ? 'border-red-500' : ''}
+                    className={`mt-1 ${errors.purchase_date ? 'border-red-500' : ''}`}
                   />
                   {errors.purchase_date && (
                     <p className="text-sm text-red-500 mt-1">{errors.purchase_date.message}</p>
@@ -314,22 +336,24 @@ const AddAssetForm = ({ onClose, onSuccess }: AddAssetFormProps) => {
                 </div>
 
                 <div>
-                  <Label htmlFor="warranty_expiry">Warranty Expiry</Label>
+                  <Label htmlFor="warranty_expiry" className="text-sm font-medium">Warranty Expiry</Label>
                   <Input
                     id="warranty_expiry"
                     type="date"
                     {...register('warranty_expiry')}
+                    className="mt-1"
                   />
                 </div>
               </div>
 
               <div>
-                <Label htmlFor="notes">Notes</Label>
+                <Label htmlFor="notes" className="text-sm font-medium">Notes</Label>
                 <Textarea
                   id="notes"
                   {...register('notes')}
                   placeholder="Additional notes or description..."
                   rows={3}
+                  className="mt-1"
                 />
               </div>
 
@@ -344,14 +368,20 @@ const AddAssetForm = ({ onClose, onSuccess }: AddAssetFormProps) => {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex justify-end space-x-4 pt-6 border-t">
-            <Button type="button" variant="outline" onClick={handleCancel} disabled={isSubmitting}>
+          <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-4 pt-6 border-t">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={handleCancel} 
+              disabled={isSubmitting}
+              className="w-full sm:w-auto"
+            >
               Cancel
             </Button>
             <Button 
               type="submit" 
               disabled={isSubmitting}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white"
+              className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white"
             >
               {isSubmitting ? (
                 <>
