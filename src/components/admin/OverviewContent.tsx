@@ -98,13 +98,35 @@ const OverviewContent = () => {
     }
   ];
 
+  // Helper function to safely convert activity details to string
+  const formatActivityDetails = (activity: any) => {
+    if (!activity.details) return 'No details available';
+    
+    if (typeof activity.details === 'string') return activity.details;
+    
+    if (typeof activity.details === 'object' && activity.details !== null) {
+      const { asset_name, serial_number } = activity.details;
+      if (asset_name && serial_number) {
+        return `${asset_name} (${serial_number})`;
+      }
+      if (asset_name) {
+        return asset_name;
+      }
+      if (serial_number) {
+        return `Serial: ${serial_number}`;
+      }
+      // Fallback for other object structures
+      return JSON.stringify(activity.details);
+    }
+    
+    return 'No details available';
+  };
+
   const recentActivity = activityLog.slice(0, 5).map(activity => ({
     id: activity.id,
-    action: activity.action,
+    action: activity.action || 'Unknown Action',
     timestamp: activity.timestamp,
-    details: typeof activity.details === 'object' && activity.details ? 
-      `${activity.details.asset_name || 'Unknown Asset'} (${activity.details.serial_number || 'No Serial'})` :
-      'No details available'
+    details: formatActivityDetails(activity)
   }));
 
   return (

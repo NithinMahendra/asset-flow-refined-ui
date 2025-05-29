@@ -113,17 +113,28 @@ export const useSupabaseData = () => {
         setAssetAssignments([]);
       }
 
-      // Handle activity log with better error handling
+      // Handle activity log with better error handling and data sanitization
       if (results[3].status === 'fulfilled' && !results[3].value.error) {
         const activityData = results[3].value.data || [];
         // Transform data to include legacy fields and safely handle details
-        const transformedActivity = activityData.map((activity: any) => ({
-          ...activity,
-          type: activity.action?.toLowerCase().includes('assignment') ? 'assignment' :
-                activity.action?.toLowerCase().includes('maintenance') ? 'maintenance' :
-                activity.action?.toLowerCase().includes('addition') ? 'addition' : 'general',
-          details: activity.details || null // Ensure details is not undefined
-        }));
+        const transformedActivity = activityData.map((activity: any) => {
+          // Ensure details is safe for React rendering
+          let safeDetails = activity.details;
+          if (safeDetails && typeof safeDetails === 'object') {
+            // Keep the object structure but ensure it's properly handled later
+            safeDetails = { ...safeDetails };
+          }
+          
+          return {
+            ...activity,
+            type: activity.action?.toLowerCase().includes('assignment') ? 'assignment' :
+                  activity.action?.toLowerCase().includes('maintenance') ? 'maintenance' :
+                  activity.action?.toLowerCase().includes('addition') ? 'addition' : 'general',
+            details: safeDetails,
+            action: activity.action || 'Unknown Action',
+            timestamp: activity.timestamp || new Date().toISOString()
+          };
+        });
         setActivityLog(transformedActivity);
         console.log('✅ Activity log loaded successfully:', transformedActivity.length);
       } else {
