@@ -31,81 +31,35 @@ import {
 import AddAssetForm from '@/components/admin/AddAssetForm';
 import AssetDetailsModal from '@/components/admin/AssetDetailsModal';
 import BulkOperationsPanel from '@/components/admin/BulkOperationsPanel';
-
-interface Asset {
-  id: string;
-  name: string;
-  category: string;
-  status: string;
-  assignee: string;
-  value: string;
-  location: string;
-  lastUpdated: string;
-  qrCode: string;
-  serialNumber: string;
-  purchaseDate: string;
-  warrantyExpiry: string;
-}
+import { useAdminData } from '@/contexts/AdminDataContext';
 
 const AssetManagementContent = () => {
   const { toast } = useToast();
+  const {
+    assets,
+    getAssetStats,
+    getCategoryStats,
+    getUtilizationRate,
+    getMaintenanceRate,
+    getAverageAssetAge,
+    getUpcomingWarrantyExpiries,
+    getOverdueMaintenanceAssets,
+    addAsset
+  } = useAdminData();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showBulkPanel, setShowBulkPanel] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<any>(null);
-  
-  const [assets, setAssets] = useState<Asset[]>([
-    { 
-      id: 'AST-001', 
-      name: 'MacBook Pro M3', 
-      category: 'Laptop', 
-      status: 'Available', 
-      assignee: '-', 
-      value: '$2,499', 
-      location: 'Warehouse A', 
-      lastUpdated: '2024-01-15',
-      qrCode: 'QR001-AST001-2024',
-      serialNumber: 'MP-2024-001',
-      purchaseDate: '2024-01-10',
-      warrantyExpiry: '2027-01-10'
-    },
-    { 
-      id: 'AST-002', 
-      name: 'iPhone 15 Pro', 
-      category: 'Mobile', 
-      status: 'Assigned', 
-      assignee: 'John Doe', 
-      value: '$999', 
-      location: 'Office Floor 2', 
-      lastUpdated: '2024-01-14',
-      qrCode: 'QR002-AST002-2024',
-      serialNumber: 'IP-2024-002',
-      purchaseDate: '2024-01-08',
-      warrantyExpiry: '2026-01-08'
-    },
-    { 
-      id: 'AST-003', 
-      name: 'Dell Monitor 27"', 
-      category: 'Monitor', 
-      status: 'In Repair', 
-      assignee: '-', 
-      value: '$329', 
-      location: 'IT Department', 
-      lastUpdated: '2024-01-13',
-      qrCode: 'QR003-AST003-2024',
-      serialNumber: 'DM-2024-003',
-      purchaseDate: '2024-01-05',
-      warrantyExpiry: '2026-01-05'
-    },
-  ]);
 
-  const categories = [
-    { name: 'Laptops', count: 45, value: '$112,455', color: 'bg-blue-100 text-blue-800' },
-    { name: 'Mobile Devices', count: 32, value: '$31,968', color: 'bg-green-100 text-green-800' },
-    { name: 'Monitors', count: 28, value: '$9,212', color: 'bg-purple-100 text-purple-800' },
-    { name: 'Accessories', count: 156, value: '$12,324', color: 'bg-gray-100 text-gray-800' },
-  ];
+  const assetStats = getAssetStats();
+  const categoryStats = getCategoryStats();
+  const utilizationRate = getUtilizationRate();
+  const maintenanceRate = getMaintenanceRate();
+  const averageAge = getAverageAssetAge();
+  const upcomingWarranties = getUpcomingWarrantyExpiries();
+  const overdueAssets = getOverdueMaintenanceAssets();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -122,6 +76,16 @@ const AssetManagementContent = () => {
     }
   };
 
+  const getCategoryColor = (index: number) => {
+    const colors = [
+      'bg-blue-100 text-blue-800',
+      'bg-green-100 text-green-800',
+      'bg-purple-100 text-purple-800',
+      'bg-gray-100 text-gray-800',
+    ];
+    return colors[index % colors.length];
+  };
+
   const handleSelectAsset = (assetId: string) => {
     setSelectedAssets(prev => 
       prev.includes(assetId) 
@@ -131,33 +95,27 @@ const AssetManagementContent = () => {
   };
 
   const handleAssetCreated = (newAsset: any) => {
-    // Generate unique asset ID and QR code
-    const assetId = `AST-${String(assets.length + 1).padStart(3, '0')}`;
-    const qrCode = `QR${Date.now()}-${assetId}-${new Date().getFullYear()}`;
-    
-    const asset: Asset = {
-      id: assetId,
-      name: newAsset.name,
-      category: newAsset.category,
-      status: newAsset.status,
-      assignee: newAsset.assignedTo || '-',
-      value: `$${newAsset.purchasePrice}`,
-      location: newAsset.location,
-      lastUpdated: new Date().toISOString().split('T')[0],
-      qrCode: qrCode,
-      serialNumber: newAsset.serialNumber,
-      purchaseDate: newAsset.purchaseDate,
-      warrantyExpiry: newAsset.warrantyExpiry
-    };
-
-    setAssets(prev => [...prev, asset]);
+    addAsset(newAsset);
     setShowAddForm(false);
     
     toast({
       title: "Asset Created Successfully",
-      description: `${newAsset.name} has been added with ID ${assetId}`,
+      description: `${newAsset.name} has been added to inventory`,
     });
   };
+
+  const filteredAssets = assets.filter(asset =>
+    asset.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    asset.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    asset.category.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Calculate depreciation alerts (assets older than 3 years with high value)
+  const depreciationAlerts = assets.filter(asset => {
+    const purchaseDate = new Date(asset.purchaseDate);
+    const ageInYears = (new Date().getTime() - purchaseDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
+    return ageInYears > 3 && asset.value > 1000;
+  });
 
   return (
     <div className="space-y-6">
@@ -235,7 +193,7 @@ const AssetManagementContent = () => {
                         type="checkbox"
                         onChange={(e) => {
                           if (e.target.checked) {
-                            setSelectedAssets(assets.map(a => a.id));
+                            setSelectedAssets(filteredAssets.map(a => a.id));
                           } else {
                             setSelectedAssets([]);
                           }
@@ -255,7 +213,7 @@ const AssetManagementContent = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {assets.map((asset) => (
+                  {filteredAssets.map((asset) => (
                     <TableRow key={asset.id} className="hover:bg-gray-50">
                       <TableCell>
                         <input
@@ -276,7 +234,7 @@ const AssetManagementContent = () => {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-gray-600">{asset.assignee}</TableCell>
-                      <TableCell className="font-medium">{asset.value}</TableCell>
+                      <TableCell className="font-medium">${asset.value.toLocaleString()}</TableCell>
                       <TableCell className="text-gray-600">{asset.location}</TableCell>
                       <TableCell>
                         <Button variant="ghost" size="sm">
@@ -313,20 +271,27 @@ const AssetManagementContent = () => {
 
         <TabsContent value="categories" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {categories.map((category, index) => (
+            {categoryStats.map((category, index) => (
               <Card key={index} className="hover:shadow-md transition-shadow">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-4">
                     <Package className="h-8 w-8 text-gray-400" />
-                    <Badge className={category.color}>{category.name}</Badge>
+                    <Badge className={getCategoryColor(index)}>{category.name}</Badge>
                   </div>
                   <div>
                     <p className="text-2xl font-semibold text-gray-900 mb-1">{category.count}</p>
-                    <p className="text-sm text-gray-600">Total value: {category.value}</p>
+                    <p className="text-sm text-gray-600">Total value: ${category.value.toLocaleString()}</p>
                   </div>
                 </CardContent>
               </Card>
             ))}
+            {categoryStats.length === 0 && (
+              <Card className="col-span-full">
+                <CardContent className="p-6 text-center">
+                  <p className="text-gray-500">No assets found</p>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </TabsContent>
 
@@ -338,7 +303,7 @@ const AssetManagementContent = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-center">
-                  <p className="text-3xl font-bold text-gray-900">85.2%</p>
+                  <p className="text-3xl font-bold text-gray-900">{utilizationRate.toFixed(1)}%</p>
                   <p className="text-sm text-gray-600">Currently in use</p>
                 </div>
               </CardContent>
@@ -350,7 +315,7 @@ const AssetManagementContent = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-center">
-                  <p className="text-3xl font-bold text-gray-900">3.1%</p>
+                  <p className="text-3xl font-bold text-gray-900">{maintenanceRate.toFixed(1)}%</p>
                   <p className="text-sm text-gray-600">Assets under repair</p>
                 </div>
               </CardContent>
@@ -362,7 +327,7 @@ const AssetManagementContent = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-center">
-                  <p className="text-3xl font-bold text-gray-900">2.4</p>
+                  <p className="text-3xl font-bold text-gray-900">{averageAge.toFixed(1)}</p>
                   <p className="text-sm text-gray-600">Years</p>
                 </div>
               </CardContent>
@@ -381,7 +346,7 @@ const AssetManagementContent = () => {
                   <Card className="border-red-200">
                     <CardContent className="p-4">
                       <h4 className="font-medium text-red-800 mb-2">Warranty Expiring Soon</h4>
-                      <p className="text-2xl font-bold text-red-600">12</p>
+                      <p className="text-2xl font-bold text-red-600">{upcomingWarranties.length}</p>
                       <p className="text-sm text-gray-600">Assets expiring in 30 days</p>
                     </CardContent>
                   </Card>
@@ -389,7 +354,7 @@ const AssetManagementContent = () => {
                   <Card className="border-blue-200">
                     <CardContent className="p-4">
                       <h4 className="font-medium text-blue-800 mb-2">Overdue Maintenance</h4>
-                      <p className="text-2xl font-bold text-blue-600">5</p>
+                      <p className="text-2xl font-bold text-blue-600">{overdueAssets.length}</p>
                       <p className="text-sm text-gray-600">Assets requiring attention</p>
                     </CardContent>
                   </Card>
@@ -397,7 +362,7 @@ const AssetManagementContent = () => {
                   <Card className="border-gray-200">
                     <CardContent className="p-4">
                       <h4 className="font-medium text-gray-800 mb-2">Depreciation Alert</h4>
-                      <p className="text-2xl font-bold text-gray-600">8</p>
+                      <p className="text-2xl font-bold text-gray-600">{depreciationAlerts.length}</p>
                       <p className="text-sm text-gray-600">High depreciation assets</p>
                     </CardContent>
                   </Card>

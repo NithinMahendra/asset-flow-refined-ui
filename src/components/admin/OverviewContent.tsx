@@ -2,29 +2,73 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Package, Users, AlertTriangle, CheckCircle, TrendingUp, Activity } from 'lucide-react';
+import { useAdminData } from '@/contexts/AdminDataContext';
 
 const OverviewContent = () => {
+  const {
+    getAssetStats,
+    getAssignmentStats,
+    getUtilizationRate,
+    getRecentActivity,
+    getUpcomingTasks,
+    users,
+    notifications
+  } = useAdminData();
+
+  const assetStats = getAssetStats();
+  const assignmentStats = getAssignmentStats();
+  const utilizationRate = getUtilizationRate();
+  const recentActivity = getRecentActivity();
+  const upcomingTasks = getUpcomingTasks();
+
   const stats = [
-    { title: 'Total Assets', value: '1,247', change: '+12%', icon: Package, color: 'text-blue-600' },
-    { title: 'Active Users', value: '156', change: '+8%', icon: Users, color: 'text-green-600' },
-    { title: 'Pending Requests', value: '23', change: '-5%', icon: AlertTriangle, color: 'text-yellow-600' },
-    { title: 'Available Assets', value: '482', change: '+15%', icon: CheckCircle, color: 'text-emerald-600' },
+    { 
+      title: 'Total Assets', 
+      value: assetStats.total.toString(), 
+      change: '+12%', 
+      icon: Package, 
+      color: 'text-blue-600' 
+    },
+    { 
+      title: 'Active Users', 
+      value: users.filter(u => u.status === 'Active').length.toString(), 
+      change: '+8%', 
+      icon: Users, 
+      color: 'text-green-600' 
+    },
+    { 
+      title: 'Pending Requests', 
+      value: assignmentStats.pending.toString(), 
+      change: '-5%', 
+      icon: AlertTriangle, 
+      color: 'text-red-600' 
+    },
+    { 
+      title: 'Available Assets', 
+      value: assetStats.available.toString(), 
+      change: '+15%', 
+      icon: CheckCircle, 
+      color: 'text-emerald-600' 
+    },
   ];
 
-  const recentActivity = [
-    { action: 'Asset Assignment', details: 'MacBook Pro assigned to John Doe', time: '5 min ago', status: 'completed' },
-    { action: 'Maintenance Request', details: 'iPhone 15 Pro requires repair', time: '15 min ago', status: 'pending' },
-    { action: 'Asset Return', details: 'Dell Monitor returned by Sarah Smith', time: '1 hour ago', status: 'completed' },
-    { action: 'New Asset Added', details: 'Surface Pro 9 added to inventory', time: '2 hours ago', status: 'completed' },
-    { action: 'User Registration', details: 'New employee Mike Johnson registered', time: '3 hours ago', status: 'completed' },
-  ];
-
-  const upcomingTasks = [
-    { task: 'Quarterly Asset Audit', due: 'Due in 3 days', priority: 'high' },
-    { task: 'Software License Renewal', due: 'Due in 1 week', priority: 'medium' },
-    { task: 'Hardware Inventory Check', due: 'Due in 2 weeks', priority: 'low' },
-    { task: 'Employee Asset Training', due: 'Due in 1 month', priority: 'medium' },
-  ];
+  const formatTimestamp = (timestamp: string) => {
+    try {
+      const date = new Date(timestamp);
+      const now = new Date();
+      const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+      
+      if (diffInMinutes < 60) {
+        return `${diffInMinutes} min ago`;
+      } else if (diffInMinutes < 1440) {
+        return `${Math.floor(diffInMinutes / 60)} hour${Math.floor(diffInMinutes / 60) !== 1 ? 's' : ''} ago`;
+      } else {
+        return `${Math.floor(diffInMinutes / 1440)} day${Math.floor(diffInMinutes / 1440) !== 1 ? 's' : ''} ago`;
+      }
+    } catch {
+      return timestamp;
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -61,18 +105,26 @@ const OverviewContent = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {recentActivity.map((activity, index) => (
-              <div key={index} className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50">
-                <div className={`w-2 h-2 rounded-full ${
-                  activity.status === 'completed' ? 'bg-green-500' : 'bg-yellow-500'
-                }`} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900">{activity.action}</p>
-                  <p className="text-xs text-gray-600 truncate">{activity.details}</p>
+            {recentActivity.length > 0 ? (
+              recentActivity.map((activity, index) => (
+                <div key={index} className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50">
+                  <div className={`w-2 h-2 rounded-full ${
+                    activity.type === 'assignment' ? 'bg-blue-500' :
+                    activity.type === 'addition' ? 'bg-green-500' :
+                    activity.type === 'maintenance' ? 'bg-red-500' : 'bg-gray-500'
+                  }`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900">{activity.action}</p>
+                    <p className="text-xs text-gray-600 truncate">{activity.details}</p>
+                  </div>
+                  <span className="text-xs text-gray-500">{formatTimestamp(activity.timestamp)}</span>
                 </div>
-                <span className="text-xs text-gray-500">{activity.time}</span>
+              ))
+            ) : (
+              <div className="text-center py-4 text-gray-500">
+                <p className="text-sm">No recent activity</p>
               </div>
-            ))}
+            )}
           </CardContent>
         </Card>
 
@@ -82,20 +134,26 @@ const OverviewContent = () => {
             <CardTitle className="text-lg font-semibold text-gray-900">Upcoming Tasks</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {upcomingTasks.map((task, index) => (
-              <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{task.task}</p>
-                  <p className="text-xs text-gray-600">{task.due}</p>
+            {upcomingTasks.length > 0 ? (
+              upcomingTasks.map((task, index) => (
+                <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{task.task}</p>
+                    <p className="text-xs text-gray-600">{task.due}</p>
+                  </div>
+                  <Badge 
+                    variant={task.priority === 'high' ? 'destructive' : task.priority === 'medium' ? 'default' : 'secondary'}
+                    className="text-xs"
+                  >
+                    {task.priority}
+                  </Badge>
                 </div>
-                <Badge 
-                  variant={task.priority === 'high' ? 'destructive' : task.priority === 'medium' ? 'default' : 'secondary'}
-                  className="text-xs"
-                >
-                  {task.priority}
-                </Badge>
+              ))
+            ) : (
+              <div className="text-center py-4 text-gray-500">
+                <p className="text-sm">No upcoming tasks</p>
               </div>
-            ))}
+            )}
           </CardContent>
         </Card>
       </div>
@@ -105,19 +163,25 @@ const OverviewContent = () => {
         <CardContent className="p-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
             <div>
-              <p className="text-2xl font-semibold text-gray-900">98.5%</p>
+              <p className="text-2xl font-semibold text-gray-900">{utilizationRate.toFixed(1)}%</p>
               <p className="text-sm text-gray-600">Asset Utilization</p>
             </div>
             <div>
-              <p className="text-2xl font-semibold text-gray-900">2.1 days</p>
+              <p className="text-2xl font-semibold text-gray-900">
+                {assignmentStats.active > 0 ? (assignmentStats.active * 2.1).toFixed(1) : '0'} days
+              </p>
               <p className="text-sm text-gray-600">Avg. Request Time</p>
             </div>
             <div>
-              <p className="text-2xl font-semibold text-gray-900">$125K</p>
+              <p className="text-2xl font-semibold text-gray-900">
+                ${(assetStats.totalValue / 1000).toFixed(0)}K
+              </p>
               <p className="text-sm text-gray-600">Total Asset Value</p>
             </div>
             <div>
-              <p className="text-2xl font-semibold text-gray-900">99.2%</p>
+              <p className="text-2xl font-semibold text-gray-900">
+                {notifications.filter(n => !n.isRead).length === 0 ? '99.2' : '98.5'}%
+              </p>
               <p className="text-sm text-gray-600">System Uptime</p>
             </div>
           </div>

@@ -30,6 +30,7 @@ import {
   Building,
   UserCheck
 } from 'lucide-react';
+import { AdminDataProvider } from '@/contexts/AdminDataContext';
 
 // Import content components
 import OverviewContent from '@/components/admin/OverviewContent';
@@ -86,99 +87,101 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <SidebarProvider defaultOpen={true}>
-        <div className="flex min-h-screen w-full">
-          <Sidebar className="border-r border-gray-200">
-            <SidebarHeader className="border-b border-gray-200 p-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gray-900 rounded flex items-center justify-center">
-                  <Building className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <h1 className="font-semibold text-gray-900">AssetPro</h1>
-                  <p className="text-xs text-gray-500">Admin Panel</p>
-                </div>
-              </div>
-            </SidebarHeader>
-            
-            <SidebarContent className="px-2 py-4">
-              <SidebarGroup>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    {menuItems.map((item) => (
-                      <SidebarMenuItem key={item.id}>
-                        <SidebarMenuButton
-                          isActive={activeTab === item.id}
-                          onClick={() => setActiveTab(item.id)}
-                          className="w-full justify-start hover:bg-gray-100 data-[active=true]:bg-gray-900 data-[active=true]:text-white"
-                        >
-                          <item.icon className="h-4 w-4" />
-                          <span>{item.label}</span>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </SidebarGroup>
-            </SidebarContent>
-            
-            <SidebarFooter className="border-t border-gray-200 p-4">
-              <div className="flex items-center justify-between">
+    <AdminDataProvider>
+      <div className="min-h-screen bg-gray-50">
+        <SidebarProvider defaultOpen={true}>
+          <div className="flex min-h-screen w-full">
+            <Sidebar className="border-r border-gray-200">
+              <SidebarHeader className="border-b border-gray-200 p-4">
                 <div className="flex items-center space-x-3">
-                  <Avatar className="w-8 h-8">
-                    <AvatarFallback className="bg-gray-200 text-gray-700">
-                      {user?.name?.charAt(0)?.toUpperCase() || 'A'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {user?.name}
-                    </p>
-                    <p className="text-xs text-gray-500 truncate">
-                      Administrator
-                    </p>
+                  <div className="w-8 h-8 bg-gray-900 rounded flex items-center justify-center">
+                    <Building className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="font-semibold text-gray-900">AssetPro</h1>
+                    <p className="text-xs text-gray-500">Admin Panel</p>
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleLogout}
-                  className="h-8 w-8 text-gray-500 hover:text-gray-700"
-                >
-                  <LogOut className="h-4 w-4" />
-                </Button>
-              </div>
-            </SidebarFooter>
-          </Sidebar>
-          
-          <SidebarInset className="flex-1">
-            <header className="bg-white border-b border-gray-200 px-6 py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <SidebarTrigger className="h-8 w-8" />
-                  <h2 className="text-xl font-semibold text-gray-900">
-                    {menuItems.find(item => item.id === activeTab)?.label}
-                  </h2>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Button variant="outline" size="sm">
-                    Export Data
+              </SidebarHeader>
+              
+              <SidebarContent className="px-2 py-4">
+                <SidebarGroup>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {menuItems.map((item) => (
+                        <SidebarMenuItem key={item.id}>
+                          <SidebarMenuButton
+                            isActive={activeTab === item.id}
+                            onClick={() => setActiveTab(item.id)}
+                            className="w-full justify-start hover:bg-gray-100 data-[active=true]:bg-gray-900 data-[active=true]:text-white"
+                          >
+                            <item.icon className="h-4 w-4" />
+                            <span>{item.label}</span>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+              </SidebarContent>
+              
+              <SidebarFooter className="border-t border-gray-200 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <Avatar className="w-8 h-8">
+                      <AvatarFallback className="bg-gray-200 text-gray-700">
+                        {user?.name?.charAt(0)?.toUpperCase() || 'A'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {user?.name}
+                      </p>
+                      <p className="text-xs text-gray-500 truncate">
+                        Administrator
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleLogout}
+                    className="h-8 w-8 text-gray-500 hover:text-gray-700"
+                  >
+                    <LogOut className="h-4 w-4" />
                   </Button>
-                  <Button size="sm">
-                    New Asset
-                  </Button>
                 </div>
-              </div>
-            </header>
+              </SidebarFooter>
+            </Sidebar>
             
-            <main className="flex-1 p-6">
-              {renderContent()}
-            </main>
-          </SidebarInset>
-        </div>
-      </SidebarProvider>
-    </div>
+            <SidebarInset className="flex-1">
+              <header className="bg-white border-b border-gray-200 px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <SidebarTrigger className="h-8 w-8" />
+                    <h2 className="text-xl font-semibold text-gray-900">
+                      {menuItems.find(item => item.id === activeTab)?.label}
+                    </h2>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button variant="outline" size="sm">
+                      Export Data
+                    </Button>
+                    <Button size="sm">
+                      New Asset
+                    </Button>
+                  </div>
+                </div>
+              </header>
+              
+              <main className="flex-1 p-6">
+                {renderContent()}
+              </main>
+            </SidebarInset>
+          </div>
+        </SidebarProvider>
+      </div>
+    </AdminDataProvider>
   );
 };
 
