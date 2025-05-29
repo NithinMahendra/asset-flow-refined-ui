@@ -1,14 +1,15 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Users, Eye, EyeOff, ArrowLeft, AlertCircle, CheckCircle } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { validateEmail, parseSupabaseError } from '@/utils/emailValidation';
 
 const EmployeeSignup = () => {
   const [formData, setFormData] = useState({
@@ -18,43 +19,110 @@ const EmployeeSignup = () => {
     confirmPassword: ''
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [emailValidation, setEmailValidation] = useState<{ isValid: boolean; error?: string }>({ isValid: true });
+  const [isValidating, setIsValidating] = useState(false);
   const { signup, isLoading } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    
-    if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
-      setError('Please fill in all fields');
-      toast.error('Please fill in all fields');
-      return;
+  // Real-time email validation
+  useEffect(() => {
+    if (formData.email) {
+      setIsValidating(true);
+      const timer = setTimeout(() => {
+        const validation = validateEmail(formData.email);
+        setEmailValidation(validation);
+        setIsValidating(false);
+        
+        if (!validation.isValid) {
+          setErrors(prev => ({ ...prev, email: validation.error || 'Invalid email' }));
+        } else {
+          setErrors(prev => {
+            const newErrors = { ...prev };
+            delete newErrors.email;
+            return newErrors;
+          });
+        }
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    } else {
+      setEmailValidation({ isValid: true });
+      setIsValidating(false);
+    }
+  }, [formData.email]);
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.name.trim()) {
+      newErrors.name = 'Full name is required';
+    } else if (formData.name.trim().length < 2) {
+      newErrors.name = 'Name must be at least 2 characters';
+    }
+
+    const emailValidationResult = validateEmail(formData.email);
+    if (!emailValidationResult.isValid) {
+      newErrors.email = emailValidationResult.error || 'Invalid email';
+    }
+
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
     }
 
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      toast.error('Passwords do not match');
-      return;
+      newErrors.confirmPassword = 'Passwords do not match';
     }
 
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
-      toast.error('Password must be at least 6 characters');
-      return;
-    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
-    console.log('🚀 Starting signup process...');
-    const success = await signup(formData.email, formData.password, formData.name, 'employee');
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    if (success) {
-      toast.success('Employee account created successfully! Please check your email to verify your account.');
-      navigate('/employee/login');
-    } else {
-      const errorMsg = 'Failed to create account. Please try again or contact support.';
-      setError(errorMsg);
-      toast.error(errorMsg);
+    if (!validateForm()) {
+      toast.error('Please fix the errors below');
+      return;
     }
+
+    console.log('🚀 Starting signup process for:', formData.email);
+    
+    try {
+      const success = await signup(formData.email, formData.password, formData.name, 'employee');
+      
+      if (success) {
+        toast.success('Account created successfully! Please check your email to verify your account.');
+        navigate('/employee/login');
+      } else {
+        // The error will be logged in the AuthContext
+        toast.error('Failed to create account. Please try again.');
+      }
+    } catch (error: any) {
+      console.error('❌ Signup exception:', error);
+      const errorMessage = parseSupabaseError(error);
+      toast.error(errorMessage);
+      
+      // Set specific field errors if possible
+      if (error?.message?.includes('email')) {
+        setErrors(prev => ({ ...prev, email: errorMessage }));
+      }
+    }
+  };
+
+  const getEmailInputIcon = () => {
+    if (isValidating) {
+      return <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400" />;
+    }
+    if (formData.email && emailValidation.isValid) {
+      return <CheckCircle className="h-4 w-4 text-green-500" />;
+    }
+    if (formData.email && !emailValidation.isValid) {
+      return <AlertCircle className="h-4 w-4 text-red-500" />;
+    }
+    return null;
   };
 
   return (
@@ -84,12 +152,6 @@ const EmployeeSignup = () => {
             </CardHeader>
             
             <CardContent className="space-y-6">
-              {error && (
-                <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
-                  {error}
-                </div>
-              )}
-              
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Full Name</Label>
@@ -99,22 +161,45 @@ const EmployeeSignup = () => {
                     placeholder="Jane Smith"
                     value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="h-12"
+                    className={`h-12 ${errors.name ? 'border-red-500' : ''}`}
                     required
                   />
+                  {errors.name && (
+                    <p className="text-sm text-red-600 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.name}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="employee@company.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    className="h-12"
-                    required
-                  />
+                  <div className="relative">
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="employee@gmail.com"
+                      value={formData.email}
+                      onChange={(e) => setFormData({...formData, email: e.target.value})}
+                      className={`h-12 pr-10 ${errors.email ? 'border-red-500' : emailValidation.isValid && formData.email ? 'border-green-500' : ''}`}
+                      required
+                    />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      {getEmailInputIcon()}
+                    </div>
+                  </div>
+                  {errors.email && (
+                    <p className="text-sm text-red-600 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.email}
+                    </p>
+                  )}
+                  {!errors.email && formData.email && emailValidation.isValid && (
+                    <p className="text-sm text-green-600 flex items-center gap-1">
+                      <CheckCircle className="h-3 w-3" />
+                      Email format looks good!
+                    </p>
+                  )}
                 </div>
                 
                 <div className="space-y-2">
@@ -126,7 +211,7 @@ const EmployeeSignup = () => {
                       placeholder="Create a password"
                       value={formData.password}
                       onChange={(e) => setFormData({...formData, password: e.target.value})}
-                      className="h-12 pr-12"
+                      className={`h-12 pr-12 ${errors.password ? 'border-red-500' : ''}`}
                       required
                     />
                     <Button
@@ -139,6 +224,12 @@ const EmployeeSignup = () => {
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
                   </div>
+                  {errors.password && (
+                    <p className="text-sm text-red-600 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.password}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -149,15 +240,27 @@ const EmployeeSignup = () => {
                     placeholder="Confirm your password"
                     value={formData.confirmPassword}
                     onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
-                    className="h-12"
+                    className={`h-12 ${errors.confirmPassword ? 'border-red-500' : ''}`}
                     required
                   />
+                  {errors.confirmPassword && (
+                    <p className="text-sm text-red-600 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.confirmPassword}
+                    </p>
+                  )}
+                </div>
+
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md">
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                    <strong>Tip:</strong> Use a standard email provider like Gmail, Outlook, or Yahoo for the best experience.
+                  </p>
                 </div>
 
                 <Button 
                   type="submit" 
                   className="w-full h-12 bg-green-600 hover:bg-green-700 text-white"
-                  disabled={isLoading}
+                  disabled={isLoading || !emailValidation.isValid || Object.keys(errors).length > 0}
                 >
                   {isLoading ? (
                     <div className="flex items-center space-x-2">

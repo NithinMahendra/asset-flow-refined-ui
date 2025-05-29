@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { User, AuthContextType } from '@/types/auth';
+import { parseSupabaseError } from '@/utils/emailValidation';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -110,16 +111,23 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       if (error) {
         console.error('❌ Signup error:', error.message);
-        return false;
+        const friendlyError = parseSupabaseError(error);
+        console.error('Friendly error message:', friendlyError);
+        throw new Error(friendlyError);
       }
 
       if (data.user) {
         console.log('✅ Signup successful for:', data.user.email);
         console.log('User created with ID:', data.user.id);
         
-        // Wait a moment for the trigger to complete, then verify profile creation
-        setTimeout(async () => {
+        // Enhanced profile creation verification with retry mechanism
+        let retryCount = 0;
+        const maxRetries = 3;
+        
+        const verifyProfile = async (): Promise<void> => {
           try {
+            await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Progressive delay
+            
             const { data: profile, error: profileError } = await supabase
               .from('employee_profiles')
               .select('*')
@@ -127,8 +135,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               .single();
             
             if (profileError || !profile) {
-              console.log('⚠️ Profile not found, trigger might have failed. Creating manually...');
-              // Fallback: create profile manually if trigger failed
+              if (retryCount < maxRetries) {
+                retryCount++;
+                console.log(`⚠️ Profile not found (attempt ${retryCount}/${maxRetries}), retrying...`);
+                return verifyProfile();
+              }
+              
+              console.log('⚠️ Profile not found after max retries, creating manually...');
               const { error: insertError } = await supabase
                 .from('employee_profiles')
                 .insert({
@@ -142,24 +155,36 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               
               if (insertError) {
                 console.error('❌ Failed to create profile manually:', insertError);
+                throw new Error('Failed to create user profile. Please contact support.');
               } else {
                 console.log('✅ Profile created manually');
               }
             } else {
-              console.log('✅ Profile created by trigger:', profile);
+              console.log('✅ Profile found:', profile);
             }
           } catch (error) {
-            console.error('Error checking/creating profile:', error);
+            console.error('Error in profile verification:', error);
+            if (retryCount < maxRetries) {
+              retryCount++;
+              return verifyProfile();
+            }
+            throw error;
           }
-        }, 1000);
+        };
+        
+        // Start profile verification but don't block signup completion
+        verifyProfile().catch(error => {
+          console.error('Profile verification failed:', error);
+        });
         
         return true;
       }
 
       return false;
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Signup exception:', error);
-      return false;
+      // Re-throw the error so it can be caught in the UI
+      throw error;
     } finally {
       setIsLoading(false);
     }
