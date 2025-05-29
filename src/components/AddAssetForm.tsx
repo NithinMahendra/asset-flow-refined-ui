@@ -123,6 +123,7 @@ const AddAssetForm = ({ onClose, onSuccess }: AddAssetFormProps) => {
         brand: data.brand,
         model: data.model,
         notes: data.description || null,
+        condition: data.condition,
         asset_tag: null, // Will be auto-generated
         updated_at: new Date().toISOString()
       };
