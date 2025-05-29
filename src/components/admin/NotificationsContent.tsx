@@ -56,8 +56,8 @@ const NotificationsContent = () => {
     }
   };
 
-  const unreadNotifications = notifications.filter(n => !n.isRead);
-  const readNotifications = notifications.filter(n => n.isRead);
+  const unreadNotifications = notifications.filter(n => !n.is_read);
+  const readNotifications = notifications.filter(n => n.is_read);
 
   return (
     <div className="space-y-6">

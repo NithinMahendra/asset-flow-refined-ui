@@ -17,16 +17,16 @@ import QRCode from 'qrcode';
 const assetSchema = z.object({
   name: z.string().min(1, 'Asset name is required'),
   category: z.string().min(1, 'Category is required'),
-  brand: z.string().min(1, 'Brand is required'),
-  model: z.string().min(1, 'Model is required'),
+  brand: z.string().min(1, 'Brand is required').optional(),
+  model: z.string().min(1, 'Model is required').optional(),
   serial_number: z.string().min(1, 'Serial number is required'),
-  device_type: z.enum(['laptop', 'desktop', 'server', 'monitor', 'tablet', 'smartphone', 'network_switch', 'router', 'printer', 'scanner', 'projector', 'other']),
+  device_type: z.string().min(1, 'Device type is required').optional(),
   status: z.enum(['active', 'inactive', 'maintenance', 'retired', 'missing', 'damaged']).default('active'),
-  location: z.string().optional(),
+  location: z.string().min(1, 'Location is required'),
   department: z.string().optional(),
   assignee: z.string().default('-'),
-  value: z.number().min(0, 'Value must be positive').optional(),
-  purchase_date: z.string().optional(),
+  value: z.number().min(0, 'Value must be positive'),
+  purchase_date: z.string().min(1, 'Purchase date is required'),
   warranty_expiry: z.string().optional(),
   condition: z.enum(['Excellent', 'Good', 'Fair', 'Poor']).default('Excellent'),
   description: z.string().optional(),
@@ -109,15 +109,23 @@ const AddAssetForm = ({ onClose, onSuccess }: AddAssetFormProps) => {
       // Generate QR code
       await generateQRCode(data);
       
-      // Prepare asset data for database
+      // Prepare asset data - ensure all required fields are provided
       const assetData = {
-        ...data,
-        value: data.value || 0,
-        purchase_date: data.purchase_date || new Date().toISOString().split('T')[0],
+        name: data.name,
+        category: data.category,
+        serial_number: data.serial_number,
+        status: data.status,
+        location: data.location,
+        assignee: data.assignee,
+        value: data.value,
+        purchase_date: data.purchase_date,
         warranty_expiry: data.warranty_expiry || '',
-        location: data.location || 'Warehouse',
+        condition: data.condition,
+        brand: data.brand || '',
+        model: data.model || '',
         department: data.department || '',
-        assignee: data.assignee || '-'
+        description: data.description || '',
+        device_type: data.device_type || 'other'
       };
 
       await addAsset(assetData);
@@ -195,9 +203,9 @@ const AddAssetForm = ({ onClose, onSuccess }: AddAssetFormProps) => {
               </div>
 
               <div>
-                <Label htmlFor="device_type">Device Type *</Label>
-                <Select onValueChange={(value) => setValue('device_type', value as any)}>
-                  <SelectTrigger className={errors.device_type ? 'border-red-500' : ''}>
+                <Label htmlFor="device_type">Device Type</Label>
+                <Select onValueChange={(value) => setValue('device_type', value)}>
+                  <SelectTrigger>
                     <SelectValue placeholder="Select device type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -208,36 +216,25 @@ const AddAssetForm = ({ onClose, onSuccess }: AddAssetFormProps) => {
                     ))}
                   </SelectContent>
                 </Select>
-                {errors.device_type && (
-                  <p className="text-sm text-red-500 mt-1">{errors.device_type.message}</p>
-                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="brand">Brand *</Label>
+                  <Label htmlFor="brand">Brand</Label>
                   <Input
                     id="brand"
                     {...register('brand')}
                     placeholder="e.g., Apple, Dell, HP"
-                    className={errors.brand ? 'border-red-500' : ''}
                   />
-                  {errors.brand && (
-                    <p className="text-sm text-red-500 mt-1">{errors.brand.message}</p>
-                  )}
                 </div>
 
                 <div>
-                  <Label htmlFor="model">Model *</Label>
+                  <Label htmlFor="model">Model</Label>
                   <Input
                     id="model"
                     {...register('model')}
                     placeholder="e.g., MacBook Pro M3"
-                    className={errors.model ? 'border-red-500' : ''}
                   />
-                  {errors.model && (
-                    <p className="text-sm text-red-500 mt-1">{errors.model.message}</p>
-                  )}
                 </div>
               </div>
 
@@ -293,34 +290,37 @@ const AddAssetForm = ({ onClose, onSuccess }: AddAssetFormProps) => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="location">Location</Label>
-                  <Input
-                    id="location"
-                    {...register('location')}
-                    placeholder="e.g., Office Floor 2"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="department">Department</Label>
-                  <Input
-                    id="department"
-                    {...register('department')}
-                    placeholder="e.g., Engineering, Marketing"
-                  />
-                </div>
+              <div>
+                <Label htmlFor="location">Location *</Label>
+                <Input
+                  id="location"
+                  {...register('location')}
+                  placeholder="e.g., Office Floor 2"
+                  className={errors.location ? 'border-red-500' : ''}
+                />
+                {errors.location && (
+                  <p className="text-sm text-red-500 mt-1">{errors.location.message}</p>
+                )}
               </div>
 
               <div>
-                <Label htmlFor="value">Value ($)</Label>
+                <Label htmlFor="department">Department</Label>
+                <Input
+                  id="department"
+                  {...register('department')}
+                  placeholder="e.g., Engineering, Marketing"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="value">Value ($) *</Label>
                 <Input
                   id="value"
                   type="number"
                   step="0.01"
                   {...register('value', { valueAsNumber: true })}
                   placeholder="0.00"
+                  className={errors.value ? 'border-red-500' : ''}
                 />
                 {errors.value && (
                   <p className="text-sm text-red-500 mt-1">{errors.value.message}</p>
@@ -329,12 +329,16 @@ const AddAssetForm = ({ onClose, onSuccess }: AddAssetFormProps) => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="purchase_date">Purchase Date</Label>
+                  <Label htmlFor="purchase_date">Purchase Date *</Label>
                   <Input
                     id="purchase_date"
                     type="date"
                     {...register('purchase_date')}
+                    className={errors.purchase_date ? 'border-red-500' : ''}
                   />
+                  {errors.purchase_date && (
+                    <p className="text-sm text-red-500 mt-1">{errors.purchase_date.message}</p>
+                  )}
                 </div>
 
                 <div>

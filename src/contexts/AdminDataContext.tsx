@@ -84,7 +84,7 @@ export const AdminDataProvider: React.FC<{ children: ReactNode }> = ({ children 
 
   const getUtilizationRate = () => {
     const total = supabaseData.assets.length;
-    const inUse = supabaseData.assets.filter(a => a.status === 'assigned').length;
+    const inUse = supabaseData.assets.filter(a => a.assignee !== '-').length;
     return total > 0 ? (inUse / total) * 100 : 0;
   };
 
