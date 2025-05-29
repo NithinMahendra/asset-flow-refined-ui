@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Save, X } from 'lucide-react';
 import QRCode from 'qrcode';
@@ -32,13 +30,12 @@ type AssetFormData = z.infer<typeof assetSchema>;
 
 interface AddAssetFormProps {
   onClose?: () => void;
-  onSuccess?: () => void;
+  onAssetCreated?: (asset: AssetFormData) => Promise<void>;
 }
 
-const AddAssetForm = ({ onClose, onSuccess }: AddAssetFormProps) => {
+const AddAssetForm = ({ onClose, onAssetCreated }: AddAssetFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
-  const { addAsset } = useSupabaseData();
   const { toast } = useToast();
 
   const {
@@ -116,48 +113,47 @@ const AddAssetForm = ({ onClose, onSuccess }: AddAssetFormProps) => {
   };
 
   const onSubmit = async (data: AssetFormData) => {
-    console.log('Clean form submission data:', data);
+    console.log('📝 Form submission started with data:', data);
     setIsSubmitting(true);
     
     try {
+      // Pre-submission validation
+      if (!data.brand?.trim()) {
+        throw new Error('Brand is required');
+      }
+      if (!data.model?.trim()) {
+        throw new Error('Model is required');
+      }
+      if (!data.serial_number?.trim()) {
+        throw new Error('Serial number is required');
+      }
+      if (!data.location?.trim()) {
+        throw new Error('Location is required');
+      }
+      if (!data.purchase_date) {
+        throw new Error('Purchase date is required');
+      }
+
       // Generate QR code
       await generateQRCode(data);
       
-      // Prepare clean asset data - no object wrapping, direct enum values
-      const cleanAssetData = {
-        device_type: data.device_type, // Direct enum value
-        status: data.status, // Direct enum value
-        assigned_to: data.assigned_to || null,
-        purchase_price: Number(data.purchase_price),
-        location: data.location,
-        serial_number: data.serial_number,
-        purchase_date: data.purchase_date,
-        warranty_expiry: data.warranty_expiry || null,
-        brand: data.brand,
-        model: data.model,
-        notes: data.notes || null,
-        asset_tag: null, // Will be auto-generated
-        updated_at: new Date().toISOString()
-      };
-
-      console.log('Clean asset data for database:', cleanAssetData);
-
-      await addAsset(cleanAssetData);
+      // Call the parent component's handler
+      if (onAssetCreated) {
+        console.log('🔄 Calling parent asset creation handler...');
+        await onAssetCreated(data);
+      }
       
-      toast({
-        title: 'Success!',
-        description: 'Asset has been created successfully with QR code generated.',
-      });
-
+      // Reset form on success
       reset();
       setQrCodeUrl('');
-      onSuccess?.();
       
     } catch (error) {
-      console.error('Error creating asset:', error);
+      console.error('❌ Form submission error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      
       toast({
-        title: 'Error',
-        description: 'Failed to create asset. Please check the console for details.',
+        title: 'Form Submission Error',
+        description: errorMessage,
         variant: 'destructive'
       });
     } finally {
@@ -357,7 +353,6 @@ const AddAssetForm = ({ onClose, onSuccess }: AddAssetFormProps) => {
                 />
               </div>
 
-              {/* QR Code Preview */}
               {qrCodeUrl && (
                 <div className="text-center p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-700">
                   <h4 className="text-sm font-medium mb-2 text-indigo-700 dark:text-indigo-300">Generated QR Code</h4>

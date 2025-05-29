@@ -135,7 +135,7 @@ export const useSupabaseData = () => {
     try {
       setLoading(true);
       
-      console.log('Fetching assets from Supabase...');
+      console.log('🔄 Fetching assets from Supabase...');
       // Fetch assets from Supabase
       const { data: assetsData, error: assetsError } = await supabase
         .from('assets')
@@ -143,7 +143,7 @@ export const useSupabaseData = () => {
         .order('updated_at', { ascending: false });
 
       if (assetsError) {
-        console.error('Error fetching assets:', assetsError);
+        console.error('❌ Error fetching assets:', assetsError);
         toast({
           title: 'Database Error',
           description: `Failed to fetch assets: ${assetsError.message}`,
@@ -151,9 +151,9 @@ export const useSupabaseData = () => {
         });
         setAssets([]);
       } else {
-        console.log('Fetched assets data:', assetsData);
+        console.log('✅ Fetched assets data:', assetsData);
         const transformedAssets = assetsData?.map(transformAsset) || [];
-        console.log('Transformed assets:', transformedAssets);
+        console.log('🔄 Transformed assets:', transformedAssets);
         setAssets(transformedAssets);
       }
 
@@ -237,7 +237,7 @@ export const useSupabaseData = () => {
       ]);
 
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('❌ Error fetching data:', error);
       toast({
         title: 'Error',
         description: 'Failed to fetch data from database',
@@ -248,45 +248,55 @@ export const useSupabaseData = () => {
     }
   };
 
-  // Add asset to Supabase with better data validation
+  // Enhanced addAsset function with comprehensive debugging and validation
   const addAsset = async (assetData: any) => {
+    console.log('🚀 Starting asset creation process...');
+    console.log('📥 Raw input data:', assetData);
+    
     try {
-      const assetTag = `QR${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      // Generate unique asset tag
+      const assetTag = `AST-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
+      console.log('🏷️ Generated asset tag:', assetTag);
       
-      // Validate enum values before sending to database
+      // Validate and prepare enum values
       const validDeviceTypes = ['laptop', 'desktop', 'server', 'monitor', 'tablet', 'smartphone', 'network_switch', 'router', 'printer', 'scanner', 'projector', 'other'] as const;
       const validStatuses = ['active', 'inactive', 'maintenance', 'retired', 'missing', 'damaged'] as const;
 
       // Ensure device_type is valid
-      const deviceType = String(assetData.device_type);
+      const deviceType = String(assetData.device_type).toLowerCase();
       if (!validDeviceTypes.includes(deviceType as any)) {
+        console.error('❌ Invalid device type:', deviceType);
         throw new Error(`Invalid device type: ${deviceType}. Must be one of: ${validDeviceTypes.join(', ')}`);
       }
 
       // Ensure status is valid
-      const status = String(assetData.status);
+      const status = String(assetData.status || 'active').toLowerCase();
       if (!validStatuses.includes(status as any)) {
+        console.error('❌ Invalid status:', status);
         throw new Error(`Invalid status: ${status}. Must be one of: ${validStatuses.join(', ')}`);
       }
 
-      // Prepare clean data with proper type assertions
+      // Prepare validated data for database insertion
       const dbAssetData = {
         device_type: deviceType as Database['public']['Enums']['device_type'],
         status: status as Database['public']['Enums']['device_status'],
         assigned_to: assetData.assigned_to || null,
-        purchase_price: Number(assetData.purchase_price) || 0,
-        location: String(assetData.location),
+        purchase_price: assetData.purchase_price ? Number(assetData.purchase_price) : null,
+        location: assetData.location ? String(assetData.location) : null,
         serial_number: String(assetData.serial_number),
         purchase_date: assetData.purchase_date || null,
         warranty_expiry: assetData.warranty_expiry || null,
         brand: String(assetData.brand),
         model: String(assetData.model),
         notes: assetData.notes || null,
-        asset_tag: assetTag
+        asset_tag: assetTag,
+        updated_at: new Date().toISOString()
       };
 
-      console.log('Validated asset data for insertion:', dbAssetData);
+      console.log('✅ Validated asset data for database:', dbAssetData);
 
+      // Attempt database insertion
+      console.log('💾 Attempting to insert into database...');
       const { data, error } = await supabase
         .from('assets')
         .insert(dbAssetData)
@@ -294,35 +304,60 @@ export const useSupabaseData = () => {
         .single();
 
       if (error) {
-        console.error('Supabase error:', error);
-        throw new Error(`Database error: ${error.message}`);
+        console.error('❌ Supabase insertion error:', error);
+        console.error('❌ Error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        throw new Error(`Database insertion failed: ${error.message}`);
       }
 
-      console.log('Asset created successfully:', data);
+      if (!data) {
+        console.error('❌ No data returned from insert operation');
+        throw new Error('No data returned from database after insertion');
+      }
+
+      console.log('🎉 Asset successfully created in database:', data);
+      
+      // Transform the created asset for UI
       const newAsset = transformAsset(data);
+      console.log('🔄 Transformed asset for UI:', newAsset);
       
       // Update local state immediately
-      setAssets(prev => [newAsset, ...prev]);
+      setAssets(prev => {
+        const updated = [newAsset, ...prev];
+        console.log('📊 Updated local assets array, new length:', updated.length);
+        return updated;
+      });
       
+      // Log activity
       await logActivity('New Asset Added', `${newAsset.name} added to inventory`, 'addition', newAsset.id);
       
+      // Show success message
       toast({
-        title: 'Success',
+        title: 'Success!',
         description: `${newAsset.name} has been added to inventory`
       });
 
-      // Refresh data to ensure consistency
+      // Verify the asset was actually created by fetching fresh data
+      console.log('🔍 Verifying asset creation by refetching data...');
       await fetchData();
 
+      console.log('✅ Asset creation process completed successfully');
       return newAsset;
+
     } catch (error) {
-      console.error('Error adding asset:', error);
+      console.error('❌ Asset creation failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      
       toast({
-        title: 'Error',
-        description: `Failed to add asset: ${errorMessage}`,
+        title: 'Asset Creation Failed',
+        description: errorMessage,
         variant: 'destructive'
       });
+      
       throw error;
     }
   };
@@ -569,7 +604,7 @@ export const useSupabaseData = () => {
         schema: 'public',
         table: 'assets'
       }, (payload) => {
-        console.log('Asset change detected:', payload);
+        console.log('🔄 Real-time asset change detected:', payload);
         fetchData(); // Refresh data on any change
       })
       .subscribe();

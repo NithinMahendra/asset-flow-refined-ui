@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import type { Asset, User, Assignment, AssignmentRequest, Notification, ActivityLog } from '@/hooks/useSupabaseData';
@@ -21,6 +20,7 @@ interface AdminDataContextType {
   approveAssignmentRequest: (id: string) => Promise<void>;
   declineAssignmentRequest: (id: string) => Promise<void>;
   generateQRCode: (assetId: string) => string;
+  refetch: () => Promise<void>;
   getAssetStats: () => {
     total: number;
     available: number;
