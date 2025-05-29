@@ -109,23 +109,31 @@ const AddAssetForm = ({ onClose, onSuccess }: AddAssetFormProps) => {
       // Generate QR code
       await generateQRCode(data);
       
-      // Prepare asset data - ensure all required fields are provided
+      // Prepare asset data - map to the correct Asset interface
       const assetData = {
-        name: data.name,
-        category: data.category,
-        serial_number: data.serial_number,
+        device_type: data.device_type || 'other',
         status: data.status,
+        assigned_to: data.assignee === '-' ? null : data.assignee,
+        purchase_price: data.value,
         location: data.location,
-        assignee: data.assignee,
-        value: data.value,
+        serial_number: data.serial_number,
         purchase_date: data.purchase_date,
-        warranty_expiry: data.warranty_expiry || '',
-        condition: data.condition,
+        warranty_expiry: data.warranty_expiry || null,
         brand: data.brand || '',
         model: data.model || '',
+        notes: data.description || null,
+        asset_tag: null, // Will be auto-generated
+        updated_at: new Date().toISOString(),
+        // Computed fields for compatibility
+        name: data.name,
+        category: data.category,
+        assignee: data.assignee,
+        value: data.value,
+        last_updated: new Date().toISOString().split('T')[0],
+        qr_code: '', // Will be generated
+        condition: data.condition,
         department: data.department || '',
-        description: data.description || '',
-        device_type: data.device_type || 'other'
+        description: data.description || ''
       };
 
       await addAsset(assetData);
