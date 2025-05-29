@@ -6,10 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Search, Filter, Download, Edit, Trash2, Eye, Package, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Plus, Search, Filter, Download, Edit, Trash2, Eye, Package, AlertTriangle, CheckCircle, QrCode } from 'lucide-react';
 import { useAdminData } from '@/contexts/AdminDataContext';
 import SimpleAddAssetForm from '@/components/SimpleAddAssetForm';
 import AssetDetailsModal from './AssetDetailsModal';
+import QRCodeModal from './QRCodeModal';
 import { motion } from 'framer-motion';
 
 const AssetManagementContent = () => {
@@ -21,6 +22,8 @@ const AssetManagementContent = () => {
   const [selectedAsset, setSelectedAsset] = useState<any>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showQRCode, setShowQRCode] = useState(false);
+  const [qrAsset, setQrAsset] = useState<any>(null);
 
   // Filter assets based on search and filters
   const filteredAssets = assets.filter(asset => {
@@ -50,6 +53,11 @@ const AssetManagementContent = () => {
     if (confirm('Are you sure you want to delete this asset?')) {
       await deleteAsset(assetId);
     }
+  };
+
+  const handleShowQRCode = (asset: any) => {
+    setQrAsset(asset);
+    setShowQRCode(true);
   };
 
   const getStatusBadgeVariant = (status: string) => {
@@ -209,6 +217,7 @@ const AssetManagementContent = () => {
                     <th className="text-left p-4 font-semibold text-slate-700 dark:text-slate-300">Assignee</th>
                     <th className="text-left p-4 font-semibold text-slate-700 dark:text-slate-300">Location</th>
                     <th className="text-left p-4 font-semibold text-slate-700 dark:text-slate-300">Value</th>
+                    <th className="text-left p-4 font-semibold text-slate-700 dark:text-slate-300">QR Code</th>
                     <th className="text-left p-4 font-semibold text-slate-700 dark:text-slate-300">Actions</th>
                   </tr>
                 </thead>
@@ -247,6 +256,20 @@ const AssetManagementContent = () => {
                       <td className="p-4 text-slate-600 dark:text-slate-400">{asset.location || '-'}</td>
                       <td className="p-4 font-semibold text-slate-900 dark:text-white">
                         ${asset.value?.toLocaleString() || '0'}
+                      </td>
+                      <td className="p-4">
+                        {asset.qr_code ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleShowQRCode(asset)}
+                            className="hover:bg-green-100 dark:hover:bg-green-900/20"
+                          >
+                            <QrCode className="h-4 w-4 text-green-600" />
+                          </Button>
+                        ) : (
+                          <span className="text-sm text-gray-500">No QR</span>
+                        )}
                       </td>
                       <td className="p-4">
                         <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -303,6 +326,16 @@ const AssetManagementContent = () => {
           }}
         />
       )}
+
+      {/* QR Code Modal */}
+      <QRCodeModal
+        isOpen={showQRCode}
+        onClose={() => {
+          setShowQRCode(false);
+          setQrAsset(null);
+        }}
+        asset={qrAsset}
+      />
     </div>
   );
 };

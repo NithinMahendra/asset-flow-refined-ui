@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Save, X } from 'lucide-react';
+import QRCode from 'qrcode';
 
 interface SimpleAddAssetFormProps {
   onClose?: () => void;
@@ -30,6 +32,21 @@ const SimpleAddAssetForm = ({ onClose, onAssetCreated }: SimpleAddAssetFormProps
     warranty_expiry: '',
     notes: ''
   });
+
+  // Generate unique QR code for asset
+  const generateQRCode = async (assetData: any) => {
+    const qrData = {
+      id: `ASSET-${Date.now()}`,
+      type: 'asset',
+      device_type: assetData.device_type,
+      brand: assetData.brand,
+      model: assetData.model,
+      serial_number: assetData.serial_number
+    };
+    
+    const qrString = JSON.stringify(qrData);
+    return qrString;
+  };
 
   // Use exact enum values from database
   const deviceTypes = [
@@ -92,6 +109,9 @@ const SimpleAddAssetForm = ({ onClose, onAssetCreated }: SimpleAddAssetFormProps
     setIsSubmitting(true);
     
     try {
+      // Generate QR code for the asset
+      const qrCode = await generateQRCode(formData);
+      
       // Prepare data in exact format expected by database
       const assetData = {
         device_type: formData.device_type,
@@ -104,10 +124,11 @@ const SimpleAddAssetForm = ({ onClose, onAssetCreated }: SimpleAddAssetFormProps
         purchase_price: formData.purchase_price ? parseFloat(formData.purchase_price) : null,
         purchase_date: formData.purchase_date || null,
         warranty_expiry: formData.warranty_expiry || null,
-        notes: formData.notes.trim() || null
+        notes: formData.notes.trim() || null,
+        qr_code: qrCode
       };
 
-      console.log('📤 SimpleAddAssetForm: Sending asset data:', assetData);
+      console.log('📤 SimpleAddAssetForm: Sending asset data with QR code:', assetData);
 
       if (onAssetCreated) {
         await onAssetCreated(assetData);
@@ -130,7 +151,7 @@ const SimpleAddAssetForm = ({ onClose, onAssetCreated }: SimpleAddAssetFormProps
 
       toast({
         title: 'Success!',
-        description: 'Asset created successfully',
+        description: 'Asset created successfully with QR code',
       });
 
       onClose?.();
@@ -325,7 +346,7 @@ const SimpleAddAssetForm = ({ onClose, onAssetCreated }: SimpleAddAssetFormProps
               ) : (
                 <>
                   <Save className="h-4 w-4 mr-2" />
-                  Create Asset
+                  Create Asset with QR Code
                 </>
               )}
             </Button>
