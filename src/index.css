@@ -91,7 +91,11 @@
   }
 
   body {
-    @apply bg-slate-50 text-slate-900 font-inter antialiased;
+    @apply bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 text-slate-900 font-inter antialiased;
+  }
+
+  .dark body {
+    @apply bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 text-slate-50;
   }
 
   html {
@@ -101,14 +105,29 @@
 
 @layer utilities {
   .glass-effect {
-    backdrop-filter: blur(10px);
-    background: rgba(255, 255, 255, 0.9);
-    border: 1px solid rgba(226, 232, 240, 0.2);
+    backdrop-filter: blur(16px);
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   }
   
   .dark .glass-effect {
-    background: rgba(30, 41, 59, 0.9);
-    border: 1px solid rgba(51, 65, 85, 0.2);
+    background: rgba(30, 41, 59, 0.85);
+    border: 1px solid rgba(51, 65, 85, 0.3);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+
+  .glass-effect-strong {
+    backdrop-filter: blur(20px);
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  }
+  
+  .dark .glass-effect-strong {
+    background: rgba(30, 41, 59, 0.95);
+    border: 1px solid rgba(51, 65, 85, 0.4);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
   }
   
   .animate-on-scroll {
@@ -122,8 +141,192 @@
     transform: translateY(0);
   }
 
-  /* Text and gradient utilities */
-  .text-gradient-modern {
-    @apply bg-gradient-to-r from-gray-600 to-gray-600 bg-clip-text text-transparent;
+  /* Enhanced gradient utilities */
+  .gradient-primary {
+    @apply bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600;
   }
+
+  .gradient-secondary {
+    @apply bg-gradient-to-r from-emerald-500 to-teal-600;
+  }
+
+  .gradient-accent {
+    @apply bg-gradient-to-r from-violet-500 to-purple-600;
+  }
+
+  .gradient-warning {
+    @apply bg-gradient-to-r from-amber-500 to-orange-600;
+  }
+
+  .gradient-danger {
+    @apply bg-gradient-to-r from-rose-500 to-red-600;
+  }
+
+  .text-gradient-primary {
+    @apply bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent;
+  }
+
+  .text-gradient-secondary {
+    @apply bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent;
+  }
+
+  /* Animation utilities */
+  .hover-lift {
+    @apply transition-all duration-300 hover:-translate-y-2 hover:shadow-xl;
+  }
+
+  .hover-glow {
+    @apply transition-all duration-300;
+  }
+
+  .hover-glow:hover {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+  }
+
+  .pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite alternate;
+  }
+
+  @keyframes pulse-glow {
+    from {
+      box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+    }
+    to {
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.6);
+    }
+  }
+
+  /* Status indicator utilities */
+  .status-active {
+    @apply bg-gradient-to-r from-emerald-500 to-green-600;
+  }
+
+  .status-inactive {
+    @apply bg-gradient-to-r from-slate-400 to-slate-500;
+  }
+
+  .status-maintenance {
+    @apply bg-gradient-to-r from-amber-500 to-orange-600;
+  }
+
+  .status-retired {
+    @apply bg-gradient-to-r from-red-500 to-rose-600;
+  }
+
+  /* Card enhancement utilities */
+  .card-enhanced {
+    @apply glass-effect hover-lift border-0 shadow-lg hover:shadow-2xl transition-all duration-300;
+  }
+
+  .card-gradient {
+    @apply bg-gradient-to-br from-white via-blue-50 to-indigo-50 dark:from-slate-800 dark:via-blue-900 dark:to-indigo-900;
+  }
+
+  /* Button enhancement utilities */
+  .btn-gradient-primary {
+    @apply gradient-primary text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105;
+  }
+
+  .btn-gradient-secondary {
+    @apply gradient-secondary text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105;
+  }
+
+  /* Sidebar enhancements */
+  .sidebar-gradient {
+    @apply bg-gradient-to-b from-white via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-blue-900 dark:to-indigo-900;
+  }
+
+  /* Responsive text utilities */
+  .text-responsive-xl {
+    @apply text-xl sm:text-2xl lg:text-3xl;
+  }
+
+  .text-responsive-lg {
+    @apply text-lg sm:text-xl lg:text-2xl;
+  }
+
+  .text-responsive-base {
+    @apply text-sm sm:text-base lg:text-lg;
+  }
+}
+
+/* Custom keyframes for enhanced animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Animation classes */
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.6s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.6s ease-out;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Stagger animation delays */
+.animate-delay-100 {
+  animation-delay: 0.1s;
+}
+
+.animate-delay-200 {
+  animation-delay: 0.2s;
+}
+
+.animate-delay-300 {
+  animation-delay: 0.3s;
+}
+
+.animate-delay-400 {
+  animation-delay: 0.4s;
+}
+
+.animate-delay-500 {
+  animation-delay: 0.5s;
 }
