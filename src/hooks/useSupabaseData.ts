@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -119,12 +118,12 @@ export const useSupabaseData = () => {
     asset_tag: dbAsset.asset_tag,
     // Computed fields
     name: `${dbAsset.brand} ${dbAsset.model}`,
-    category: dbAsset.device_type,
+    category: dbAsset.device_type?.replace('_', ' ')?.replace(/\b\w/g, l => l.toUpperCase()) || 'Unknown',
     assignee: dbAsset.assigned_to || '-',
     value: dbAsset.purchase_price || 0,
     last_updated: dbAsset.updated_at?.split('T')[0] || new Date().toISOString().split('T')[0],
     qr_code: dbAsset.asset_tag || `QR${dbAsset.serial_number}`,
-    condition: 'Good',
+    condition: 'Good', // Default since not in DB
     department: '',
     description: dbAsset.notes
   });
@@ -134,6 +133,7 @@ export const useSupabaseData = () => {
     try {
       setLoading(true);
       
+      console.log('Fetching assets from Supabase...');
       // Fetch assets from Supabase
       const { data: assetsData, error: assetsError } = await supabase
         .from('assets')
@@ -142,59 +142,17 @@ export const useSupabaseData = () => {
 
       if (assetsError) {
         console.error('Error fetching assets:', assetsError);
-        // Fallback to mock data if database fails
-        setAssets([
-          {
-            id: '1',
-            device_type: 'laptop',
-            status: 'active',
-            assigned_to: 'John Doe',
-            purchase_price: 2499,
-            location: 'Office Floor 2',
-            updated_at: '2024-01-15T00:00:00Z',
-            serial_number: 'MP-2024-001',
-            purchase_date: '2024-01-01',
-            warranty_expiry: '2027-01-01',
-            brand: 'Apple',
-            model: 'MacBook Pro M3',
-            notes: 'Engineering laptop',
-            asset_tag: 'QR001-AST001-2024',
-            name: 'MacBook Pro M3',
-            category: 'Laptop',
-            assignee: 'John Doe',
-            value: 2499,
-            last_updated: '2024-01-15',
-            qr_code: 'QR001-AST001-2024',
-            condition: 'Excellent',
-            department: 'Engineering'
-          },
-          {
-            id: '2',
-            device_type: 'laptop',
-            status: 'active',
-            assigned_to: null,
-            purchase_price: 1299,
-            location: 'Warehouse A',
-            updated_at: '2024-01-10T00:00:00Z',
-            serial_number: 'DX-2024-002',
-            purchase_date: '2024-01-05',
-            warranty_expiry: '2027-01-05',
-            brand: 'Dell',
-            model: 'XPS 13',
-            notes: null,
-            asset_tag: 'QR002-AST002-2024',
-            name: 'Dell XPS 13',
-            category: 'Laptop',
-            assignee: '-',
-            value: 1299,
-            last_updated: '2024-01-10',
-            qr_code: 'QR002-AST002-2024',
-            condition: 'Excellent',
-            department: ''
-          }
-        ]);
+        toast({
+          title: 'Database Error',
+          description: `Failed to fetch assets: ${assetsError.message}`,
+          variant: 'destructive'
+        });
+        // Keep empty array on error
+        setAssets([]);
       } else {
+        console.log('Fetched assets data:', assetsData);
         const transformedAssets = assetsData?.map(transformAsset) || [];
+        console.log('Transformed assets:', transformedAssets);
         setAssets(transformedAssets);
       }
 
@@ -290,17 +248,13 @@ export const useSupabaseData = () => {
   };
 
   // Add asset to Supabase
-  const addAsset = async (assetData: Omit<Asset, 'id' | 'last_updated' | 'qr_code' | 'name' | 'category' | 'assignee' | 'value'>) => {
+  const addAsset = async (assetData: any) => {
     try {
       const assetTag = `QR${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
-      // Ensure device_type is properly cast to the enum type
-      const deviceType = assetData.device_type as Database['public']['Enums']['device_type'];
-      const status = assetData.status as Database['public']['Enums']['device_status'];
-      
       const dbAssetData = {
-        device_type: deviceType,
-        status: status,
+        device_type: assetData.device_type,
+        status: assetData.status,
         assigned_to: assetData.assigned_to,
         purchase_price: assetData.purchase_price,
         location: assetData.location,
@@ -326,6 +280,7 @@ export const useSupabaseData = () => {
         throw new Error(`Database error: ${error.message}`);
       }
 
+      console.log('Asset created successfully:', data);
       const newAsset = transformAsset(data);
       setAssets(prev => [newAsset, ...prev]);
       
