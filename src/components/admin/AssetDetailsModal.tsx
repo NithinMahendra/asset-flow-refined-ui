@@ -1,4 +1,3 @@
-
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,16 +13,8 @@ interface AssetDetailsModalProps {
 
 const AssetDetailsModal = ({ asset, isOpen, onClose }: AssetDetailsModalProps) => {
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Available':
-        return 'bg-green-100 text-green-800';
-      case 'Assigned':
-        return 'bg-blue-100 text-blue-800';
-      case 'In Repair':
-        return 'bg-cyan-100 text-cyan-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+    // All statuses use neutral grayscale colors
+    return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
   };
 
   return (
@@ -176,14 +167,14 @@ const AssetDetailsModal = ({ asset, isOpen, onClose }: AssetDetailsModalProps) =
                     </div>
                   </div>
                   
-                  <div className="flex items-center justify-between p-3 border rounded-lg bg-cyan-50">
+                  <div className="flex items-center justify-between p-3 border rounded-lg bg-gray-50 dark:bg-gray-800">
                     <div>
                       <p className="font-medium">Hardware Check</p>
                       <p className="text-sm text-gray-600">Screen calibration required</p>
                     </div>
                     <div className="text-right">
                       <p className="text-sm text-gray-600">Overdue: 2024-01-20</p>
-                      <Badge className="bg-cyan-100 text-cyan-800">Overdue</Badge>
+                      <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200">Overdue</Badge>
                     </div>
                   </div>
                 </div>
@@ -201,7 +192,7 @@ const AssetDetailsModal = ({ asset, isOpen, onClose }: AssetDetailsModalProps) =
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="flex items-start space-x-3 p-3 border-l-4 border-blue-500 bg-blue-50">
+                  <div className="flex items-start space-x-3 p-3 border-l-4 border-gray-500 bg-gray-50 dark:bg-gray-800">
                     <div className="flex-1">
                       <p className="font-medium">Asset Created</p>
                       <p className="text-sm text-gray-600">Asset added to inventory</p>
@@ -209,7 +200,7 @@ const AssetDetailsModal = ({ asset, isOpen, onClose }: AssetDetailsModalProps) =
                     </div>
                   </div>
                   
-                  <div className="flex items-start space-x-3 p-3 border-l-4 border-green-500 bg-green-50">
+                  <div className="flex items-start space-x-3 p-3 border-l-4 border-gray-500 bg-gray-50 dark:bg-gray-800">
                     <div className="flex-1">
                       <p className="font-medium">QR Code Generated</p>
                       <p className="text-sm text-gray-600">Unique QR code created: {asset.qr_code}</p>
@@ -217,7 +208,7 @@ const AssetDetailsModal = ({ asset, isOpen, onClose }: AssetDetailsModalProps) =
                     </div>
                   </div>
                   
-                  <div className="flex items-start space-x-3 p-3 border-l-4 border-purple-500 bg-purple-50">
+                  <div className="flex items-start space-x-3 p-3 border-l-4 border-gray-500 bg-gray-50 dark:bg-gray-800">
                     <div className="flex-1">
                       <p className="font-medium">Status Updated</p>
                       <p className="text-sm text-gray-600">Status changed to Available</p>

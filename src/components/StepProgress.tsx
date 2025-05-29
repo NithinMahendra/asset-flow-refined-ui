@@ -20,7 +20,7 @@ const StepProgress = ({ steps, currentStep }: StepProgressProps) => {
       {/* Progress Line */}
       <div className="absolute top-6 left-6 right-6 h-0.5 bg-gray-200 dark:bg-gray-700">
         <motion.div
-          className="h-full bg-blue-500"
+          className="h-full bg-gray-500"
           initial={{ width: 0 }}
           animate={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
           transition={{ duration: 0.5 }}
@@ -34,9 +34,9 @@ const StepProgress = ({ steps, currentStep }: StepProgressProps) => {
             <motion.div
               className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition-colors relative z-10 ${
                 step.id < currentStep
-                  ? 'bg-blue-500 border-blue-500 text-white'
+                  ? 'bg-gray-500 border-gray-500 text-white'
                   : step.id === currentStep
-                  ? 'bg-white dark:bg-gray-800 border-blue-500 text-blue-500'
+                  ? 'bg-white dark:bg-gray-800 border-gray-500 text-gray-500'
                   : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-400'
               }`}
               whileHover={{ scale: 1.05 }}

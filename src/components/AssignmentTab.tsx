@@ -39,7 +39,7 @@ const AssignmentTab = () => {
 
   const getStatusBadge = (status: string) => {
     return status === 'Current' 
-      ? <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Current</Badge>
+      ? <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200">Current</Badge>
       : <Badge variant="secondary">Returned</Badge>;
   };
 
@@ -64,7 +64,7 @@ const AssignmentTab = () => {
             )}
             
             <div className="flex items-start space-x-4 p-4 rounded-lg bg-gray-50 dark:bg-gray-800/50">
-              <div className={`p-2 rounded-full ${assignment.status === 'Current' ? 'bg-green-500' : 'bg-gray-400'}`}>
+              <div className={`p-2 rounded-full ${assignment.status === 'Current' ? 'bg-gray-500' : 'bg-gray-400'}`}>
                 {assignment.status === 'Current' ? (
                   <User className="h-4 w-4 text-white" />
                 ) : (

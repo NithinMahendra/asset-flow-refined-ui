@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,10 +39,10 @@ const Dashboard = () => {
   }, []);
 
   const statsCards = [
-    { title: 'Total Devices', value: assetStats.total, color: 'bg-blue-500', icon: '📱' },
-    { title: 'In Use', value: assetStats.inUse, color: 'bg-green-500', icon: '✅' },
-    { title: 'Available', value: assetStats.available, color: 'bg-indigo-500', icon: '🔄' },
-    { title: 'Faulty', value: assetStats.faulty, color: 'bg-red-500', icon: '⚠️' },
+    { title: 'Total Devices', value: assetStats.total, color: 'bg-gray-500', icon: '📱' },
+    { title: 'In Use', value: assetStats.inUse, color: 'bg-gray-500', icon: '✅' },
+    { title: 'Available', value: assetStats.available, color: 'bg-gray-500', icon: '🔄' },
+    { title: 'Faulty', value: assetStats.faulty, color: 'bg-gray-500', icon: '⚠️' },
   ];
 
   const navigationItems = [
@@ -51,7 +52,7 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-900 dark:to-blue-900">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900">
       {/* Header */}
       <header className="sticky top-0 z-50 glass-effect border-b border-gray-200/20 dark:border-gray-700/20">
         <div className="container mx-auto px-4 sm:px-6 py-4">
@@ -68,7 +69,7 @@ const Dashboard = () => {
                 {showMobileMenu ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </Button>
               
-              <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                 Asset Management
               </h1>
               
@@ -102,7 +103,7 @@ const Dashboard = () => {
                   aria-label="View notifications"
                 >
                   <Bell className="h-5 w-5" />
-                  <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs bg-red-500">
+                  <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs bg-gray-500">
                     3
                   </Badge>
                 </Button>
@@ -270,9 +271,9 @@ const Dashboard = () => {
                     className="flex items-center space-x-4 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                   >
                     <div className={`w-2 h-2 rounded-full ${
-                      activity.type === 'assignment' ? 'bg-blue-500' :
-                      activity.type === 'maintenance' ? 'bg-green-500' :
-                      activity.type === 'addition' ? 'bg-purple-500' : 'bg-orange-500'
+                      activity.type === 'assignment' ? 'bg-gray-500' :
+                      activity.type === 'maintenance' ? 'bg-gray-500' :
+                      activity.type === 'addition' ? 'bg-gray-500' : 'bg-gray-500'
                     }`} />
                     <div className="flex-1">
                       <p className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">
@@ -302,7 +303,7 @@ const Dashboard = () => {
       >
         <Button
           size="lg"
-          className="rounded-full shadow-lg bg-blue-500 hover:bg-blue-600 w-14 h-14"
+          className="rounded-full shadow-lg bg-gray-500 hover:bg-gray-600 w-14 h-14"
           onClick={() => navigate('/assets/add')}
           aria-label="Add new asset"
         >

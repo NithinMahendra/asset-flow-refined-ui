@@ -25,13 +25,8 @@ interface AssetCardProps {
 
 const AssetCard = ({ asset }: AssetCardProps) => {
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'In Use': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case 'Available': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-      case 'In Repair': return 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200';
-      case 'Faulty': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
-    }
+    // All statuses use neutral grayscale colors
+    return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
   };
 
   return (
@@ -95,8 +90,8 @@ const AssetCard = ({ asset }: AssetCardProps) => {
             <div className="flex justify-between">
               <span className="text-gray-600 dark:text-gray-400">Warranty:</span>
               <Badge 
-                variant={asset.warrantyStatus === 'Active' ? 'default' : 'destructive'}
-                className="text-xs"
+                variant={asset.warrantyStatus === 'Active' ? 'default' : 'outline'}
+                className="text-xs bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200"
               >
                 {asset.warrantyStatus}
               </Badge>
