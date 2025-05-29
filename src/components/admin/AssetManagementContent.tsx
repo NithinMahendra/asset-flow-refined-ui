@@ -26,12 +26,13 @@ import {
   Upload,
   Package,
   QrCode,
-  MoreHorizontal
+  MoreHorizontal,
+  Printer
 } from 'lucide-react';
 import AddAssetForm from '@/components/admin/AddAssetForm';
-import AssetDetailsModal from '@/components/admin/AssetDetailsModal';
-import BulkOperationsPanel from '@/components/admin/BulkOperationsPanel';
 import { useAdminData } from '@/contexts/AdminDataContext';
+import { motion } from 'framer-motion';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const AssetManagementContent = () => {
   const { toast } = useToast();
@@ -44,14 +45,15 @@ const AssetManagementContent = () => {
     getAverageAssetAge,
     getUpcomingWarrantyExpiries,
     getOverdueMaintenanceAssets,
-    addAsset
+    addAsset,
+    updateAsset,
+    deleteAsset
   } = useAdminData();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [showBulkPanel, setShowBulkPanel] = useState(false);
-  const [selectedAsset, setSelectedAsset] = useState<any>(null);
+  const [editingAsset, setEditingAsset] = useState<any>(null);
 
   const assetStats = getAssetStats();
   const categoryStats = getCategoryStats();
@@ -64,24 +66,24 @@ const AssetManagementContent = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Available':
-        return 'bg-green-100 text-green-800';
+        return 'bg-emerald-100 text-emerald-800 border-emerald-200';
       case 'Assigned':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'In Repair':
-        return 'bg-red-100 text-red-800';
+        return 'bg-amber-100 text-amber-800 border-amber-200';
       case 'Retired':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-slate-100 text-slate-800 border-slate-200';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-slate-100 text-slate-800 border-slate-200';
     }
   };
 
   const getCategoryColor = (index: number) => {
     const colors = [
-      'bg-blue-100 text-blue-800',
-      'bg-green-100 text-green-800',
-      'bg-purple-100 text-purple-800',
-      'bg-gray-100 text-gray-800',
+      'bg-blue-100 text-blue-800 border-blue-200',
+      'bg-emerald-100 text-emerald-800 border-emerald-200',
+      'bg-purple-100 text-purple-800 border-purple-200',
+      'bg-amber-100 text-amber-800 border-amber-200',
     ];
     return colors[index % colors.length];
   };
@@ -104,34 +106,79 @@ const AssetManagementContent = () => {
     });
   };
 
+  const handleEditAsset = (asset: any) => {
+    setEditingAsset(asset);
+  };
+
+  const handleDeleteAsset = (assetId: string) => {
+    const asset = assets.find(a => a.id === assetId);
+    if (asset) {
+      deleteAsset(assetId);
+      toast({
+        title: "Asset Deleted",
+        description: `${asset.name} has been removed from inventory`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleBulkDelete = () => {
+    selectedAssets.forEach(id => deleteAsset(id));
+    setSelectedAssets([]);
+    toast({
+      title: "Assets Deleted",
+      description: `${selectedAssets.length} assets have been removed`,
+      variant: "destructive",
+    });
+  };
+
+  const handleExport = () => {
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + "ID,Name,Category,Status,Assignee,Value,Location\n"
+      + assets.map(a => `${a.id},${a.name},${a.category},${a.status},${a.assignee},${a.value},${a.location}`).join("\n");
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "assets.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast({
+      title: "Export Complete",
+      description: "Asset data has been exported to CSV",
+    });
+  };
+
   const filteredAssets = assets.filter(asset =>
     asset.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     asset.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
     asset.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Calculate depreciation alerts (assets older than 3 years with high value)
-  const depreciationAlerts = assets.filter(asset => {
-    const purchaseDate = new Date(asset.purchaseDate);
-    const ageInYears = (new Date().getTime() - purchaseDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
-    return ageInYears > 3 && asset.value > 1000;
-  });
+  const pieData = [
+    { name: 'Available', value: assetStats.available, color: '#10b981' },
+    { name: 'Assigned', value: assetStats.assigned, color: '#3b82f6' },
+    { name: 'In Repair', value: assetStats.inRepair, color: '#f59e0b' },
+    { name: 'Retired', value: assetStats.retired, color: '#6b7280' },
+  ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-slate-50/50 p-6 min-h-screen">
       {/* Header Actions */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
             <Input
               placeholder="Search assets..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 w-80"
+              className="pl-10 w-80 bg-white border-slate-200 focus:border-blue-500 focus:ring-blue-500"
             />
           </div>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" className="border-slate-200 text-slate-700 hover:bg-slate-50">
             <Filter className="h-4 w-4 mr-2" />
             Advanced Filter
           </Button>
@@ -139,24 +186,31 @@ const AssetManagementContent = () => {
             <Button 
               variant="outline" 
               size="sm"
-              onClick={() => setShowBulkPanel(true)}
+              onClick={handleBulkDelete}
+              className="border-red-200 text-red-700 hover:bg-red-50"
             >
-              Bulk Actions ({selectedAssets.length})
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete ({selectedAssets.length})
             </Button>
           )}
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" className="border-slate-200 text-slate-700 hover:bg-slate-50">
             <Upload className="h-4 w-4 mr-2" />
             Import CSV
           </Button>
-          <Button variant="outline" size="sm">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleExport}
+            className="border-slate-200 text-slate-700 hover:bg-slate-50"
+          >
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
           <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
             <DialogTrigger asChild>
-              <Button size="sm">
+              <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Asset
               </Button>
@@ -174,20 +228,20 @@ const AssetManagementContent = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="assets" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="assets">All Assets</TabsTrigger>
-          <TabsTrigger value="categories">Categories</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          <TabsTrigger value="lifecycle">Lifecycle</TabsTrigger>
+      <Tabs defaultValue="assets" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4 bg-slate-100">
+          <TabsTrigger value="assets" className="data-[state=active]:bg-white data-[state=active]:text-slate-900">All Assets</TabsTrigger>
+          <TabsTrigger value="categories" className="data-[state=active]:bg-white data-[state=active]:text-slate-900">Categories</TabsTrigger>
+          <TabsTrigger value="analytics" className="data-[state=active]:bg-white data-[state=active]:text-slate-900">Analytics</TabsTrigger>
+          <TabsTrigger value="lifecycle" className="data-[state=active]:bg-white data-[state=active]:text-slate-900">Lifecycle</TabsTrigger>
         </TabsList>
 
         <TabsContent value="assets" className="space-y-4">
-          <Card>
+          <Card className="border-slate-200 shadow-sm">
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-gray-50">
+                  <TableRow className="bg-slate-50 border-slate-200">
                     <TableHead className="w-12">
                       <input
                         type="checkbox"
@@ -198,46 +252,52 @@ const AssetManagementContent = () => {
                             setSelectedAssets([]);
                           }
                         }}
-                        className="rounded border-gray-300"
+                        className="rounded border-slate-300"
                       />
                     </TableHead>
-                    <TableHead className="font-semibold">Asset ID</TableHead>
-                    <TableHead className="font-semibold">Name</TableHead>
-                    <TableHead className="font-semibold">Category</TableHead>
-                    <TableHead className="font-semibold">Status</TableHead>
-                    <TableHead className="font-semibold">Assignee</TableHead>
-                    <TableHead className="font-semibold">Value</TableHead>
-                    <TableHead className="font-semibold">Location</TableHead>
-                    <TableHead className="font-semibold">QR Code</TableHead>
-                    <TableHead className="font-semibold">Actions</TableHead>
+                    <TableHead className="font-semibold text-slate-700">Asset ID</TableHead>
+                    <TableHead className="font-semibold text-slate-700">Name</TableHead>
+                    <TableHead className="font-semibold text-slate-700">Category</TableHead>
+                    <TableHead className="font-semibold text-slate-700">Status</TableHead>
+                    <TableHead className="font-semibold text-slate-700">Assignee</TableHead>
+                    <TableHead className="font-semibold text-slate-700">Value</TableHead>
+                    <TableHead className="font-semibold text-slate-700">Location</TableHead>
+                    <TableHead className="font-semibold text-slate-700">QR Code</TableHead>
+                    <TableHead className="font-semibold text-slate-700">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredAssets.map((asset) => (
-                    <TableRow key={asset.id} className="hover:bg-gray-50">
+                  {filteredAssets.map((asset, index) => (
+                    <motion.tr 
+                      key={asset.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.1 }}
+                      className="hover:bg-slate-50 border-slate-200"
+                    >
                       <TableCell>
                         <input
                           type="checkbox"
                           checked={selectedAssets.includes(asset.id)}
                           onChange={() => handleSelectAsset(asset.id)}
-                          className="rounded border-gray-300"
+                          className="rounded border-slate-300"
                         />
                       </TableCell>
-                      <TableCell className="font-medium">{asset.id}</TableCell>
-                      <TableCell>{asset.name}</TableCell>
+                      <TableCell className="font-medium text-slate-900">{asset.id}</TableCell>
+                      <TableCell className="text-slate-900">{asset.name}</TableCell>
                       <TableCell>
-                        <Badge variant="outline">{asset.category}</Badge>
+                        <Badge variant="outline" className="border-slate-200 text-slate-700">{asset.category}</Badge>
                       </TableCell>
                       <TableCell>
                         <Badge className={getStatusColor(asset.status)}>
                           {asset.status}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-gray-600">{asset.assignee}</TableCell>
-                      <TableCell className="font-medium">${asset.value.toLocaleString()}</TableCell>
-                      <TableCell className="text-gray-600">{asset.location}</TableCell>
+                      <TableCell className="text-slate-600">{asset.assignee}</TableCell>
+                      <TableCell className="font-medium text-slate-900">${asset.value.toLocaleString()}</TableCell>
+                      <TableCell className="text-slate-600">{asset.location}</TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-900">
                           <QrCode className="h-4 w-4" />
                         </Button>
                       </TableCell>
@@ -246,22 +306,36 @@ const AssetManagementContent = () => {
                           <Button 
                             variant="ghost" 
                             size="sm"
-                            onClick={() => setSelectedAsset(asset)}
+                            className="text-slate-600 hover:text-blue-600"
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleEditAsset(asset)}
+                            className="text-slate-600 hover:text-amber-600"
+                          >
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleDeleteAsset(asset.id)}
+                            className="text-slate-600 hover:text-red-600"
+                          >
                             <Trash2 className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm">
-                            <MoreHorizontal className="h-4 w-4" />
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="text-slate-600 hover:text-slate-900"
+                          >
+                            <Printer className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
-                    </TableRow>
+                    </motion.tr>
                   ))}
                 </TableBody>
               </Table>
@@ -272,63 +346,112 @@ const AssetManagementContent = () => {
         <TabsContent value="categories" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {categoryStats.map((category, index) => (
-              <Card key={index} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <Package className="h-8 w-8 text-gray-400" />
-                    <Badge className={getCategoryColor(index)}>{category.name}</Badge>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-semibold text-gray-900 mb-1">{category.count}</p>
-                    <p className="text-sm text-gray-600">Total value: ${category.value.toLocaleString()}</p>
-                  </div>
-                </CardContent>
-              </Card>
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3, delay: index * 0.1 }}
+              >
+                <Card className="hover:shadow-md transition-shadow border-slate-200">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <Package className="h-8 w-8 text-slate-400" />
+                      <Badge className={getCategoryColor(index)}>{category.name}</Badge>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-semibold text-slate-900 mb-1">{category.count}</p>
+                      <p className="text-sm text-slate-600">Total value: ${category.value.toLocaleString()}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
             ))}
-            {categoryStats.length === 0 && (
-              <Card className="col-span-full">
-                <CardContent className="p-6 text-center">
-                  <p className="text-gray-500">No assets found</p>
-                </CardContent>
-              </Card>
-            )}
           </div>
         </TabsContent>
 
-        <TabsContent value="analytics" className="space-y-4">
+        <TabsContent value="analytics" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-slate-900">Asset Distribution</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={90}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {pieData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-slate-900">Category Values</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={categoryStats}>
+                      <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                      <XAxis dataKey="name" className="text-xs" />
+                      <YAxis className="text-xs" />
+                      <Tooltip />
+                      <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card>
+            <Card className="border-slate-200 shadow-sm">
               <CardHeader>
-                <CardTitle className="text-base">Asset Utilization</CardTitle>
+                <CardTitle className="text-base text-slate-900">Asset Utilization</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-center">
-                  <p className="text-3xl font-bold text-gray-900">{utilizationRate.toFixed(1)}%</p>
-                  <p className="text-sm text-gray-600">Currently in use</p>
+                  <p className="text-3xl font-bold text-blue-600">{utilizationRate.toFixed(1)}%</p>
+                  <p className="text-sm text-slate-600">Currently in use</p>
                 </div>
               </CardContent>
             </Card>
             
-            <Card>
+            <Card className="border-slate-200 shadow-sm">
               <CardHeader>
-                <CardTitle className="text-base">Maintenance Rate</CardTitle>
+                <CardTitle className="text-base text-slate-900">Maintenance Rate</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-center">
-                  <p className="text-3xl font-bold text-gray-900">{maintenanceRate.toFixed(1)}%</p>
-                  <p className="text-sm text-gray-600">Assets under repair</p>
+                  <p className="text-3xl font-bold text-amber-600">{maintenanceRate.toFixed(1)}%</p>
+                  <p className="text-sm text-slate-600">Assets under repair</p>
                 </div>
               </CardContent>
             </Card>
             
-            <Card>
+            <Card className="border-slate-200 shadow-sm">
               <CardHeader>
-                <CardTitle className="text-base">Average Age</CardTitle>
+                <CardTitle className="text-base text-slate-900">Average Age</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-center">
-                  <p className="text-3xl font-bold text-gray-900">{averageAge.toFixed(1)}</p>
-                  <p className="text-sm text-gray-600">Years</p>
+                  <p className="text-3xl font-bold text-emerald-600">{averageAge.toFixed(1)}</p>
+                  <p className="text-sm text-slate-600">Years</p>
                 </div>
               </CardContent>
             </Card>
@@ -336,62 +459,40 @@ const AssetManagementContent = () => {
         </TabsContent>
 
         <TabsContent value="lifecycle" className="space-y-4">
-          <Card>
+          <Card className="border-slate-200 shadow-sm">
             <CardHeader>
-              <CardTitle>Asset Lifecycle Management</CardTitle>
+              <CardTitle className="text-lg font-semibold text-slate-900">Asset Lifecycle Management</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Card className="border-red-200">
-                    <CardContent className="p-4">
-                      <h4 className="font-medium text-red-800 mb-2">Warranty Expiring Soon</h4>
-                      <p className="text-2xl font-bold text-red-600">{upcomingWarranties.length}</p>
-                      <p className="text-sm text-gray-600">Assets expiring in 30 days</p>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card className="border-blue-200">
-                    <CardContent className="p-4">
-                      <h4 className="font-medium text-blue-800 mb-2">Overdue Maintenance</h4>
-                      <p className="text-2xl font-bold text-blue-600">{overdueAssets.length}</p>
-                      <p className="text-sm text-gray-600">Assets requiring attention</p>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card className="border-gray-200">
-                    <CardContent className="p-4">
-                      <h4 className="font-medium text-gray-800 mb-2">Depreciation Alert</h4>
-                      <p className="text-2xl font-bold text-gray-600">{depreciationAlerts.length}</p>
-                      <p className="text-sm text-gray-600">High depreciation assets</p>
-                    </CardContent>
-                  </Card>
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="border-red-200 bg-red-50">
+                  <CardContent className="p-4">
+                    <h4 className="font-medium text-red-800 mb-2">Warranty Expiring Soon</h4>
+                    <p className="text-2xl font-bold text-red-600">{upcomingWarranties.length}</p>
+                    <p className="text-sm text-red-700">Assets expiring in 30 days</p>
+                  </CardContent>
+                </Card>
+                
+                <Card className="border-amber-200 bg-amber-50">
+                  <CardContent className="p-4">
+                    <h4 className="font-medium text-amber-800 mb-2">Overdue Maintenance</h4>
+                    <p className="text-2xl font-bold text-amber-600">{overdueAssets.length}</p>
+                    <p className="text-sm text-amber-700">Assets requiring attention</p>
+                  </CardContent>
+                </Card>
+                
+                <Card className="border-slate-200 bg-slate-50">
+                  <CardContent className="p-4">
+                    <h4 className="font-medium text-slate-800 mb-2">Total Value</h4>
+                    <p className="text-2xl font-bold text-slate-600">${(assetStats.totalValue / 1000).toFixed(0)}K</p>
+                    <p className="text-sm text-slate-700">Current asset portfolio</p>
+                  </CardContent>
+                </Card>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
-
-      {/* Asset Details Modal */}
-      {selectedAsset && (
-        <AssetDetailsModal 
-          asset={selectedAsset} 
-          onClose={() => setSelectedAsset(null)} 
-        />
-      )}
-
-      {/* Bulk Operations Panel */}
-      {showBulkPanel && (
-        <BulkOperationsPanel 
-          selectedAssets={selectedAssets}
-          onClose={() => setShowBulkPanel(false)}
-          onComplete={() => {
-            setSelectedAssets([]);
-            setShowBulkPanel(false);
-          }}
-        />
-      )}
     </div>
   );
 };

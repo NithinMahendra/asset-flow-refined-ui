@@ -28,20 +28,16 @@ const AddAssetForm = ({ onClose, onAssetCreated }: AddAssetFormProps) => {
     brand: '',
     model: '',
     serialNumber: '',
-    assetTag: '',
     location: '',
-    status: '',
+    status: 'Available',
     purchaseDate: undefined as Date | undefined,
-    purchasePrice: '',
+    value: '',
     supplier: '',
-    warrantyPeriod: '',
     warrantyExpiry: undefined as Date | undefined,
     description: '',
-    specifications: '',
-    assignedTo: '',
-    department: '',
-    condition: '',
-    images: [] as File[]
+    assignee: '-',
+    condition: 'Excellent',
+    department: ''
   });
 
   const [currentTab, setCurrentTab] = useState('general');
@@ -49,8 +45,8 @@ const AddAssetForm = ({ onClose, onAssetCreated }: AddAssetFormProps) => {
 
   const deviceTypes = ['Laptop', 'Desktop', 'Monitor', 'Tablet', 'Phone', 'Printer', 'Router', 'Switch', 'Other'];
   const locations = ['Warehouse A', 'Warehouse B', 'Office Floor 1', 'Office Floor 2', 'IT Department', 'Storage Room'];
-  const statuses = ['Available', 'In Use', 'In Repair', 'Faulty', 'Retired'];
-  const conditions = ['New', 'Excellent', 'Good', 'Fair', 'Poor'];
+  const statuses = ['Available', 'Assigned', 'In Repair', 'Retired'];
+  const conditions = ['Excellent', 'Good', 'Fair', 'Poor'];
   const departments = ['Engineering', 'Design', 'Marketing', 'Sales', 'HR', 'Finance', 'Operations'];
 
   const handleInputChange = (field: string, value: any) => {
@@ -58,18 +54,6 @@ const AddAssetForm = ({ onClose, onAssetCreated }: AddAssetFormProps) => {
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
-  };
-
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    setFormData(prev => ({ ...prev, images: [...prev.images, ...files] }));
-  };
-
-  const removeImage = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index)
-    }));
   };
 
   const validateForm = () => {
@@ -82,7 +66,7 @@ const AddAssetForm = ({ onClose, onAssetCreated }: AddAssetFormProps) => {
     if (!formData.status) newErrors.status = 'Status is required';
     if (!formData.condition) newErrors.condition = 'Condition is required';
     if (!formData.purchaseDate) newErrors.purchaseDate = 'Purchase date is required';
-    if (!formData.purchasePrice.trim()) newErrors.purchasePrice = 'Purchase price is required';
+    if (!formData.value.trim()) newErrors.value = 'Purchase price is required';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -106,9 +90,20 @@ const AddAssetForm = ({ onClose, onAssetCreated }: AddAssetFormProps) => {
       
       // Format the data for creation
       const assetData = {
-        ...formData,
+        name: formData.name,
+        category: formData.category,
+        brand: formData.brand || '',
+        model: formData.model || '',
+        serialNumber: formData.serialNumber,
+        location: formData.location,
+        status: formData.status as 'Available' | 'Assigned' | 'In Repair' | 'Retired',
+        condition: formData.condition as 'Excellent' | 'Good' | 'Fair' | 'Poor',
         purchaseDate: formData.purchaseDate ? format(formData.purchaseDate, 'yyyy-MM-dd') : '',
+        value: parseFloat(formData.value) || 0,
         warrantyExpiry: formData.warrantyExpiry ? format(formData.warrantyExpiry, 'yyyy-MM-dd') : '',
+        description: formData.description || '',
+        assignee: formData.assignee || '-',
+        department: formData.department || ''
       };
       
       onAssetCreated(assetData);
@@ -127,41 +122,40 @@ const AddAssetForm = ({ onClose, onAssetCreated }: AddAssetFormProps) => {
   return (
     <div className="space-y-6">
       <Tabs value={currentTab} onValueChange={setCurrentTab}>
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="general">General Info</TabsTrigger>
-          <TabsTrigger value="financial">Financial</TabsTrigger>
-          <TabsTrigger value="assignment">Assignment</TabsTrigger>
-          <TabsTrigger value="images">Images</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 bg-slate-100">
+          <TabsTrigger value="general" className="data-[state=active]:bg-white">General Info</TabsTrigger>
+          <TabsTrigger value="financial" className="data-[state=active]:bg-white">Financial</TabsTrigger>
+          <TabsTrigger value="assignment" className="data-[state=active]:bg-white">Assignment</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general" className="space-y-4">
-          <Card>
+          <Card className="border-slate-200">
             <CardHeader>
-              <CardTitle>General Information</CardTitle>
+              <CardTitle className="text-slate-900">General Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Asset Name *</Label>
+                  <Label htmlFor="name" className="text-slate-700">Asset Name *</Label>
                   <Input
                     id="name"
                     value={formData.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
                     placeholder="Enter asset name"
-                    className={errors.name ? 'border-red-500' : ''}
+                    className={cn("border-slate-200 focus:border-blue-500", errors.name && 'border-red-500')}
                   />
                   {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="category">Category *</Label>
+                  <Label htmlFor="category" className="text-slate-700">Category *</Label>
                   <Select value={formData.category} onValueChange={(value) => handleInputChange('category', value)}>
-                    <SelectTrigger className={errors.category ? 'border-red-500' : ''}>
+                    <SelectTrigger className={cn("border-slate-200 focus:border-blue-500", errors.category && 'border-red-500')}>
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
                       {deviceTypes.map((type) => (
-                        <SelectItem key={type} value={type.toLowerCase()}>
+                        <SelectItem key={type} value={type}>
                           {type}
                         </SelectItem>
                       ))}
@@ -171,56 +165,48 @@ const AddAssetForm = ({ onClose, onAssetCreated }: AddAssetFormProps) => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="brand">Brand</Label>
+                  <Label htmlFor="brand" className="text-slate-700">Brand</Label>
                   <Input
                     id="brand"
                     value={formData.brand}
                     onChange={(e) => handleInputChange('brand', e.target.value)}
                     placeholder="e.g., Apple, Dell, HP"
+                    className="border-slate-200 focus:border-blue-500"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="model">Model</Label>
+                  <Label htmlFor="model" className="text-slate-700">Model</Label>
                   <Input
                     id="model"
                     value={formData.model}
                     onChange={(e) => handleInputChange('model', e.target.value)}
                     placeholder="e.g., MacBook Pro 16-inch"
+                    className="border-slate-200 focus:border-blue-500"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="serialNumber">Serial Number *</Label>
+                  <Label htmlFor="serialNumber" className="text-slate-700">Serial Number *</Label>
                   <Input
                     id="serialNumber"
                     value={formData.serialNumber}
                     onChange={(e) => handleInputChange('serialNumber', e.target.value)}
                     placeholder="Enter serial number"
-                    className={errors.serialNumber ? 'border-red-500' : ''}
+                    className={cn("border-slate-200 focus:border-blue-500", errors.serialNumber && 'border-red-500')}
                   />
                   {errors.serialNumber && <p className="text-sm text-red-500">{errors.serialNumber}</p>}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="assetTag">Asset Tag</Label>
-                  <Input
-                    id="assetTag"
-                    value={formData.assetTag}
-                    onChange={(e) => handleInputChange('assetTag', e.target.value)}
-                    placeholder="Will be auto-generated if empty"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="location">Location *</Label>
+                  <Label htmlFor="location" className="text-slate-700">Location *</Label>
                   <Select value={formData.location} onValueChange={(value) => handleInputChange('location', value)}>
-                    <SelectTrigger className={errors.location ? 'border-red-500' : ''}>
+                    <SelectTrigger className={cn("border-slate-200 focus:border-blue-500", errors.location && 'border-red-500')}>
                       <SelectValue placeholder="Select location" />
                     </SelectTrigger>
                     <SelectContent>
                       {locations.map((location) => (
-                        <SelectItem key={location} value={location.toLowerCase()}>
+                        <SelectItem key={location} value={location}>
                           {location}
                         </SelectItem>
                       ))}
@@ -230,14 +216,14 @@ const AddAssetForm = ({ onClose, onAssetCreated }: AddAssetFormProps) => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="status">Status *</Label>
+                  <Label htmlFor="status" className="text-slate-700">Status *</Label>
                   <Select value={formData.status} onValueChange={(value) => handleInputChange('status', value)}>
-                    <SelectTrigger className={errors.status ? 'border-red-500' : ''}>
+                    <SelectTrigger className={cn("border-slate-200 focus:border-blue-500", errors.status && 'border-red-500')}>
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
                       {statuses.map((status) => (
-                        <SelectItem key={status} value={status.toLowerCase()}>
+                        <SelectItem key={status} value={status}>
                           {status}
                         </SelectItem>
                       ))}
@@ -247,14 +233,14 @@ const AddAssetForm = ({ onClose, onAssetCreated }: AddAssetFormProps) => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="condition">Condition *</Label>
+                  <Label htmlFor="condition" className="text-slate-700">Condition *</Label>
                   <Select value={formData.condition} onValueChange={(value) => handleInputChange('condition', value)}>
-                    <SelectTrigger className={errors.condition ? 'border-red-500' : ''}>
+                    <SelectTrigger className={cn("border-slate-200 focus:border-blue-500", errors.condition && 'border-red-500')}>
                       <SelectValue placeholder="Select condition" />
                     </SelectTrigger>
                     <SelectContent>
                       {conditions.map((condition) => (
-                        <SelectItem key={condition} value={condition.toLowerCase()}>
+                        <SelectItem key={condition} value={condition}>
                           {condition}
                         </SelectItem>
                       ))}
@@ -265,24 +251,14 @@ const AddAssetForm = ({ onClose, onAssetCreated }: AddAssetFormProps) => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description" className="text-slate-700">Description</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
                   placeholder="Enter asset description"
                   rows={3}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="specifications">Technical Specifications</Label>
-                <Textarea
-                  id="specifications"
-                  value={formData.specifications}
-                  onChange={(e) => handleInputChange('specifications', e.target.value)}
-                  placeholder="Enter technical specifications"
-                  rows={3}
+                  className="border-slate-200 focus:border-blue-500"
                 />
               </div>
             </CardContent>
@@ -290,21 +266,21 @@ const AddAssetForm = ({ onClose, onAssetCreated }: AddAssetFormProps) => {
         </TabsContent>
 
         <TabsContent value="financial" className="space-y-4">
-          <Card>
+          <Card className="border-slate-200">
             <CardHeader>
-              <CardTitle>Financial Information</CardTitle>
+              <CardTitle className="text-slate-900">Financial Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Purchase Date *</Label>
+                  <Label className="text-slate-700">Purchase Date *</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
                         className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !formData.purchaseDate && "text-muted-foreground",
+                          "w-full justify-start text-left font-normal border-slate-200",
+                          !formData.purchaseDate && "text-slate-500",
                           errors.purchaseDate && "border-red-500"
                         )}
                       >
@@ -318,7 +294,6 @@ const AddAssetForm = ({ onClose, onAssetCreated }: AddAssetFormProps) => {
                         selected={formData.purchaseDate}
                         onSelect={(date) => handleInputChange('purchaseDate', date)}
                         initialFocus
-                        className="pointer-events-auto"
                       />
                     </PopoverContent>
                   </Popover>
@@ -326,48 +301,27 @@ const AddAssetForm = ({ onClose, onAssetCreated }: AddAssetFormProps) => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="purchasePrice">Purchase Price *</Label>
+                  <Label htmlFor="value" className="text-slate-700">Purchase Price *</Label>
                   <Input
-                    id="purchasePrice"
-                    value={formData.purchasePrice}
-                    onChange={(e) => handleInputChange('purchasePrice', e.target.value)}
+                    id="value"
+                    value={formData.value}
+                    onChange={(e) => handleInputChange('value', e.target.value)}
                     placeholder="e.g., 2499.00"
                     type="number"
-                    className={errors.purchasePrice ? 'border-red-500' : ''}
+                    className={cn("border-slate-200 focus:border-blue-500", errors.value && 'border-red-500')}
                   />
-                  {errors.purchasePrice && <p className="text-sm text-red-500">{errors.purchasePrice}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="supplier">Supplier</Label>
-                  <Input
-                    id="supplier"
-                    value={formData.supplier}
-                    onChange={(e) => handleInputChange('supplier', e.target.value)}
-                    placeholder="Enter supplier name"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="warrantyPeriod">Warranty Period (months)</Label>
-                  <Input
-                    id="warrantyPeriod"
-                    value={formData.warrantyPeriod}
-                    onChange={(e) => handleInputChange('warrantyPeriod', e.target.value)}
-                    placeholder="e.g., 24"
-                    type="number"
-                  />
+                  {errors.value && <p className="text-sm text-red-500">{errors.value}</p>}
                 </div>
 
                 <div className="space-y-2 col-span-2">
-                  <Label>Warranty Expiry Date</Label>
+                  <Label className="text-slate-700">Warranty Expiry Date</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
                         className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !formData.warrantyExpiry && "text-muted-foreground"
+                          "w-full justify-start text-left font-normal border-slate-200",
+                          !formData.warrantyExpiry && "text-slate-500"
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
@@ -380,7 +334,6 @@ const AddAssetForm = ({ onClose, onAssetCreated }: AddAssetFormProps) => {
                         selected={formData.warrantyExpiry}
                         onSelect={(date) => handleInputChange('warrantyExpiry', date)}
                         initialFocus
-                        className="pointer-events-auto"
                       />
                     </PopoverContent>
                   </Popover>
@@ -391,31 +344,32 @@ const AddAssetForm = ({ onClose, onAssetCreated }: AddAssetFormProps) => {
         </TabsContent>
 
         <TabsContent value="assignment" className="space-y-4">
-          <Card>
+          <Card className="border-slate-200">
             <CardHeader>
-              <CardTitle>Assignment Information</CardTitle>
+              <CardTitle className="text-slate-900">Assignment Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="assignedTo">Assigned To</Label>
+                  <Label htmlFor="assignee" className="text-slate-700">Assigned To</Label>
                   <Input
-                    id="assignedTo"
-                    value={formData.assignedTo}
-                    onChange={(e) => handleInputChange('assignedTo', e.target.value)}
+                    id="assignee"
+                    value={formData.assignee}
+                    onChange={(e) => handleInputChange('assignee', e.target.value)}
                     placeholder="Enter employee name or email"
+                    className="border-slate-200 focus:border-blue-500"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="department">Department</Label>
+                  <Label htmlFor="department" className="text-slate-700">Department</Label>
                   <Select value={formData.department} onValueChange={(value) => handleInputChange('department', value)}>
-                    <SelectTrigger>
+                    <SelectTrigger className="border-slate-200 focus:border-blue-500">
                       <SelectValue placeholder="Select department" />
                     </SelectTrigger>
                     <SelectContent>
                       {departments.map((dept) => (
-                        <SelectItem key={dept} value={dept.toLowerCase()}>
+                        <SelectItem key={dept} value={dept}>
                           {dept}
                         </SelectItem>
                       ))}
@@ -426,59 +380,10 @@ const AddAssetForm = ({ onClose, onAssetCreated }: AddAssetFormProps) => {
             </CardContent>
           </Card>
         </TabsContent>
-
-        <TabsContent value="images" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Asset Images</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 mb-2">Upload asset images</p>
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageUpload}
-                  className="hidden"
-                  id="image-upload"
-                />
-                <Button asChild variant="outline">
-                  <label htmlFor="image-upload" className="cursor-pointer">
-                    Choose Files
-                  </label>
-                </Button>
-              </div>
-
-              {formData.images.length > 0 && (
-                <div className="grid grid-cols-3 gap-4">
-                  {formData.images.map((image, index) => (
-                    <div key={index} className="relative">
-                      <img
-                        src={URL.createObjectURL(image)}
-                        alt={`Asset image ${index + 1}`}
-                        className="w-full h-32 object-cover rounded-lg border"
-                      />
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        className="absolute top-2 right-2"
-                        onClick={() => removeImage(index)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
 
-      <div className="flex justify-between pt-6 border-t">
-        <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
+      <div className="flex justify-between pt-6 border-t border-slate-200">
+        <Button variant="outline" onClick={onClose} disabled={isSubmitting} className="border-slate-200">
           Cancel
         </Button>
         <div className="space-x-2">
@@ -486,28 +391,30 @@ const AddAssetForm = ({ onClose, onAssetCreated }: AddAssetFormProps) => {
             <Button
               variant="outline"
               onClick={() => {
-                const tabs = ['general', 'financial', 'assignment', 'images'];
+                const tabs = ['general', 'financial', 'assignment'];
                 const currentIndex = tabs.indexOf(currentTab);
                 setCurrentTab(tabs[currentIndex - 1]);
               }}
               disabled={isSubmitting}
+              className="border-slate-200"
             >
               Previous
             </Button>
           )}
-          {currentTab !== 'images' ? (
+          {currentTab !== 'assignment' ? (
             <Button
               onClick={() => {
-                const tabs = ['general', 'financial', 'assignment', 'images'];
+                const tabs = ['general', 'financial', 'assignment'];
                 const currentIndex = tabs.indexOf(currentTab);
                 setCurrentTab(tabs[currentIndex + 1]);
               }}
               disabled={isSubmitting}
+              className="bg-blue-600 hover:bg-blue-700"
             >
               Next
             </Button>
           ) : (
-            <Button onClick={handleSubmit} disabled={isSubmitting}>
+            <Button onClick={handleSubmit} disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700">
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />

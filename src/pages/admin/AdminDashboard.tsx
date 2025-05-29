@@ -88,18 +88,18 @@ const AdminDashboard = () => {
 
   return (
     <AdminDataProvider>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-slate-50">
         <SidebarProvider defaultOpen={true}>
           <div className="flex min-h-screen w-full">
-            <Sidebar className="border-r border-gray-200">
-              <SidebarHeader className="border-b border-gray-200 p-4">
+            <Sidebar className="border-r border-slate-200 bg-white">
+              <SidebarHeader className="border-b border-slate-200 p-4">
                 <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-gray-900 rounded flex items-center justify-center">
+                  <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center">
                     <Building className="h-5 w-5 text-white" />
                   </div>
                   <div>
-                    <h1 className="font-semibold text-gray-900">AssetPro</h1>
-                    <p className="text-xs text-gray-500">Admin Panel</p>
+                    <h1 className="font-semibold text-slate-900">AssetPro</h1>
+                    <p className="text-xs text-slate-500">Admin Panel</p>
                   </div>
                 </div>
               </SidebarHeader>
@@ -113,7 +113,7 @@ const AdminDashboard = () => {
                           <SidebarMenuButton
                             isActive={activeTab === item.id}
                             onClick={() => setActiveTab(item.id)}
-                            className="w-full justify-start hover:bg-gray-100 data-[active=true]:bg-gray-900 data-[active=true]:text-white"
+                            className="w-full justify-start hover:bg-slate-100 data-[active=true]:bg-blue-600 data-[active=true]:text-white text-slate-700"
                           >
                             <item.icon className="h-4 w-4" />
                             <span>{item.label}</span>
@@ -125,19 +125,19 @@ const AdminDashboard = () => {
                 </SidebarGroup>
               </SidebarContent>
               
-              <SidebarFooter className="border-t border-gray-200 p-4">
+              <SidebarFooter className="border-t border-slate-200 p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <Avatar className="w-8 h-8">
-                      <AvatarFallback className="bg-gray-200 text-gray-700">
+                      <AvatarFallback className="bg-slate-100 text-slate-700">
                         {user?.name?.charAt(0)?.toUpperCase() || 'A'}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">
+                      <p className="text-sm font-medium text-slate-900 truncate">
                         {user?.name}
                       </p>
-                      <p className="text-xs text-gray-500 truncate">
+                      <p className="text-xs text-slate-500 truncate">
                         Administrator
                       </p>
                     </div>
@@ -146,7 +146,7 @@ const AdminDashboard = () => {
                     variant="ghost"
                     size="icon"
                     onClick={handleLogout}
-                    className="h-8 w-8 text-gray-500 hover:text-gray-700"
+                    className="h-8 w-8 text-slate-500 hover:text-slate-700 hover:bg-slate-100"
                   >
                     <LogOut className="h-4 w-4" />
                   </Button>
@@ -155,26 +155,26 @@ const AdminDashboard = () => {
             </Sidebar>
             
             <SidebarInset className="flex-1">
-              <header className="bg-white border-b border-gray-200 px-6 py-4">
+              <header className="bg-white border-b border-slate-200 px-6 py-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
-                    <SidebarTrigger className="h-8 w-8" />
-                    <h2 className="text-xl font-semibold text-gray-900">
+                    <SidebarTrigger className="h-8 w-8 text-slate-600 hover:text-slate-900" />
+                    <h2 className="text-xl font-semibold text-slate-900">
                       {menuItems.find(item => item.id === activeTab)?.label}
                     </h2>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" className="border-slate-200 text-slate-700 hover:bg-slate-50">
                       Export Data
                     </Button>
-                    <Button size="sm">
+                    <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
                       New Asset
                     </Button>
                   </div>
                 </div>
               </header>
               
-              <main className="flex-1 p-6">
+              <main className="flex-1">
                 {renderContent()}
               </main>
             </SidebarInset>

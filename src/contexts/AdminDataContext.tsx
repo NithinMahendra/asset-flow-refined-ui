@@ -15,6 +15,10 @@ interface Asset {
   purchaseDate: string;
   warrantyExpiry: string;
   condition: 'Excellent' | 'Good' | 'Fair' | 'Poor';
+  brand?: string;
+  model?: string;
+  department?: string;
+  description?: string;
 }
 
 interface User {
@@ -67,14 +71,14 @@ interface Notification {
   userId?: string;
 }
 
-interface QRCode {
+interface ActivityLog {
   id: string;
-  assetId: string;
-  qrCode: string;
-  generatedDate: string;
-  lastScanned: string;
-  scanCount: number;
-  status: 'Active' | 'Inactive' | 'Expired';
+  action: string;
+  details: string;
+  timestamp: string;
+  type: 'assignment' | 'addition' | 'maintenance' | 'return' | 'update';
+  userId?: string;
+  assetId?: string;
 }
 
 interface AdminDataContextType {
@@ -83,7 +87,7 @@ interface AdminDataContextType {
   assignments: Assignment[];
   assignmentRequests: AssignmentRequest[];
   notifications: Notification[];
-  qrCodes: QRCode[];
+  activityLog: ActivityLog[];
   addAsset: (asset: Omit<Asset, 'id' | 'lastUpdated' | 'qrCode'>) => void;
   updateAsset: (id: string, updates: Partial<Asset>) => void;
   deleteAsset: (id: string) => void;
@@ -91,6 +95,9 @@ interface AdminDataContextType {
   addAssignment: (assignment: Omit<Assignment, 'id'>) => void;
   addNotification: (notification: Omit<Notification, 'id' | 'timestamp' | 'isRead'>) => void;
   markNotificationAsRead: (id: string) => void;
+  approveAssignmentRequest: (id: string) => void;
+  declineAssignmentRequest: (id: string) => void;
+  generateQRCode: (assetId: string) => string;
   getAssetStats: () => {
     total: number;
     available: number;
@@ -115,12 +122,7 @@ interface AdminDataContextType {
   getAverageAssetAge: () => number;
   getUpcomingWarrantyExpiries: () => Asset[];
   getOverdueMaintenanceAssets: () => Asset[];
-  getRecentActivity: () => Array<{
-    action: string;
-    details: string;
-    timestamp: string;
-    type: string;
-  }>;
+  getRecentActivity: () => ActivityLog[];
   getUpcomingTasks: () => Array<{
     task: string;
     due: string;
@@ -145,47 +147,56 @@ export const AdminDataProvider: React.FC<{ children: ReactNode }> = ({ children 
       id: 'AST-001',
       name: 'MacBook Pro M3',
       category: 'Laptop',
-      status: 'Available',
-      assignee: '-',
+      status: 'Assigned',
+      assignee: 'John Doe',
       value: 2499,
-      location: 'Warehouse A',
-      lastUpdated: '2024-01-15',
+      location: 'Office Floor 2',
+      lastUpdated: new Date().toISOString().split('T')[0],
       qrCode: 'QR001-AST001-2024',
       serialNumber: 'MP-2024-001',
       purchaseDate: '2024-01-10',
       warrantyExpiry: '2027-01-10',
-      condition: 'Excellent'
+      condition: 'Excellent',
+      brand: 'Apple',
+      model: 'MacBook Pro 16-inch',
+      department: 'Engineering'
     },
     {
       id: 'AST-002',
-      name: 'iPhone 15 Pro',
-      category: 'Mobile',
-      status: 'Assigned',
-      assignee: 'John Doe',
-      value: 999,
-      location: 'Office Floor 2',
-      lastUpdated: '2024-01-14',
+      name: 'Dell XPS 13',
+      category: 'Laptop',
+      status: 'Available',
+      assignee: '-',
+      value: 1299,
+      location: 'Warehouse A',
+      lastUpdated: new Date().toISOString().split('T')[0],
       qrCode: 'QR002-AST002-2024',
-      serialNumber: 'IP-2024-002',
-      purchaseDate: '2024-01-08',
-      warrantyExpiry: '2026-01-08',
-      condition: 'Excellent'
+      serialNumber: 'DX-2024-002',
+      purchaseDate: '2024-02-15',
+      warrantyExpiry: '2027-02-15',
+      condition: 'Excellent',
+      brand: 'Dell',
+      model: 'XPS 13',
+      department: '-'
     },
     {
       id: 'AST-003',
-      name: 'Dell Monitor 27"',
-      category: 'Monitor',
+      name: 'iPhone 15 Pro',
+      category: 'Mobile',
       status: 'In Repair',
       assignee: '-',
-      value: 329,
+      value: 999,
       location: 'IT Department',
-      lastUpdated: '2024-01-13',
+      lastUpdated: new Date().toISOString().split('T')[0],
       qrCode: 'QR003-AST003-2024',
-      serialNumber: 'DM-2024-003',
-      purchaseDate: '2024-01-05',
-      warrantyExpiry: '2026-01-05',
-      condition: 'Fair'
-    },
+      serialNumber: 'IP-2024-003',
+      purchaseDate: '2024-03-20',
+      warrantyExpiry: '2025-03-20',
+      condition: 'Fair',
+      brand: 'Apple',
+      model: 'iPhone 15 Pro',
+      department: '-'
+    }
   ]);
 
   const [users, setUsers] = useState<User[]>([
@@ -207,6 +218,15 @@ export const AdminDataProvider: React.FC<{ children: ReactNode }> = ({ children 
       joinDate: '2023-03-20',
       status: 'Active'
     },
+    {
+      id: 'USR-003',
+      name: 'Mike Johnson',
+      email: 'mike.johnson@company.com',
+      role: 'Employee',
+      department: 'Sales',
+      joinDate: '2023-08-10',
+      status: 'Active'
+    }
   ]);
 
   const [assignments, setAssignments] = useState<Assignment[]>([
@@ -215,76 +235,99 @@ export const AdminDataProvider: React.FC<{ children: ReactNode }> = ({ children 
       employeeId: 'USR-001',
       employeeName: 'John Doe',
       employeeEmail: 'john.doe@company.com',
-      assetId: 'AST-002',
-      assetName: 'iPhone 15 Pro',
+      assetId: 'AST-001',
+      assetName: 'MacBook Pro M3',
       assignedDate: '2024-01-14',
       dueDate: '2024-07-14',
       status: 'Active',
       department: 'Engineering',
       condition: 'Excellent'
-    },
+    }
   ]);
 
   const [assignmentRequests, setAssignmentRequests] = useState<AssignmentRequest[]>([
     {
       id: 'REQ-001',
       employeeId: 'USR-003',
-      employeeName: 'Alice Brown',
-      employeeEmail: 'alice.brown@company.com',
-      requestedAsset: 'iPad Pro',
-      requestDate: '2024-01-16',
+      employeeName: 'Mike Johnson',
+      employeeEmail: 'mike.johnson@company.com',
+      requestedAsset: 'Dell XPS 13',
+      requestDate: new Date().toISOString().split('T')[0],
       priority: 'High',
       justification: 'Required for client presentations',
       department: 'Sales',
       managerId: 'USR-002',
       managerName: 'Sarah Smith',
       status: 'Pending'
-    },
+    }
   ]);
 
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [qrCodes, setQrCodes] = useState<QRCode[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([
+    {
+      id: 'NOTIF-001',
+      type: 'warning',
+      title: 'Asset Maintenance Due',
+      message: 'iPhone 15 Pro requires scheduled maintenance',
+      timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+      isRead: false,
+      assetId: 'AST-003'
+    },
+    {
+      id: 'NOTIF-002',
+      type: 'info',
+      title: 'New Asset Request',
+      message: 'Mike Johnson requested a Dell XPS 13',
+      timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+      isRead: false
+    }
+  ]);
 
-  // Initialize QR codes and notifications
-  useEffect(() => {
-    // Generate QR codes for existing assets
-    const initialQRCodes = assets.map(asset => ({
-      id: `QR-${asset.id}`,
-      assetId: asset.id,
-      qrCode: asset.qrCode,
-      generatedDate: asset.purchaseDate,
-      lastScanned: asset.lastUpdated,
-      scanCount: Math.floor(Math.random() * 20) + 1,
-      status: 'Active' as const
-    }));
-    setQrCodes(initialQRCodes);
+  const [activityLog, setActivityLog] = useState<ActivityLog[]>([
+    {
+      id: 'ACT-001',
+      action: 'Asset Assignment',
+      details: 'MacBook Pro M3 assigned to John Doe',
+      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+      type: 'assignment',
+      assetId: 'AST-001',
+      userId: 'USR-001'
+    },
+    {
+      id: 'ACT-002',
+      action: 'Maintenance Request',
+      details: 'iPhone 15 Pro sent for repair',
+      timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+      type: 'maintenance',
+      assetId: 'AST-003'
+    }
+  ]);
 
-    // Generate initial notifications
-    const initialNotifications = [
-      {
-        id: 'NOTIF-001',
-        type: 'warning' as const,
-        title: 'Asset Maintenance Due',
-        message: `${assets[2]?.name} requires scheduled maintenance`,
-        timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-        isRead: false,
-        assetId: assets[2]?.id
-      },
-      {
-        id: 'NOTIF-002',
-        type: 'info' as const,
-        title: 'New Asset Request',
-        message: 'Alice Brown requested a new iPad Pro',
-        timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
-        isRead: false
-      },
-    ];
-    setNotifications(initialNotifications);
-  }, []);
+  const generateAssetId = () => {
+    const nextId = assets.length + 1;
+    return `AST-${String(nextId).padStart(3, '0')}`;
+  };
+
+  const generateQRCode = (assetId: string) => {
+    const timestamp = Date.now();
+    return `QR${timestamp}-${assetId}-${new Date().getFullYear()}`;
+  };
+
+  const logActivity = (action: string, details: string, type: ActivityLog['type'], assetId?: string, userId?: string) => {
+    const newActivity: ActivityLog = {
+      id: `ACT-${String(activityLog.length + 1).padStart(3, '0')}`,
+      action,
+      details,
+      timestamp: new Date().toISOString(),
+      type,
+      assetId,
+      userId
+    };
+    setActivityLog(prev => [newActivity, ...prev.slice(0, 49)]); // Keep last 50 activities
+  };
 
   const addAsset = (assetData: Omit<Asset, 'id' | 'lastUpdated' | 'qrCode'>) => {
-    const assetId = `AST-${String(assets.length + 1).padStart(3, '0')}`;
-    const qrCode = `QR${Date.now()}-${assetId}-${new Date().getFullYear()}`;
+    const assetId = generateAssetId();
+    const qrCode = generateQRCode(assetId);
     
     const newAsset: Asset = {
       ...assetData,
@@ -294,20 +337,8 @@ export const AdminDataProvider: React.FC<{ children: ReactNode }> = ({ children 
     };
 
     setAssets(prev => [...prev, newAsset]);
-
-    // Add QR code
-    const newQRCode: QRCode = {
-      id: `QR-${assetId}`,
-      assetId,
-      qrCode,
-      generatedDate: new Date().toISOString().split('T')[0],
-      lastScanned: 'Never',
-      scanCount: 0,
-      status: 'Active'
-    };
-    setQrCodes(prev => [...prev, newQRCode]);
-
-    // Add notification
+    logActivity('New Asset Added', `${newAsset.name} added to inventory`, 'addition', assetId);
+    
     addNotification({
       type: 'success',
       title: 'New Asset Added',
@@ -322,14 +353,19 @@ export const AdminDataProvider: React.FC<{ children: ReactNode }> = ({ children 
         ? { ...asset, ...updates, lastUpdated: new Date().toISOString().split('T')[0] }
         : asset
     ));
+    
+    const asset = assets.find(a => a.id === id);
+    if (asset) {
+      logActivity('Asset Updated', `${asset.name} information updated`, 'update', id);
+    }
   };
 
   const deleteAsset = (id: string) => {
     const asset = assets.find(a => a.id === id);
     setAssets(prev => prev.filter(asset => asset.id !== id));
-    setQrCodes(prev => prev.filter(qr => qr.assetId !== id));
     
     if (asset) {
+      logActivity('Asset Removed', `${asset.name} removed from inventory`, 'update', id);
       addNotification({
         type: 'info',
         title: 'Asset Removed',
@@ -352,8 +388,11 @@ export const AdminDataProvider: React.FC<{ children: ReactNode }> = ({ children 
     // Update asset status
     updateAsset(assignmentData.assetId, { 
       status: 'Assigned', 
-      assignee: assignmentData.employeeName 
+      assignee: assignmentData.employeeName,
+      department: assignmentData.department
     });
+
+    logActivity('Asset Assignment', `${assignmentData.assetName} assigned to ${assignmentData.employeeName}`, 'assignment', assignmentData.assetId, assignmentData.employeeId);
   };
 
   const addNotification = (notificationData: Omit<Notification, 'id' | 'timestamp' | 'isRead'>) => {
@@ -370,6 +409,41 @@ export const AdminDataProvider: React.FC<{ children: ReactNode }> = ({ children 
   const markNotificationAsRead = (id: string) => {
     setNotifications(prev => prev.map(notif => 
       notif.id === id ? { ...notif, isRead: true } : notif
+    ));
+  };
+
+  const approveAssignmentRequest = (id: string) => {
+    const request = assignmentRequests.find(r => r.id === id);
+    if (request) {
+      const availableAsset = assets.find(a => 
+        a.name.toLowerCase().includes(request.requestedAsset.toLowerCase()) && 
+        a.status === 'Available'
+      );
+      
+      if (availableAsset) {
+        addAssignment({
+          employeeId: request.employeeId,
+          employeeName: request.employeeName,
+          employeeEmail: request.employeeEmail,
+          assetId: availableAsset.id,
+          assetName: availableAsset.name,
+          assignedDate: new Date().toISOString().split('T')[0],
+          dueDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 6 months
+          status: 'Active',
+          department: request.department,
+          condition: availableAsset.condition
+        });
+      }
+      
+      setAssignmentRequests(prev => prev.map(r => 
+        r.id === id ? { ...r, status: 'Approved' as const } : r
+      ));
+    }
+  };
+
+  const declineAssignmentRequest = (id: string) => {
+    setAssignmentRequests(prev => prev.map(r => 
+      r.id === id ? { ...r, status: 'Declined' as const } : r
     ));
   };
 
@@ -404,7 +478,10 @@ export const AdminDataProvider: React.FC<{ children: ReactNode }> = ({ children 
   const getAssignmentStats = () => {
     const active = assignments.filter(a => a.status === 'Active').length;
     const pending = assignmentRequests.filter(r => r.status === 'Pending').length;
-    const overdue = assignments.filter(a => a.status === 'Overdue').length;
+    const overdue = assignments.filter(a => {
+      const dueDate = new Date(a.dueDate);
+      return dueDate < new Date() && a.status === 'Active';
+    }).length;
     const completed = assignments.filter(a => a.status === 'Returned').length;
 
     return { active, pending, overdue, completed };
@@ -451,45 +528,7 @@ export const AdminDataProvider: React.FC<{ children: ReactNode }> = ({ children 
   };
 
   const getRecentActivity = () => {
-    const activities = [];
-
-    // Recent assignments
-    assignments.slice(-5).forEach(assignment => {
-      activities.push({
-        action: 'Asset Assignment',
-        details: `${assignment.assetName} assigned to ${assignment.employeeName}`,
-        timestamp: assignment.assignedDate,
-        type: 'assignment'
-      });
-    });
-
-    // Recent asset additions
-    assets.slice(-3).forEach(asset => {
-      activities.push({
-        action: 'New Asset Added',
-        details: `${asset.name} added to inventory`,
-        timestamp: asset.lastUpdated,
-        type: 'addition'
-      });
-    });
-
-    // Assets in repair
-    assets.filter(a => a.status === 'In Repair').forEach(asset => {
-      activities.push({
-        action: 'Maintenance Request',
-        details: `${asset.name} requires repair`,
-        timestamp: asset.lastUpdated,
-        type: 'maintenance'
-      });
-    });
-
-    return activities
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-      .slice(0, 5)
-      .map(activity => ({
-        ...activity,
-        timestamp: new Date(activity.timestamp).toLocaleString()
-      }));
+    return activityLog.slice(0, 10);
   };
 
   const getUpcomingTasks = () => {
@@ -525,20 +564,6 @@ export const AdminDataProvider: React.FC<{ children: ReactNode }> = ({ children 
       });
     }
 
-    // Add some standard recurring tasks
-    tasks.push(
-      {
-        task: 'Monthly Asset Audit',
-        due: 'Due in 5 days',
-        priority: 'medium' as const
-      },
-      {
-        task: 'Quarterly Inventory Check',
-        due: 'Due in 2 weeks',
-        priority: 'low' as const
-      }
-    );
-
     return tasks.slice(0, 6);
   };
 
@@ -548,7 +573,7 @@ export const AdminDataProvider: React.FC<{ children: ReactNode }> = ({ children 
     assignments,
     assignmentRequests,
     notifications,
-    qrCodes,
+    activityLog,
     addAsset,
     updateAsset,
     deleteAsset,
@@ -556,6 +581,9 @@ export const AdminDataProvider: React.FC<{ children: ReactNode }> = ({ children 
     addAssignment,
     addNotification,
     markNotificationAsRead,
+    approveAssignmentRequest,
+    declineAssignmentRequest,
+    generateQRCode,
     getAssetStats,
     getCategoryStats,
     getAssignmentStats,
