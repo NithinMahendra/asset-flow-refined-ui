@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { User, AuthContextType } from '@/types/auth';
-import { parseSupabaseError } from '@/utils/emailValidation';
+import { SignupService } from '@/services/signupService';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -95,95 +95,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const signup = async (email: string, password: string, name: string, role: 'admin' | 'employee'): Promise<boolean> => {
     try {
       setIsLoading(true);
-      console.log('🚀 Attempting signup for:', email, 'as', role, 'with name:', name);
+      console.log('🚀 [AuthContext] Using new SignupService for:', email);
       
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            first_name: name,
-            role: role,
-            department: role === 'admin' ? 'Administration' : 'General'
-          }
-        }
-      });
-
-      if (error) {
-        console.error('❌ Signup error:', error.message);
-        const friendlyError = parseSupabaseError(error);
-        console.error('Friendly error message:', friendlyError);
-        throw new Error(friendlyError);
-      }
-
-      if (data.user) {
-        console.log('✅ Signup successful for:', data.user.email);
-        console.log('User created with ID:', data.user.id);
-        
-        // Enhanced profile creation verification with retry mechanism
-        let retryCount = 0;
-        const maxRetries = 3;
-        
-        const verifyProfile = async (): Promise<void> => {
-          try {
-            await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Progressive delay
-            
-            const { data: profile, error: profileError } = await supabase
-              .from('employee_profiles')
-              .select('*')
-              .eq('user_id', data.user.id)
-              .single();
-            
-            if (profileError || !profile) {
-              if (retryCount < maxRetries) {
-                retryCount++;
-                console.log(`⚠️ Profile not found (attempt ${retryCount}/${maxRetries}), retrying...`);
-                return verifyProfile();
-              }
-              
-              console.log('⚠️ Profile not found after max retries, creating manually...');
-              const { error: insertError } = await supabase
-                .from('employee_profiles')
-                .insert({
-                  user_id: data.user.id,
-                  employee_id: `EMP-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
-                  first_name: name,
-                  last_name: '',
-                  email: email,
-                  department: role === 'admin' ? 'Administration' : 'General'
-                });
-              
-              if (insertError) {
-                console.error('❌ Failed to create profile manually:', insertError);
-                throw new Error('Failed to create user profile. Please contact support.');
-              } else {
-                console.log('✅ Profile created manually');
-              }
-            } else {
-              console.log('✅ Profile found:', profile);
-            }
-          } catch (error) {
-            console.error('Error in profile verification:', error);
-            if (retryCount < maxRetries) {
-              retryCount++;
-              return verifyProfile();
-            }
-            throw error;
-          }
-        };
-        
-        // Start profile verification but don't block signup completion
-        verifyProfile().catch(error => {
-          console.error('Profile verification failed:', error);
-        });
-        
+      const result = await SignupService.createEmployeeAccount(email, password, name);
+      
+      if (result.success) {
+        console.log('✅ [AuthContext] Signup successful');
         return true;
+      } else {
+        console.error('❌ [AuthContext] Signup failed:', result.error);
+        throw new Error(result.error || 'Signup failed');
       }
-
-      return false;
     } catch (error: any) {
-      console.error('❌ Signup exception:', error);
-      // Re-throw the error so it can be caught in the UI
+      console.error('❌ [AuthContext] Signup exception:', error);
       throw error;
     } finally {
       setIsLoading(false);

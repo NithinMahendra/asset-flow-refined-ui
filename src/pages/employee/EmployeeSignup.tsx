@@ -7,9 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Eye, EyeOff, ArrowLeft, AlertCircle, CheckCircle } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { validateEmail, parseSupabaseError } from '@/utils/emailValidation';
+import { SignupService } from '@/services/signupService';
 
 const EmployeeSignup = () => {
   const [formData, setFormData] = useState({
@@ -20,37 +19,8 @@ const EmployeeSignup = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [emailValidation, setEmailValidation] = useState<{ isValid: boolean; error?: string }>({ isValid: true });
-  const [isValidating, setIsValidating] = useState(false);
-  const { signup, isLoading } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-
-  // Real-time email validation
-  useEffect(() => {
-    if (formData.email) {
-      setIsValidating(true);
-      const timer = setTimeout(() => {
-        const validation = validateEmail(formData.email);
-        setEmailValidation(validation);
-        setIsValidating(false);
-        
-        if (!validation.isValid) {
-          setErrors(prev => ({ ...prev, email: validation.error || 'Invalid email' }));
-        } else {
-          setErrors(prev => {
-            const newErrors = { ...prev };
-            delete newErrors.email;
-            return newErrors;
-          });
-        }
-      }, 500);
-      
-      return () => clearTimeout(timer);
-    } else {
-      setEmailValidation({ isValid: true });
-      setIsValidating(false);
-    }
-  }, [formData.email]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -61,9 +31,10 @@ const EmployeeSignup = () => {
       newErrors.name = 'Name must be at least 2 characters';
     }
 
-    const emailValidationResult = validateEmail(formData.email);
-    if (!emailValidationResult.isValid) {
-      newErrors.email = emailValidationResult.error || 'Invalid email';
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
     }
 
     if (!formData.password) {
@@ -88,41 +59,35 @@ const EmployeeSignup = () => {
       return;
     }
 
-    console.log('🚀 Starting signup process for:', formData.email);
-    
+    setIsLoading(true);
+    console.log('🚀 [EmployeeSignup] Starting signup process');
+
     try {
-      const success = await signup(formData.email, formData.password, formData.name, 'employee');
-      
-      if (success) {
+      const result = await SignupService.createEmployeeAccount(
+        formData.email,
+        formData.password,
+        formData.name
+      );
+
+      if (result.success) {
+        console.log('✅ [EmployeeSignup] Signup successful');
         toast.success('Account created successfully! Please check your email to verify your account.');
         navigate('/employee/login');
       } else {
-        // The error will be logged in the AuthContext
-        toast.error('Failed to create account. Please try again.');
+        console.error('❌ [EmployeeSignup] Signup failed:', result.error);
+        toast.error(result.error || 'Failed to create account. Please try again.');
+        
+        // Set specific field errors if possible
+        if (result.error?.toLowerCase().includes('email')) {
+          setErrors(prev => ({ ...prev, email: result.error || 'Email error' }));
+        }
       }
     } catch (error: any) {
-      console.error('❌ Signup exception:', error);
-      const errorMessage = parseSupabaseError(error);
-      toast.error(errorMessage);
-      
-      // Set specific field errors if possible
-      if (error?.message?.includes('email')) {
-        setErrors(prev => ({ ...prev, email: errorMessage }));
-      }
+      console.error('💥 [EmployeeSignup] Unexpected error:', error);
+      toast.error('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-  };
-
-  const getEmailInputIcon = () => {
-    if (isValidating) {
-      return <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400" />;
-    }
-    if (formData.email && emailValidation.isValid) {
-      return <CheckCircle className="h-4 w-4 text-green-500" />;
-    }
-    if (formData.email && !emailValidation.isValid) {
-      return <AlertCircle className="h-4 w-4 text-red-500" />;
-    }
-    return null;
   };
 
   return (
@@ -174,30 +139,19 @@ const EmployeeSignup = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
-                  <div className="relative">
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="employee@gmail.com"
-                      value={formData.email}
-                      onChange={(e) => setFormData({...formData, email: e.target.value})}
-                      className={`h-12 pr-10 ${errors.email ? 'border-red-500' : emailValidation.isValid && formData.email ? 'border-green-500' : ''}`}
-                      required
-                    />
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                      {getEmailInputIcon()}
-                    </div>
-                  </div>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="employee@gmail.com"
+                    value={formData.email}
+                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    className={`h-12 ${errors.email ? 'border-red-500' : ''}`}
+                    required
+                  />
                   {errors.email && (
                     <p className="text-sm text-red-600 flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" />
                       {errors.email}
-                    </p>
-                  )}
-                  {!errors.email && formData.email && emailValidation.isValid && (
-                    <p className="text-sm text-green-600 flex items-center gap-1">
-                      <CheckCircle className="h-3 w-3" />
-                      Email format looks good!
                     </p>
                   )}
                 </div>
@@ -260,7 +214,7 @@ const EmployeeSignup = () => {
                 <Button 
                   type="submit" 
                   className="w-full h-12 bg-green-600 hover:bg-green-700 text-white"
-                  disabled={isLoading || !emailValidation.isValid || Object.keys(errors).length > 0}
+                  disabled={isLoading}
                 >
                   {isLoading ? (
                     <div className="flex items-center space-x-2">
