@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { 
@@ -83,11 +82,11 @@ export const useSupabaseData = () => {
         // Transform data to include legacy fields
         const transformedAssets = assetsData.map((asset: any) => ({
           ...asset,
-          name: `${asset.brand} ${asset.model}`,
-          category: asset.device_type,
+          name: `${asset.brand || 'Unknown'} ${asset.model || 'Asset'}`,
+          category: asset.device_type || 'Unknown',
           assignee: asset.assigned_to || 'Unassigned',
-          value: asset.purchase_price,
-          last_updated: asset.updated_at // Add last_updated for compatibility
+          value: asset.purchase_price || 0,
+          last_updated: asset.updated_at || asset.created_at
         }));
         setAssets(transformedAssets);
         console.log('✅ Assets loaded successfully:', transformedAssets.length);
@@ -114,15 +113,16 @@ export const useSupabaseData = () => {
         setAssetAssignments([]);
       }
 
-      // Handle activity log
+      // Handle activity log with better error handling
       if (results[3].status === 'fulfilled' && !results[3].value.error) {
         const activityData = results[3].value.data || [];
-        // Transform data to include legacy fields
+        // Transform data to include legacy fields and safely handle details
         const transformedActivity = activityData.map((activity: any) => ({
           ...activity,
           type: activity.action?.toLowerCase().includes('assignment') ? 'assignment' :
                 activity.action?.toLowerCase().includes('maintenance') ? 'maintenance' :
-                activity.action?.toLowerCase().includes('addition') ? 'addition' : 'general'
+                activity.action?.toLowerCase().includes('addition') ? 'addition' : 'general',
+          details: activity.details || null // Ensure details is not undefined
         }));
         setActivityLog(transformedActivity);
         console.log('✅ Activity log loaded successfully:', transformedActivity.length);
@@ -157,7 +157,7 @@ export const useSupabaseData = () => {
 
     } catch (err) {
       console.error('Error loading data:', err);
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : 'An error occurred while loading data');
     } finally {
       setLoading(false);
     }
@@ -328,44 +328,59 @@ export const useSupabaseData = () => {
     }
   };
 
-  // Statistics functions
+  // Statistics functions with error handling
   const getAssetStats = () => {
-    const total = assets.length;
-    const available = assets.filter(a => a.status === 'active' && !a.assigned_to).length;
-    const assigned = assets.filter(a => a.assigned_to).length;
-    const inRepair = assets.filter(a => a.status === 'maintenance').length;
-    const retired = assets.filter(a => a.status === 'retired').length;
-    const totalValue = assets.reduce((sum, asset) => sum + (asset.purchase_price || 0), 0);
+    try {
+      const total = assets.length;
+      const available = assets.filter(a => a.status === 'active' && !a.assigned_to).length;
+      const assigned = assets.filter(a => a.assigned_to).length;
+      const inRepair = assets.filter(a => a.status === 'maintenance').length;
+      const retired = assets.filter(a => a.status === 'retired').length;
+      const totalValue = assets.reduce((sum, asset) => sum + (Number(asset.purchase_price) || 0), 0);
 
-    return { total, available, assigned, inRepair, retired, totalValue };
+      return { total, available, assigned, inRepair, retired, totalValue };
+    } catch (error) {
+      console.error('Error calculating asset stats:', error);
+      return { total: 0, available: 0, assigned: 0, inRepair: 0, retired: 0, totalValue: 0 };
+    }
   };
 
   const getCategoryStats = () => {
-    const categories: { [key: string]: { count: number; value: number } } = {};
-    
-    assets.forEach(asset => {
-      const category = asset.device_type || 'Other';
-      if (!categories[category]) {
-        categories[category] = { count: 0, value: 0 };
-      }
-      categories[category].count++;
-      categories[category].value += asset.purchase_price || 0;
-    });
+    try {
+      const categories: { [key: string]: { count: number; value: number } } = {};
+      
+      assets.forEach(asset => {
+        const category = asset.device_type || 'Other';
+        if (!categories[category]) {
+          categories[category] = { count: 0, value: 0 };
+        }
+        categories[category].count++;
+        categories[category].value += Number(asset.purchase_price) || 0;
+      });
 
-    return Object.entries(categories).map(([name, stats]) => ({
-      name,
-      count: stats.count,
-      value: stats.value
-    }));
+      return Object.entries(categories).map(([name, stats]) => ({
+        name,
+        count: stats.count,
+        value: stats.value
+      }));
+    } catch (error) {
+      console.error('Error calculating category stats:', error);
+      return [];
+    }
   };
 
   const getAssignmentStats = () => {
-    return {
-      active: assetAssignments.filter(a => a.status === 'active').length,
-      pending: assetRequests.filter(r => r.status === 'pending').length,
-      overdue: 0,
-      completed: assetAssignments.filter(a => a.status === 'returned').length
-    };
+    try {
+      return {
+        active: assetAssignments.filter(a => a.status === 'active').length,
+        pending: assetRequests.filter(r => r.status === 'pending').length,
+        overdue: 0,
+        completed: assetAssignments.filter(a => a.status === 'returned').length
+      };
+    } catch (error) {
+      console.error('Error calculating assignment stats:', error);
+      return { active: 0, pending: 0, overdue: 0, completed: 0 };
+    }
   };
 
   useEffect(() => {

@@ -6,8 +6,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 // Pages
+import Index from "./pages/Index";
 import RoleSelection from "./pages/RoleSelection";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminSignup from "./pages/admin/AdminSignup";
@@ -20,74 +22,84 @@ import RequestHistory from "./pages/employee/RequestHistory";
 import ScanAsset from "./pages/employee/ScanAsset";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<RoleSelection />} />
-            <Route path="/admin/login" element={<AdminLogin />} />
-            <Route path="/admin/signup" element={<AdminSignup />} />
-            <Route path="/employee/login" element={<EmployeeLogin />} />
-            <Route path="/employee/signup" element={<EmployeeSignup />} />
-            
-            {/* Protected Admin Routes - All admin functionality now in AdminDashboard */}
-            <Route 
-              path="/admin/dashboard" 
-              element={
-                <ProtectedRoute requiredRole="admin">
-                  <AdminDashboard />
-                </ProtectedRoute>
-              } 
-            />
-            
-            {/* Protected Employee Routes */}
-            <Route 
-              path="/employee/dashboard" 
-              element={
-                <ProtectedRoute requiredRole="employee">
-                  <EmployeeDashboard />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/employee/assets" 
-              element={
-                <ProtectedRoute requiredRole="employee">
-                  <MyAssets />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/employee/requests" 
-              element={
-                <ProtectedRoute requiredRole="employee">
-                  <RequestHistory />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/employee/scan" 
-              element={
-                <ProtectedRoute requiredRole="employee">
-                  <ScanAsset />
-                </ProtectedRoute>
-              } 
-            />
-            
-            {/* Catch-all route */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <AuthProvider>
+          <BrowserRouter>
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/" element={<Index />} />
+              <Route path="/role-selection" element={<RoleSelection />} />
+              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/admin/signup" element={<AdminSignup />} />
+              <Route path="/employee/login" element={<EmployeeLogin />} />
+              <Route path="/employee/signup" element={<EmployeeSignup />} />
+              
+              {/* Protected Admin Routes - All admin functionality now in AdminDashboard */}
+              <Route 
+                path="/admin/dashboard" 
+                element={
+                  <ProtectedRoute requiredRole="admin">
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              {/* Protected Employee Routes */}
+              <Route 
+                path="/employee/dashboard" 
+                element={
+                  <ProtectedRoute requiredRole="employee">
+                    <EmployeeDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/employee/assets" 
+                element={
+                  <ProtectedRoute requiredRole="employee">
+                    <MyAssets />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/employee/requests" 
+                element={
+                  <ProtectedRoute requiredRole="employee">
+                    <RequestHistory />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/employee/scan" 
+                element={
+                  <ProtectedRoute requiredRole="employee">
+                    <ScanAsset />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              {/* Catch-all route */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
