@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Package, Plus, User, Clock, Bell, LogOut, Smartphone, Laptop } from 'lucide-react';
+import { Package, Plus, User, Clock, Bell, LogOut, Smartphone, Laptop, QrCode } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -58,27 +58,33 @@ const EmployeeDashboard = () => {
 
   const quickActions = [
     { 
+      title: 'Scan Asset', 
+      icon: QrCode, 
+      color: 'bg-green-500', 
+      action: () => navigate('/employee/scan')
+    },
+    { 
       title: 'Request New Asset', 
       icon: Plus, 
-      color: 'bg-green-500', 
+      color: 'bg-blue-500', 
       action: () => setShowRequestModal(true)
     },
     { 
       title: 'View My Assets', 
       icon: Package, 
-      color: 'bg-blue-500', 
+      color: 'bg-purple-500', 
       action: () => navigate('/employee/assets')
     },
     { 
       title: 'Update Profile', 
       icon: User, 
-      color: 'bg-purple-500', 
+      color: 'bg-orange-500', 
       action: () => setShowProfileModal(true)
     },
     { 
       title: 'Request History', 
       icon: Clock, 
-      color: 'bg-orange-500', 
+      color: 'bg-indigo-500', 
       action: () => navigate('/employee/requests')
     },
   ];

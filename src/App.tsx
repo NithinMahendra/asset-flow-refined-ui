@@ -17,6 +17,7 @@ import EmployeeSignup from "./pages/employee/EmployeeSignup";
 import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
 import MyAssets from "./pages/employee/MyAssets";
 import RequestHistory from "./pages/employee/RequestHistory";
+import ScanAsset from "./pages/employee/ScanAsset";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -68,6 +69,14 @@ const App = () => (
               element={
                 <ProtectedRoute requiredRole="employee">
                   <RequestHistory />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/employee/scan" 
+              element={
+                <ProtectedRoute requiredRole="employee">
+                  <ScanAsset />
                 </ProtectedRoute>
               } 
             />

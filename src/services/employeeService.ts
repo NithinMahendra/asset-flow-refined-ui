@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import type { Database } from '@/integrations/supabase/types';
 
 export interface EmployeeProfile {
   id: string;
@@ -45,6 +45,9 @@ export interface EmployeeNotification {
   related_request_id?: string;
   created_at: string;
 }
+
+type AssetRequestRow = Database['public']['Tables']['asset_requests']['Row'];
+type NotificationRow = Database['public']['Tables']['notifications']['Row'];
 
 export class EmployeeService {
   static async getEmployeeProfile(): Promise<EmployeeProfile | null> {
@@ -114,7 +117,22 @@ export class EmployeeService {
       return [];
     }
 
-    return data || [];
+    // Type assertion to ensure proper typing from database
+    return (data as AssetRequestRow[]).map(row => ({
+      id: row.id,
+      employee_id: row.employee_id,
+      asset_type: row.asset_type,
+      brand: row.brand,
+      model: row.model,
+      justification: row.justification,
+      priority: (row.priority || 'medium') as 'low' | 'medium' | 'high' | 'urgent',
+      status: (row.status || 'pending') as 'pending' | 'approved' | 'denied' | 'fulfilled',
+      requested_date: row.requested_date || '',
+      approved_date: row.approved_date,
+      fulfilled_date: row.fulfilled_date,
+      denial_reason: row.denial_reason,
+      notes: row.notes
+    }));
   }
 
   static async createAssetRequest(request: Omit<AssetRequest, 'id' | 'employee_id' | 'requested_date' | 'status'>): Promise<boolean> {
@@ -136,6 +154,42 @@ export class EmployeeService {
     return true;
   }
 
+  static async createAssetRequestFromScan(assetId: string, justification: string, priority: 'low' | 'medium' | 'high' | 'urgent' = 'medium'): Promise<boolean> {
+    const profile = await this.getEmployeeProfile();
+    if (!profile) return false;
+
+    // Get asset details
+    const { data: asset, error: assetError } = await supabase
+      .from('assets')
+      .select('*')
+      .eq('id', assetId)
+      .single();
+
+    if (assetError || !asset) {
+      console.error('Error fetching asset:', assetError);
+      return false;
+    }
+
+    const { error } = await supabase
+      .from('asset_requests')
+      .insert({
+        employee_id: profile.id,
+        asset_type: asset.device_type,
+        brand: asset.brand,
+        model: asset.model,
+        justification,
+        priority,
+        notes: `Requested via QR scan for asset: ${asset.asset_tag}`
+      });
+
+    if (error) {
+      console.error('Error creating asset request from scan:', error);
+      return false;
+    }
+
+    return true;
+  }
+
   static async getNotifications(): Promise<EmployeeNotification[]> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return [];
@@ -151,7 +205,18 @@ export class EmployeeService {
       return [];
     }
 
-    return data || [];
+    // Type assertion to ensure proper typing from database
+    return (data as NotificationRow[]).map(row => ({
+      id: row.id,
+      user_id: row.user_id,
+      title: row.title,
+      message: row.message,
+      type: (row.type || 'info') as 'info' | 'success' | 'warning' | 'error',
+      is_read: row.is_read || false,
+      related_asset_id: row.related_asset_id,
+      related_request_id: row.related_request_id,
+      created_at: row.created_at || ''
+    }));
   }
 
   static async markNotificationAsRead(notificationId: string): Promise<boolean> {
@@ -166,6 +231,29 @@ export class EmployeeService {
     }
 
     return true;
+  }
+
+  static async getAssetByQRCode(qrData: string): Promise<any | null> {
+    try {
+      // Parse QR data (expecting format: asset:{asset_id})
+      const assetId = qrData.replace('asset:', '');
+      
+      const { data, error } = await supabase
+        .from('assets')
+        .select('*')
+        .eq('id', assetId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching asset by QR:', error);
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error parsing QR data:', error);
+      return null;
+    }
   }
 
   static async getEmployeeStats() {
