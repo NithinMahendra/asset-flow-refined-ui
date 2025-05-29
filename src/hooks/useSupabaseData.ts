@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -293,9 +294,13 @@ export const useSupabaseData = () => {
     try {
       const assetTag = `QR${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
+      // Ensure device_type is properly cast to the enum type
+      const deviceType = assetData.device_type as Database['public']['Enums']['device_type'];
+      const status = assetData.status as Database['public']['Enums']['device_status'];
+      
       const dbAssetData = {
-        device_type: assetData.device_type,
-        status: assetData.status || 'active',
+        device_type: deviceType,
+        status: status,
         assigned_to: assetData.assigned_to,
         purchase_price: assetData.purchase_price,
         location: assetData.location,
@@ -310,7 +315,7 @@ export const useSupabaseData = () => {
 
       const { data, error } = await supabase
         .from('assets')
-        .insert([dbAssetData])
+        .insert(dbAssetData)
         .select()
         .single();
 
