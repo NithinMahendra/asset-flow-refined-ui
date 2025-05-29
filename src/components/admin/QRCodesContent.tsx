@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,14 +36,8 @@ const QRCodesContent = () => {
       
       for (const asset of assets) {
         try {
-          const qrData = JSON.stringify({
-            id: asset.id,
-            name: asset.name,
-            serial: asset.serial_number,
-            type: asset.device_type,
-            assetTag: asset.qr_code,
-            timestamp: Date.now()
-          });
+          // Use simple asset ID format: asset:{assetId}
+          const qrData = `asset:${asset.id}`;
           
           const qrImageUrl = await QRCodeLib.toDataURL(qrData, {
             width: 200,
@@ -106,14 +99,8 @@ const QRCodesContent = () => {
       const asset = assets.find(a => a.id === assetId);
       if (!asset) return;
 
-      const qrData = JSON.stringify({
-        id: asset.id,
-        name: asset.name,
-        serial: asset.serial_number,
-        type: asset.device_type,
-        assetTag: asset.qr_code,
-        timestamp: Date.now()
-      });
+      // Use simple asset ID format: asset:{assetId}
+      const qrData = `asset:${asset.id}`;
       
       const qrImageUrl = await QRCodeLib.toDataURL(qrData, {
         width: 300,
@@ -147,14 +134,8 @@ const QRCodesContent = () => {
       for (const assetId of selectedQRs) {
         const asset = assets.find(a => a.id === assetId);
         if (asset) {
-          const qrData = JSON.stringify({
-            id: asset.id,
-            name: asset.name,
-            serial: asset.serial_number,
-            type: asset.device_type,
-            assetTag: asset.qr_code,
-            timestamp: Date.now()
-          });
+          // Use simple asset ID format: asset:{assetId}
+          const qrData = `asset:${asset.id}`;
           
           const qrImageUrl = await QRCodeLib.toDataURL(qrData, {
             width: 200,

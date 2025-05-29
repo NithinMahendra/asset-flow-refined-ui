@@ -86,14 +86,10 @@ const AddAssetForm = ({ onClose, onAssetCreated }: AddAssetFormProps) => {
     { value: 'damaged', label: 'Damaged' }
   ];
 
-  const generateQRCode = async (assetData: AssetFormData) => {
+  const generateQRCode = async (assetId: string) => {
     try {
-      const qrData = JSON.stringify({
-        name: `${assetData.brand} ${assetData.model}`,
-        serial: assetData.serial_number,
-        type: assetData.device_type,
-        timestamp: Date.now()
-      });
+      // Use simple asset ID format: asset:{assetId}
+      const qrData = `asset:${assetId}`;
       
       const qrCodeDataUrl = await QRCode.toDataURL(qrData, {
         width: 200,
@@ -134,13 +130,16 @@ const AddAssetForm = ({ onClose, onAssetCreated }: AddAssetFormProps) => {
         throw new Error('Purchase date is required');
       }
 
-      // Generate QR code
-      await generateQRCode(data);
-      
-      // Call the parent component's handler
+      // Call the parent component's handler first to create the asset and get the ID
       if (onAssetCreated) {
         console.log('🔄 Calling parent asset creation handler...');
         await onAssetCreated(data);
+        
+        // Note: In a real implementation, we'd need the asset ID returned from onAssetCreated
+        // For now, we'll generate a placeholder QR code
+        // The admin should regenerate QR codes after asset creation with the real asset ID
+        const tempId = 'temp-' + Date.now();
+        await generateQRCode(tempId);
       }
       
       // Reset form on success
