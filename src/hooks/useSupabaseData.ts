@@ -313,6 +313,8 @@ export const useSupabaseData = () => {
         asset_tag: assetTag
       };
 
+      console.log('Inserting asset data:', dbAssetData);
+
       const { data, error } = await supabase
         .from('assets')
         .insert(dbAssetData)
@@ -320,7 +322,8 @@ export const useSupabaseData = () => {
         .single();
 
       if (error) {
-        throw error;
+        console.error('Supabase error:', error);
+        throw new Error(`Database error: ${error.message}`);
       }
 
       const newAsset = transformAsset(data);
@@ -336,9 +339,10 @@ export const useSupabaseData = () => {
       return newAsset;
     } catch (error) {
       console.error('Error adding asset:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       toast({
         title: 'Error',
-        description: 'Failed to add asset',
+        description: `Failed to add asset: ${errorMessage}`,
         variant: 'destructive'
       });
       throw error;

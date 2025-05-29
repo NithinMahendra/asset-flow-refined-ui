@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useAdminData } from '@/contexts/AdminDataContext';
+import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Save, X } from 'lucide-react';
 import QRCode from 'qrcode';
@@ -17,10 +17,10 @@ import QRCode from 'qrcode';
 const assetSchema = z.object({
   name: z.string().min(1, 'Asset name is required'),
   category: z.string().min(1, 'Category is required'),
-  brand: z.string().min(1, 'Brand is required').optional(),
-  model: z.string().min(1, 'Model is required').optional(),
+  brand: z.string().min(1, 'Brand is required'),
+  model: z.string().min(1, 'Model is required'),
   serial_number: z.string().min(1, 'Serial number is required'),
-  device_type: z.string().min(1, 'Device type is required').optional(),
+  device_type: z.string().min(1, 'Device type is required'),
   status: z.enum(['active', 'inactive', 'maintenance', 'retired', 'missing', 'damaged']).default('active'),
   location: z.string().min(1, 'Location is required'),
   department: z.string().optional(),
@@ -42,7 +42,7 @@ interface AddAssetFormProps {
 const AddAssetForm = ({ onClose, onSuccess }: AddAssetFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
-  const { addAsset } = useAdminData();
+  const { addAsset } = useSupabaseData();
   const { toast } = useToast();
 
   const {
@@ -103,15 +103,16 @@ const AddAssetForm = ({ onClose, onSuccess }: AddAssetFormProps) => {
   };
 
   const onSubmit = async (data: AssetFormData) => {
+    console.log('Form submission data:', data);
     setIsSubmitting(true);
     
     try {
       // Generate QR code
       await generateQRCode(data);
       
-      // Prepare asset data - map to the correct Asset interface
+      // Prepare asset data for database insertion
       const assetData = {
-        device_type: data.device_type || 'other',
+        device_type: data.device_type,
         status: data.status,
         assigned_to: data.assignee === '-' ? null : data.assignee,
         purchase_price: data.value,
@@ -119,22 +120,14 @@ const AddAssetForm = ({ onClose, onSuccess }: AddAssetFormProps) => {
         serial_number: data.serial_number,
         purchase_date: data.purchase_date,
         warranty_expiry: data.warranty_expiry || null,
-        brand: data.brand || '',
-        model: data.model || '',
+        brand: data.brand,
+        model: data.model,
         notes: data.description || null,
         asset_tag: null, // Will be auto-generated
-        updated_at: new Date().toISOString(),
-        // Computed fields for compatibility
-        name: data.name,
-        category: data.category,
-        assignee: data.assignee,
-        value: data.value,
-        last_updated: new Date().toISOString().split('T')[0],
-        qr_code: '', // Will be generated
-        condition: data.condition,
-        department: data.department || '',
-        description: data.description || ''
+        updated_at: new Date().toISOString()
       };
+
+      console.log('Processed asset data for database:', assetData);
 
       await addAsset(assetData);
       
@@ -149,11 +142,7 @@ const AddAssetForm = ({ onClose, onSuccess }: AddAssetFormProps) => {
       
     } catch (error) {
       console.error('Error creating asset:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to create asset. Please try again.',
-        variant: 'destructive'
-      });
+      // Error is already handled in addAsset function
     } finally {
       setIsSubmitting(false);
     }
@@ -211,9 +200,9 @@ const AddAssetForm = ({ onClose, onSuccess }: AddAssetFormProps) => {
               </div>
 
               <div>
-                <Label htmlFor="device_type">Device Type</Label>
+                <Label htmlFor="device_type">Device Type *</Label>
                 <Select onValueChange={(value) => setValue('device_type', value)}>
-                  <SelectTrigger>
+                  <SelectTrigger className={errors.device_type ? 'border-red-500' : ''}>
                     <SelectValue placeholder="Select device type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -224,25 +213,36 @@ const AddAssetForm = ({ onClose, onSuccess }: AddAssetFormProps) => {
                     ))}
                   </SelectContent>
                 </Select>
+                {errors.device_type && (
+                  <p className="text-sm text-red-500 mt-1">{errors.device_type.message}</p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="brand">Brand</Label>
+                  <Label htmlFor="brand">Brand *</Label>
                   <Input
                     id="brand"
                     {...register('brand')}
                     placeholder="e.g., Apple, Dell, HP"
+                    className={errors.brand ? 'border-red-500' : ''}
                   />
+                  {errors.brand && (
+                    <p className="text-sm text-red-500 mt-1">{errors.brand.message}</p>
+                  )}
                 </div>
 
                 <div>
-                  <Label htmlFor="model">Model</Label>
+                  <Label htmlFor="model">Model *</Label>
                   <Input
                     id="model"
                     {...register('model')}
                     placeholder="e.g., MacBook Pro M3"
+                    className={errors.model ? 'border-red-500' : ''}
                   />
+                  {errors.model && (
+                    <p className="text-sm text-red-500 mt-1">{errors.model.message}</p>
+                  )}
                 </div>
               </div>
 
