@@ -47,8 +47,8 @@ const OverviewContent = () => {
       value: assignmentStats.pending.toString(), 
       change: '-5%', 
       icon: AlertTriangle, 
-      color: 'text-amber-600',
-      bgColor: 'bg-amber-50'
+      color: 'text-orange-600',
+      bgColor: 'bg-orange-50'
     },
     { 
       title: 'Available Assets', 
@@ -63,7 +63,7 @@ const OverviewContent = () => {
   const pieData = [
     { name: 'Available', value: assetStats.available, color: '#10b981' },
     { name: 'Assigned', value: assetStats.assigned, color: '#3b82f6' },
-    { name: 'In Repair', value: assetStats.inRepair, color: '#f59e0b' },
+    { name: 'In Repair', value: assetStats.inRepair, color: '#f97316' },
     { name: 'Retired', value: assetStats.retired, color: '#6b7280' },
   ];
 
@@ -93,7 +93,7 @@ const OverviewContent = () => {
   };
 
   return (
-    <div className="space-y-8 bg-slate-50/50 p-6 min-h-screen">
+    <div className="space-y-8 bg-slate-50 p-6 min-h-screen">
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
@@ -246,6 +246,7 @@ const OverviewContent = () => {
         </motion.div>
       </div>
 
+      {/* Recent Activity and Upcoming Tasks */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Recent Activity */}
         <motion.div
@@ -273,7 +274,7 @@ const OverviewContent = () => {
                     <div className={`w-3 h-3 rounded-full ${
                       activity.type === 'assignment' ? 'bg-blue-500' :
                       activity.type === 'addition' ? 'bg-emerald-500' :
-                      activity.type === 'maintenance' ? 'bg-amber-500' : 
+                      activity.type === 'maintenance' ? 'bg-orange-500' : 
                       activity.type === 'return' ? 'bg-purple-500' : 'bg-slate-500'
                     }`} />
                     <div className="flex-1 min-w-0">
@@ -305,7 +306,7 @@ const OverviewContent = () => {
           <Card className="border-slate-200 shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg font-semibold text-slate-900 flex items-center">
-                <Calendar className="h-5 w-5 mr-2 text-amber-600" />
+                <Calendar className="h-5 w-5 mr-2 text-orange-600" />
                 Upcoming Tasks
               </CardTitle>
             </CardHeader>

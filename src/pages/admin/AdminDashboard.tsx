@@ -174,7 +174,7 @@ const AdminDashboard = () => {
                 </div>
               </header>
               
-              <main className="flex-1">
+              <main className="flex-1 bg-slate-50">
                 {renderContent()}
               </main>
             </SidebarInset>
