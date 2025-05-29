@@ -203,12 +203,11 @@ export class EmployeeService {
     if (!user) return false;
 
     try {
-      // Use "assignment" instead of "transfer" as it's a valid enum value
       const { error } = await supabase
         .from('asset_requests')
         .insert({
           user_id: user.id,
-          request_type: 'assignment',
+          request_type: 'transfer',
           description: `Request for scanned asset: ${assetData?.name || 'Unknown Asset'}`,
           asset_id: assetData?.id
         });

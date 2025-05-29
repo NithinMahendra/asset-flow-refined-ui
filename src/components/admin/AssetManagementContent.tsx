@@ -10,7 +10,7 @@ import { Plus, Search, Filter, Download, Edit, Trash2, Eye, Package, AlertTriang
 import { useAdminData } from '@/contexts/AdminDataContext';
 import SimpleAddAssetForm from '@/components/SimpleAddAssetForm';
 import AssetDetailsModal from './AssetDetailsModal';
-import { motion } from 'framer-motion';
+import BulkOperationsPanel from './BulkOperationsPanel';
 
 const AssetManagementContent = () => {
   const { assets, loading, addAsset, deleteAsset } = useAdminData();
@@ -42,7 +42,7 @@ const AssetManagementContent = () => {
       console.log('✅ AssetManagementContent: Asset creation handled successfully');
     } catch (error) {
       console.error('❌ AssetManagementContent: Error handling asset creation:', error);
-      throw error;
+      throw error; // Re-throw to let the form handle the error display
     }
   };
 
@@ -70,56 +70,33 @@ const AssetManagementContent = () => {
     }
   };
 
-  const getStatusGradient = (status: string) => {
-    switch (status) {
-      case 'active': return 'from-emerald-500 to-green-600';
-      case 'inactive': return 'from-slate-400 to-slate-500';
-      case 'maintenance': return 'from-amber-500 to-orange-600';
-      case 'retired': return 'from-red-500 to-rose-600';
-      default: return 'from-slate-400 to-slate-500';
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <motion.div 
-          className="text-center"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
-        >
-          <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-lg text-slate-600 dark:text-slate-400">Loading assets...</p>
-        </motion.div>
+        <div className="text-lg">Loading assets...</div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
-      <motion.div 
-        className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-      >
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-responsive-xl font-bold text-gradient-primary mb-2">Asset Management</h1>
-          <p className="text-slate-600 dark:text-slate-400 text-responsive-base">Manage your organization's assets</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Asset Management</h1>
+          <p className="text-gray-600 dark:text-gray-400">Manage your organization's assets</p>
         </div>
         <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
           <DialogTrigger asChild>
-            <Button className="btn-gradient-primary shadow-lg hover:shadow-xl">
+            <Button className="bg-indigo-600 hover:bg-indigo-700">
               <Plus className="h-4 w-4 mr-2" />
               Add Asset
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto glass-effect border-0">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-gradient-primary">Add New Asset</DialogTitle>
-              <DialogDescription className="text-slate-600 dark:text-slate-400">
+              <DialogTitle>Add New Asset</DialogTitle>
+              <DialogDescription>
                 Fill in the details below to add a new asset to your inventory.
               </DialogDescription>
             </DialogHeader>
@@ -129,168 +106,122 @@ const AssetManagementContent = () => {
             />
           </DialogContent>
         </Dialog>
-      </motion.div>
+      </div>
 
       {/* Filters and Search */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.1 }}
-      >
-        <Card className="card-enhanced card-gradient border-0">
-          <CardContent className="pt-6">
-            <div className="flex flex-col lg:flex-row gap-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
-                  <Input
-                    placeholder="Search assets by name, serial number, or assignee..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-12 h-12 glass-effect border-0 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300"
-                  />
-                </div>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full sm:w-48 h-12 glass-effect border-0">
-                    <SelectValue placeholder="Filter by status" />
-                  </SelectTrigger>
-                  <SelectContent className="glass-effect border-0 shadow-xl">
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                    <SelectItem value="maintenance">Maintenance</SelectItem>
-                    <SelectItem value="retired">Retired</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                  <SelectTrigger className="w-full sm:w-48 h-12 glass-effect border-0">
-                    <SelectValue placeholder="Filter by category" />
-                  </SelectTrigger>
-                  <SelectContent className="glass-effect border-0 shadow-xl">
-                    <SelectItem value="all">All Categories</SelectItem>
-                    <SelectItem value="laptop">Laptops</SelectItem>
-                    <SelectItem value="desktop">Desktops</SelectItem>
-                    <SelectItem value="monitor">Monitors</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search assets..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
               </div>
             </div>
-          </CardContent>
-        </Card>
-      </motion.div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-48">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="maintenance">Maintenance</SelectItem>
+                <SelectItem value="retired">Retired</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-full sm:w-48">
+                <SelectValue placeholder="Filter by category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                <SelectItem value="laptop">Laptops</SelectItem>
+                <SelectItem value="desktop">Desktops</SelectItem>
+                <SelectItem value="monitor">Monitors</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Assets Table */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.2 }}
-      >
-        <Card className="card-enhanced card-gradient border-0 overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
-            <CardTitle className="text-gradient-primary flex items-center justify-between">
-              <span>Assets ({filteredAssets.length})</span>
-              <Button variant="outline" size="sm" className="glass-effect border-0 hover:scale-105 transition-all duration-300">
-                <Download className="h-4 w-4 mr-2" />
-                Export
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-slate-200/50 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/50">
-                    <th className="text-left p-4 font-semibold text-slate-700 dark:text-slate-300">Asset</th>
-                    <th className="text-left p-4 font-semibold text-slate-700 dark:text-slate-300">Serial Number</th>
-                    <th className="text-left p-4 font-semibold text-slate-700 dark:text-slate-300">Status</th>
-                    <th className="text-left p-4 font-semibold text-slate-700 dark:text-slate-300">Assignee</th>
-                    <th className="text-left p-4 font-semibold text-slate-700 dark:text-slate-300">Location</th>
-                    <th className="text-left p-4 font-semibold text-slate-700 dark:text-slate-300">Value</th>
-                    <th className="text-left p-4 font-semibold text-slate-700 dark:text-slate-300">Actions</th>
+      <Card>
+        <CardHeader>
+          <CardTitle>Assets ({filteredAssets.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left p-2">Asset</th>
+                  <th className="text-left p-2">Serial Number</th>
+                  <th className="text-left p-2">Status</th>
+                  <th className="text-left p-2">Assignee</th>
+                  <th className="text-left p-2">Location</th>
+                  <th className="text-left p-2">Value</th>
+                  <th className="text-left p-2">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAssets.map((asset) => (
+                  <tr key={asset.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <td className="p-2">
+                      <div>
+                        <div className="font-medium">{asset.name}</div>
+                        <div className="text-sm text-gray-500">{asset.category}</div>
+                      </div>
+                    </td>
+                    <td className="p-2 font-mono text-sm">{asset.serial_number}</td>
+                    <td className="p-2">
+                      <Badge variant={getStatusBadgeVariant(asset.status)} className="flex items-center gap-1 w-fit">
+                        {getStatusIcon(asset.status)}
+                        {asset.status}
+                      </Badge>
+                    </td>
+                    <td className="p-2">{asset.assignee}</td>
+                    <td className="p-2">{asset.location || '-'}</td>
+                    <td className="p-2">${asset.value?.toLocaleString() || '0'}</td>
+                    <td className="p-2">
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedAsset(asset);
+                            setShowDetails(true);
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteAsset(asset.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {filteredAssets.map((asset, index) => (
-                    <motion.tr 
-                      key={asset.id} 
-                      className="border-b border-slate-200/30 dark:border-slate-700/30 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 transition-all duration-300 group"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.4, delay: index * 0.05 }}
-                    >
-                      <td className="p-4">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-lg">
-                            {asset.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <div className="font-semibold text-slate-900 dark:text-white">{asset.name}</div>
-                            <div className="text-sm text-slate-500 dark:text-slate-400">{asset.category}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <code className="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-sm font-mono">
-                          {asset.serial_number}
-                        </code>
-                      </td>
-                      <td className="p-4">
-                        <Badge className={`bg-gradient-to-r ${getStatusGradient(asset.status)} text-white border-0 shadow-lg flex items-center gap-1 w-fit`}>
-                          {getStatusIcon(asset.status)}
-                          {asset.status}
-                        </Badge>
-                      </td>
-                      <td className="p-4 font-medium text-slate-700 dark:text-slate-300">{asset.assignee}</td>
-                      <td className="p-4 text-slate-600 dark:text-slate-400">{asset.location || '-'}</td>
-                      <td className="p-4 font-semibold text-slate-900 dark:text-white">
-                        ${asset.value?.toLocaleString() || '0'}
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedAsset(asset);
-                              setShowDetails(true);
-                            }}
-                            className="hover:bg-blue-100 dark:hover:bg-blue-900/20 hover:scale-110 transition-all duration-300"
-                          >
-                            <Eye className="h-4 w-4 text-blue-600" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteAsset(asset.id)}
-                            className="hover:bg-red-100 dark:hover:bg-red-900/20 hover:scale-110 transition-all duration-300"
-                          >
-                            <Trash2 className="h-4 w-4 text-red-600" />
-                          </Button>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </tbody>
-              </table>
-              {filteredAssets.length === 0 && (
-                <motion.div 
-                  className="text-center py-16"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  <Package className="h-16 w-16 mx-auto text-slate-300 dark:text-slate-600 mb-4" />
-                  <p className="text-slate-500 dark:text-slate-400 text-lg">No assets found matching your criteria</p>
-                  <p className="text-slate-400 dark:text-slate-500 text-sm mt-2">Try adjusting your search or filters</p>
-                </motion.div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
+                ))}
+              </tbody>
+            </table>
+            {filteredAssets.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                No assets found matching your criteria.
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Asset Details Modal */}
       {selectedAsset && (

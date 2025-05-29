@@ -232,25 +232,9 @@ export const useSupabaseData = () => {
     try {
       console.log('🔄 Updating asset:', id, updates);
       
-      // Transform updates to match database schema, filtering out legacy fields
-      const dbUpdates: any = {};
-      
-      // Only include fields that exist in the database
-      if (updates.device_type !== undefined) dbUpdates.device_type = updates.device_type;
-      if (updates.brand !== undefined) dbUpdates.brand = updates.brand;
-      if (updates.model !== undefined) dbUpdates.model = updates.model;
-      if (updates.serial_number !== undefined) dbUpdates.serial_number = updates.serial_number;
-      if (updates.status !== undefined) dbUpdates.status = updates.status;
-      if (updates.location !== undefined) dbUpdates.location = updates.location;
-      if (updates.assigned_to !== undefined) dbUpdates.assigned_to = updates.assigned_to;
-      if (updates.purchase_price !== undefined) dbUpdates.purchase_price = updates.purchase_price;
-      if (updates.purchase_date !== undefined) dbUpdates.purchase_date = updates.purchase_date;
-      if (updates.warranty_expiry !== undefined) dbUpdates.warranty_expiry = updates.warranty_expiry;
-      if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
-
       const { error } = await supabase
         .from('assets')
-        .update(dbUpdates)
+        .update(updates)
         .eq('id', id);
 
       if (error) {
@@ -409,3 +393,4 @@ export const useSupabaseData = () => {
 
 // Re-export types for compatibility
 export type { Asset, AssetRequest, AssetAssignment, ActivityLog, Notification, EmployeeProfile };
+
