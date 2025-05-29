@@ -86,27 +86,31 @@ export const useSupabaseData = () => {
           name: `${asset.brand} ${asset.model}`,
           category: asset.device_type,
           assignee: asset.assigned_to || 'Unassigned',
-          value: asset.purchase_price
+          value: asset.purchase_price,
+          last_updated: asset.updated_at // Add last_updated for compatibility
         }));
         setAssets(transformedAssets);
+        console.log('✅ Assets loaded successfully:', transformedAssets.length);
       } else {
-        console.log('Assets table not available yet');
+        console.error('Error loading assets:', results[0].status === 'fulfilled' ? results[0].value.error : results[0].reason);
         setAssets([]);
       }
 
       // Handle asset requests
       if (results[1].status === 'fulfilled' && !results[1].value.error) {
         setAssetRequests(results[1].value.data || []);
+        console.log('✅ Asset requests loaded successfully:', results[1].value.data?.length || 0);
       } else {
-        console.log('Asset requests table not available yet');
+        console.error('Error loading asset requests:', results[1].status === 'fulfilled' ? results[1].value.error : results[1].reason);
         setAssetRequests([]);
       }
 
       // Handle asset assignments
       if (results[2].status === 'fulfilled' && !results[2].value.error) {
         setAssetAssignments(results[2].value.data || []);
+        console.log('✅ Asset assignments loaded successfully:', results[2].value.data?.length || 0);
       } else {
-        console.log('Asset assignments table not available yet');
+        console.error('Error loading asset assignments:', results[2].status === 'fulfilled' ? results[2].value.error : results[2].reason);
         setAssetAssignments([]);
       }
 
@@ -121,8 +125,9 @@ export const useSupabaseData = () => {
                 activity.action?.toLowerCase().includes('addition') ? 'addition' : 'general'
         }));
         setActivityLog(transformedActivity);
+        console.log('✅ Activity log loaded successfully:', transformedActivity.length);
       } else {
-        console.log('Activity log table not available yet');
+        console.error('Error loading activity log:', results[3].status === 'fulfilled' ? results[3].value.error : results[3].reason);
         setActivityLog([]);
       }
 
@@ -135,16 +140,18 @@ export const useSupabaseData = () => {
           timestamp: notification.created_at
         }));
         setNotifications(transformedNotifications);
+        console.log('✅ Notifications loaded successfully:', transformedNotifications.length);
       } else {
-        console.log('Notifications table not available yet');
+        console.error('Error loading notifications:', results[4].status === 'fulfilled' ? results[4].value.error : results[4].reason);
         setNotifications([]);
       }
 
       // Handle employee profiles
       if (results[5].status === 'fulfilled' && !results[5].value.error) {
         setProfiles(results[5].value.data || []);
+        console.log('✅ Employee profiles loaded successfully:', results[5].value.data?.length || 0);
       } else {
-        console.log('Employee profiles table not available yet');
+        console.error('Error loading employee profiles:', results[5].status === 'fulfilled' ? results[5].value.error : results[5].reason);
         setProfiles([]);
       }
 
@@ -158,6 +165,8 @@ export const useSupabaseData = () => {
 
   const addAsset = async (assetData: any): Promise<Asset | undefined> => {
     try {
+      console.log('🚀 Adding asset to database:', assetData);
+      
       // Transform the data to match the database schema
       const dbAssetData = {
         device_type: assetData.device_type,
@@ -179,56 +188,89 @@ export const useSupabaseData = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Database error:', error);
+        throw error;
+      }
       
       if (data) {
+        console.log('✅ Asset created successfully:', data);
+        
         // Transform data to include legacy fields
         const transformedAsset = {
           ...data,
           name: `${data.brand} ${data.model}`,
           category: data.device_type,
           assignee: data.assigned_to || 'Unassigned',
-          value: data.purchase_price
+          value: data.purchase_price,
+          last_updated: data.updated_at
         };
+        
         setAssets(prev => [transformedAsset, ...prev]);
+        
+        // Log activity
+        await supabase
+          .from('activity_log')
+          .insert({
+            asset_id: data.id,
+            action: 'Asset Created',
+            details: { 
+              asset_name: `${data.brand} ${data.model}`,
+              serial_number: data.serial_number
+            }
+          });
+          
         return transformedAsset;
       }
     } catch (error) {
-      console.error('Error adding asset:', error);
+      console.error('❌ Error adding asset:', error);
       throw error;
     }
   };
 
   const updateAsset = async (id: string, updates: Partial<Asset>): Promise<void> => {
     try {
+      console.log('🔄 Updating asset:', id, updates);
+      
       const { error } = await supabase
         .from('assets')
         .update(updates)
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Database error:', error);
+        throw error;
+      }
       
       setAssets(prev => prev.map(asset => 
         asset.id === id ? { ...asset, ...updates } : asset
       ));
+      
+      console.log('✅ Asset updated successfully');
     } catch (error) {
-      console.error('Error updating asset:', error);
+      console.error('❌ Error updating asset:', error);
       throw error;
     }
   };
 
   const deleteAsset = async (id: string): Promise<void> => {
     try {
+      console.log('🗑️ Deleting asset:', id);
+      
       const { error } = await supabase
         .from('assets')
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Database error:', error);
+        throw error;
+      }
       
       setAssets(prev => prev.filter(asset => asset.id !== id));
+      console.log('✅ Asset deleted successfully');
     } catch (error) {
-      console.error('Error deleting asset:', error);
+      console.error('❌ Error deleting asset:', error);
       throw error;
     }
   };
@@ -351,3 +393,4 @@ export const useSupabaseData = () => {
 
 // Re-export types for compatibility
 export type { Asset, AssetRequest, AssetAssignment, ActivityLog, Notification, EmployeeProfile };
+

@@ -1,6 +1,7 @@
 
-// Temporary type definitions for asset management tables
-// These will be replaced when Supabase regenerates the types
+
+// Updated type definitions for asset management tables
+// These match the actual database schema that was just created
 
 export interface Asset {
   id: string;
@@ -23,6 +24,7 @@ export interface Asset {
   category: string;
   assignee: string;
   value?: number;
+  last_updated: string; // Add this field for backward compatibility
 }
 
 export interface AssetRequest {
@@ -78,3 +80,4 @@ export interface EmployeeProfile {
   email: string;
   created_at?: string;
 }
+

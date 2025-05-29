@@ -9,6 +9,169 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      activity_log: {
+        Row: {
+          action: string
+          asset_id: string | null
+          details: Json | null
+          id: string
+          timestamp: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          asset_id?: string | null
+          details?: Json | null
+          id?: string
+          timestamp?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          asset_id?: string | null
+          details?: Json | null
+          id?: string
+          timestamp?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_log_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_assignments: {
+        Row: {
+          asset_id: string
+          assigned_at: string | null
+          assigned_by: string
+          id: string
+          returned_at: string | null
+          status: Database["public"]["Enums"]["assignment_status"]
+          user_id: string
+        }
+        Insert: {
+          asset_id: string
+          assigned_at?: string | null
+          assigned_by: string
+          id?: string
+          returned_at?: string | null
+          status?: Database["public"]["Enums"]["assignment_status"]
+          user_id: string
+        }
+        Update: {
+          asset_id?: string
+          assigned_at?: string | null
+          assigned_by?: string
+          id?: string
+          returned_at?: string | null
+          status?: Database["public"]["Enums"]["assignment_status"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_assignments_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_requests: {
+        Row: {
+          asset_id: string | null
+          description: string
+          id: string
+          processed_at: string | null
+          processed_by: string | null
+          request_type: Database["public"]["Enums"]["request_type"]
+          requested_at: string | null
+          status: Database["public"]["Enums"]["request_status"]
+          user_id: string
+        }
+        Insert: {
+          asset_id?: string | null
+          description: string
+          id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          request_type: Database["public"]["Enums"]["request_type"]
+          requested_at?: string | null
+          status?: Database["public"]["Enums"]["request_status"]
+          user_id: string
+        }
+        Update: {
+          asset_id?: string | null
+          description?: string
+          id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          request_type?: Database["public"]["Enums"]["request_type"]
+          requested_at?: string | null
+          status?: Database["public"]["Enums"]["request_status"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      assets: {
+        Row: {
+          assigned_to: string | null
+          brand: string
+          created_at: string | null
+          device_type: Database["public"]["Enums"]["device_type"]
+          id: string
+          location: string | null
+          model: string
+          notes: string | null
+          purchase_date: string | null
+          purchase_price: number | null
+          qr_code: string | null
+          serial_number: string
+          status: Database["public"]["Enums"]["asset_status"]
+          updated_at: string | null
+          warranty_expiry: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          brand: string
+          created_at?: string | null
+          device_type: Database["public"]["Enums"]["device_type"]
+          id?: string
+          location?: string | null
+          model: string
+          notes?: string | null
+          purchase_date?: string | null
+          purchase_price?: number | null
+          qr_code?: string | null
+          serial_number: string
+          status?: Database["public"]["Enums"]["asset_status"]
+          updated_at?: string | null
+          warranty_expiry?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          brand?: string
+          created_at?: string | null
+          device_type?: Database["public"]["Enums"]["device_type"]
+          id?: string
+          location?: string | null
+          model?: string
+          notes?: string | null
+          purchase_date?: string | null
+          purchase_price?: number | null
+          qr_code?: string | null
+          serial_number?: string
+          status?: Database["public"]["Enums"]["asset_status"]
+          updated_at?: string | null
+          warranty_expiry?: string | null
+        }
+        Relationships: []
+      }
       employee_profiles: {
         Row: {
           created_at: string | null
@@ -36,6 +199,36 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string
+          title: string
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          title: string
+          type: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          title?: string
+          type?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -44,6 +237,14 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      asset_status:
+        | "active"
+        | "inactive"
+        | "maintenance"
+        | "retired"
+        | "missing"
+        | "damaged"
+      assignment_status: "active" | "returned" | "pending"
       device_status:
         | "active"
         | "inactive"
@@ -64,6 +265,8 @@ export type Database = {
         | "scanner"
         | "projector"
         | "other"
+      request_status: "pending" | "approved" | "denied" | "completed"
+      request_type: "assignment" | "maintenance" | "replacement" | "return"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -179,6 +382,15 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      asset_status: [
+        "active",
+        "inactive",
+        "maintenance",
+        "retired",
+        "missing",
+        "damaged",
+      ],
+      assignment_status: ["active", "returned", "pending"],
       device_status: [
         "active",
         "inactive",
@@ -201,6 +413,8 @@ export const Constants = {
         "projector",
         "other",
       ],
+      request_status: ["pending", "approved", "denied", "completed"],
+      request_type: ["assignment", "maintenance", "replacement", "return"],
     },
   },
 } as const
