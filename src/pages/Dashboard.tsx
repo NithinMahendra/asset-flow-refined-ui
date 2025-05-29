@@ -9,36 +9,34 @@ import { motion } from 'framer-motion';
 import AssetChart from '@/components/AssetChart';
 import NotificationPanel from '@/components/NotificationPanel';
 import QuickActions from '@/components/QuickActions';
+import { useAdminData } from '@/contexts/AdminDataContext';
 
 const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
-  const [assetStats, setAssetStats] = useState({
-    total: 0,
-    inUse: 0,
-    available: 0,
-    faulty: 0
-  });
+  const { getAssetStats, getRecentActivity, notifications, loading } = useAdminData();
 
-  // Simulate loading stats with animation
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setAssetStats({
-        total: 1247,
-        inUse: 982,
-        available: 215,
-        faulty: 50
-      });
-    }, 500);
-    return () => clearTimeout(timer);
-  }, []);
+  const assetStats = getAssetStats();
+  const recentActivity = getRecentActivity();
+  const unreadNotifications = notifications.filter(n => !n.is_read).length;
 
   const statsCards = [
     { title: 'Total Devices', value: assetStats.total, color: 'bg-blue-500', icon: '📱' },
-    { title: 'In Use', value: assetStats.inUse, color: 'bg-green-500', icon: '✅' },
-    { title: 'Available', value: assetStats.available, color: 'bg-yellow-500', icon: '🔄' },
-    { title: 'Faulty', value: assetStats.faulty, color: 'bg-red-500', icon: '⚠️' },
+    { title: 'In Use', value: assetStats.assigned, color: 'bg-green-500', icon: '✅' },
+    { title: 'Available', value: assetStats.available, color: 'bg-blue-500', icon: '🔄' },
+    { title: 'In Repair', value: assetStats.inRepair, color: 'bg-red-500', icon: '⚠️' },
   ];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-900 dark:to-blue-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-900 dark:to-blue-900">
@@ -70,9 +68,11 @@ const Dashboard = () => {
                   className="relative"
                 >
                   <Bell className="h-5 w-5" />
-                  <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs bg-red-500">
-                    3
-                  </Badge>
+                  {unreadNotifications > 0 && (
+                    <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs bg-red-500">
+                      {unreadNotifications}
+                    </Badge>
+                  )}
                 </Button>
                 {showNotifications && <NotificationPanel />}
               </div>
@@ -152,7 +152,7 @@ const Dashboard = () => {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <span>Asset Trends</span>
-                  <Badge variant="secondary">Last 30 days</Badge>
+                  <Badge variant="secondary">Live Data</Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -183,14 +183,9 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {[
-                  { action: 'Device assigned', details: 'MacBook Pro to John Doe', time: '2 minutes ago', type: 'assignment' },
-                  { action: 'Maintenance completed', details: 'iPhone 14 repairs finished', time: '1 hour ago', type: 'maintenance' },
-                  { action: 'New device added', details: 'Dell Monitor DM2422', time: '3 hours ago', type: 'addition' },
-                  { action: 'Device returned', details: 'iPad Air from Sarah Smith', time: '5 hours ago', type: 'return' },
-                ].map((activity, index) => (
+                {recentActivity.length > 0 ? recentActivity.map((activity, index) => (
                   <motion.div
-                    key={index}
+                    key={activity.id}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.4, delay: 0.6 + index * 0.1 }}
@@ -210,10 +205,14 @@ const Dashboard = () => {
                       </p>
                     </div>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {activity.time}
+                      {new Date(activity.timestamp).toLocaleString()}
                     </p>
                   </motion.div>
-                ))}
+                )) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500 dark:text-gray-400">No recent activity</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

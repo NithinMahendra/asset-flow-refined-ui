@@ -121,4 +121,37 @@
     opacity: 1;
     transform: translateY(0);
   }
+
+  /* Replace yellow/amber colors with blue variants */
+  .bg-yellow-100 {
+    @apply bg-blue-100;
+  }
+  
+  .bg-yellow-500 {
+    @apply bg-blue-500;
+  }
+  
+  .text-yellow-800 {
+    @apply text-blue-800;
+  }
+  
+  .dark .bg-yellow-900 {
+    @apply bg-blue-900;
+  }
+  
+  .dark .text-yellow-200 {
+    @apply text-blue-200;
+  }
+
+  .bg-amber-100 {
+    @apply bg-blue-100;
+  }
+  
+  .bg-amber-500 {
+    @apply bg-blue-500;
+  }
+  
+  .text-amber-800 {
+    @apply text-blue-800;
+  }
 }
