@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { AssetService, type CreateAssetData } from '@/services/assetService';
 import type { Database } from '@/integrations/supabase/types';
+
+type AssetRow = Database['public']['Tables']['assets']['Row'];
 
 export interface Asset {
   id: string;
@@ -101,7 +103,7 @@ export const useSupabaseData = () => {
   const { toast } = useToast();
 
   // Transform database asset to UI asset format
-  const transformAsset = (dbAsset: any): Asset => {
+  const transformAsset = (dbAsset: AssetRow): Asset => {
     return {
       id: dbAsset.id,
       device_type: dbAsset.device_type,
@@ -109,7 +111,7 @@ export const useSupabaseData = () => {
       assigned_to: dbAsset.assigned_to,
       purchase_price: dbAsset.purchase_price,
       location: dbAsset.location,
-      updated_at: dbAsset.updated_at,
+      updated_at: dbAsset.updated_at || new Date().toISOString(),
       serial_number: dbAsset.serial_number,
       purchase_date: dbAsset.purchase_date,
       warranty_expiry: dbAsset.warranty_expiry,
@@ -135,27 +137,11 @@ export const useSupabaseData = () => {
     try {
       setLoading(true);
       
-      console.log('🔄 Fetching assets from Supabase...');
-      // Fetch assets from Supabase
-      const { data: assetsData, error: assetsError } = await supabase
-        .from('assets')
-        .select('*')
-        .order('updated_at', { ascending: false });
-
-      if (assetsError) {
-        console.error('❌ Error fetching assets:', assetsError);
-        toast({
-          title: 'Database Error',
-          description: `Failed to fetch assets: ${assetsError.message}`,
-          variant: 'destructive'
-        });
-        setAssets([]);
-      } else {
-        console.log('✅ Fetched assets data:', assetsData);
-        const transformedAssets = assetsData?.map(transformAsset) || [];
-        console.log('🔄 Transformed assets:', transformedAssets);
-        setAssets(transformedAssets);
-      }
+      console.log('🔄 useSupabaseData: Fetching assets...');
+      const assetsData = await AssetService.getAllAssets();
+      const transformedAssets = assetsData.map(transformAsset);
+      console.log('✅ useSupabaseData: Transformed assets:', transformedAssets.length);
+      setAssets(transformedAssets);
 
       // Set mock data for other entities (to be replaced with real Supabase queries later)
       setUsers([
@@ -237,7 +223,7 @@ export const useSupabaseData = () => {
       ]);
 
     } catch (error) {
-      console.error('❌ Error fetching data:', error);
+      console.error('❌ useSupabaseData: Error fetching data:', error);
       toast({
         title: 'Error',
         description: 'Failed to fetch data from database',
@@ -248,87 +234,23 @@ export const useSupabaseData = () => {
     }
   };
 
-  // Enhanced addAsset function with comprehensive debugging and validation
-  const addAsset = async (assetData: any) => {
-    console.log('🚀 Starting asset creation process...');
-    console.log('📥 Raw input data:', assetData);
+  // Enhanced addAsset function using the new service
+  const addAsset = async (assetData: CreateAssetData) => {
+    console.log('🚀 useSupabaseData: Starting asset creation...');
+    console.log('📥 useSupabaseData: Input data:', assetData);
     
     try {
-      // Generate unique asset tag
-      const assetTag = `AST-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
-      console.log('🏷️ Generated asset tag:', assetTag);
+      // Create asset using the service
+      const createdAsset = await AssetService.createAsset(assetData);
       
-      // Validate and prepare enum values
-      const validDeviceTypes = ['laptop', 'desktop', 'server', 'monitor', 'tablet', 'smartphone', 'network_switch', 'router', 'printer', 'scanner', 'projector', 'other'] as const;
-      const validStatuses = ['active', 'inactive', 'maintenance', 'retired', 'missing', 'damaged'] as const;
-
-      // Ensure device_type is valid
-      const deviceType = String(assetData.device_type).toLowerCase();
-      if (!validDeviceTypes.includes(deviceType as any)) {
-        console.error('❌ Invalid device type:', deviceType);
-        throw new Error(`Invalid device type: ${deviceType}. Must be one of: ${validDeviceTypes.join(', ')}`);
-      }
-
-      // Ensure status is valid
-      const status = String(assetData.status || 'active').toLowerCase();
-      if (!validStatuses.includes(status as any)) {
-        console.error('❌ Invalid status:', status);
-        throw new Error(`Invalid status: ${status}. Must be one of: ${validStatuses.join(', ')}`);
-      }
-
-      // Prepare validated data for database insertion
-      const dbAssetData = {
-        device_type: deviceType as Database['public']['Enums']['device_type'],
-        status: status as Database['public']['Enums']['device_status'],
-        assigned_to: assetData.assigned_to || null,
-        purchase_price: assetData.purchase_price ? Number(assetData.purchase_price) : null,
-        location: assetData.location ? String(assetData.location) : null,
-        serial_number: String(assetData.serial_number),
-        purchase_date: assetData.purchase_date || null,
-        warranty_expiry: assetData.warranty_expiry || null,
-        brand: String(assetData.brand),
-        model: String(assetData.model),
-        notes: assetData.notes || null,
-        asset_tag: assetTag,
-        updated_at: new Date().toISOString()
-      };
-
-      console.log('✅ Validated asset data for database:', dbAssetData);
-
-      // Attempt database insertion
-      console.log('💾 Attempting to insert into database...');
-      const { data, error } = await supabase
-        .from('assets')
-        .insert(dbAssetData)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('❌ Supabase insertion error:', error);
-        console.error('❌ Error details:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        });
-        throw new Error(`Database insertion failed: ${error.message}`);
-      }
-
-      if (!data) {
-        console.error('❌ No data returned from insert operation');
-        throw new Error('No data returned from database after insertion');
-      }
-
-      console.log('🎉 Asset successfully created in database:', data);
+      // Transform for UI
+      const newAsset = transformAsset(createdAsset);
+      console.log('🔄 useSupabaseData: Transformed asset:', newAsset);
       
-      // Transform the created asset for UI
-      const newAsset = transformAsset(data);
-      console.log('🔄 Transformed asset for UI:', newAsset);
-      
-      // Update local state immediately
+      // Update local state
       setAssets(prev => {
         const updated = [newAsset, ...prev];
-        console.log('📊 Updated local assets array, new length:', updated.length);
+        console.log('📊 useSupabaseData: Updated local assets, new length:', updated.length);
         return updated;
       });
       
@@ -341,15 +263,11 @@ export const useSupabaseData = () => {
         description: `${newAsset.name} has been added to inventory`
       });
 
-      // Verify the asset was actually created by fetching fresh data
-      console.log('🔍 Verifying asset creation by refetching data...');
-      await fetchData();
-
-      console.log('✅ Asset creation process completed successfully');
+      console.log('✅ useSupabaseData: Asset creation completed successfully');
       return newAsset;
 
     } catch (error) {
-      console.error('❌ Asset creation failed:', error);
+      console.error('❌ useSupabaseData: Asset creation failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       
       toast({
@@ -362,7 +280,7 @@ export const useSupabaseData = () => {
     }
   };
 
-  // Update asset in Supabase
+  // Update asset using the service
   const updateAsset = async (id: string, updates: Partial<Asset>) => {
     try {
       const dbUpdates: any = {};
@@ -380,18 +298,9 @@ export const useSupabaseData = () => {
       if (updates.model) dbUpdates.model = updates.model;
       if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
 
-      const { data, error } = await supabase
-        .from('assets')
-        .update(dbUpdates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      const updatedAsset = transformAsset(data);
+      const updatedAssetData = await AssetService.updateAsset(id, dbUpdates);
+      const updatedAsset = transformAsset(updatedAssetData);
+      
       setAssets(prev => prev.map(asset => 
         asset.id === id ? updatedAsset : asset
       ));
@@ -412,19 +321,12 @@ export const useSupabaseData = () => {
     }
   };
 
-  // Delete asset from Supabase
+  // Delete asset using the service
   const deleteAsset = async (id: string) => {
     try {
       const asset = assets.find(a => a.id === id);
       
-      const { error } = await supabase
-        .from('assets')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        throw error;
-      }
+      await AssetService.deleteAsset(id);
       
       setAssets(prev => prev.filter(asset => asset.id !== id));
       

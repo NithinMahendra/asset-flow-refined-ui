@@ -1,528 +1,239 @@
+
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { useToast } from '@/hooks/use-toast';
-import { 
-  Search, 
-  Filter, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Eye,
-  Download,
-  Upload,
-  Package,
-  QrCode,
-  MoreHorizontal,
-  Printer
-} from 'lucide-react';
-import AddAssetForm from '@/components/admin/AddAssetForm';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Plus, Search, Filter, Download, Edit, Trash2, Eye, Package, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useAdminData } from '@/contexts/AdminDataContext';
-import { motion } from 'framer-motion';
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import SimpleAddAssetForm from '@/components/SimpleAddAssetForm';
+import AssetDetailsModal from './AssetDetailsModal';
+import BulkOperationsPanel from './BulkOperationsPanel';
 
 const AssetManagementContent = () => {
-  const { toast } = useToast();
-  const {
-    assets,
-    getAssetStats,
-    getCategoryStats,
-    getUtilizationRate,
-    getMaintenanceRate,
-    getAverageAssetAge,
-    getUpcomingWarrantyExpiries,
-    getOverdueMaintenanceAssets,
-    addAsset,
-    updateAsset,
-    deleteAsset,
-    loading,
-    refetch
-  } = useAdminData();
-
-  const [searchQuery, setSearchQuery] = useState('');
+  const { assets, loading, addAsset, deleteAsset } = useAdminData();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
   const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
+  const [selectedAsset, setSelectedAsset] = useState<any>(null);
+  const [showDetails, setShowDetails] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [editingAsset, setEditingAsset] = useState<any>(null);
 
-  const assetStats = getAssetStats();
-  const categoryStats = getCategoryStats();
-  const utilizationRate = getUtilizationRate();
-  const maintenanceRate = getMaintenanceRate();
-  const averageAge = getAverageAssetAge();
-  const upcomingWarranties = getUpcomingWarrantyExpiries();
-  const overdueAssets = getOverdueMaintenanceAssets();
+  // Filter assets based on search and filters
+  const filteredAssets = assets.filter(asset => {
+    const matchesSearch = asset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         asset.serial_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         asset.assignee.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === 'all' || asset.status === statusFilter;
+    const matchesCategory = categoryFilter === 'all' || asset.category.toLowerCase() === categoryFilter.toLowerCase();
+    
+    return matchesSearch && matchesStatus && matchesCategory;
+  });
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Available':
-        return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-      case 'Assigned':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'In Repair':
-        return 'bg-amber-100 text-amber-800 border-amber-200';
-      case 'Retired':
-        return 'bg-slate-100 text-slate-800 border-slate-200';
-      default:
-        return 'bg-slate-100 text-slate-800 border-slate-200';
-    }
-  };
-
-  const getCategoryColor = (index: number) => {
-    const colors = [
-      'bg-blue-100 text-blue-800 border-blue-200',
-      'bg-emerald-100 text-emerald-800 border-emerald-200',
-      'bg-purple-100 text-purple-800 border-purple-200',
-      'bg-amber-100 text-amber-800 border-amber-200',
-    ];
-    return colors[index % colors.length];
-  };
-
-  const handleSelectAsset = (assetId: string) => {
-    setSelectedAssets(prev => 
-      prev.includes(assetId) 
-        ? prev.filter(id => id !== assetId)
-        : [...prev, assetId]
-    );
-  };
-
-  const handleAssetCreated = async (newAsset: any) => {
+  const handleAssetCreated = async (assetData: any) => {
+    console.log('🎯 AssetManagementContent: Handling asset creation...');
     try {
-      console.log('Creating new asset:', newAsset);
-      await addAsset(newAsset);
+      await addAsset(assetData);
       setShowAddForm(false);
-      
-      // Force refresh to ensure data is up to date
-      await refetch();
-      
-      toast({
-        title: "Asset Created Successfully",
-        description: `${newAsset.brand} ${newAsset.model} has been added to inventory`,
-      });
+      console.log('✅ AssetManagementContent: Asset creation handled successfully');
     } catch (error) {
-      console.error('Error creating asset:', error);
-      toast({
-        title: "Error Creating Asset",
-        description: "Failed to create asset. Please try again.",
-        variant: "destructive",
-      });
+      console.error('❌ AssetManagementContent: Error handling asset creation:', error);
+      throw error; // Re-throw to let the form handle the error display
     }
   };
 
-  const handleEditAsset = (asset: any) => {
-    setEditingAsset(asset);
-  };
-
-  const handleDeleteAsset = (assetId: string) => {
-    const asset = assets.find(a => a.id === assetId);
-    if (asset) {
-      deleteAsset(assetId);
-      toast({
-        title: "Asset Deleted",
-        description: `${asset.name} has been removed from inventory`,
-        variant: "destructive",
-      });
+  const handleDeleteAsset = async (assetId: string) => {
+    if (confirm('Are you sure you want to delete this asset?')) {
+      await deleteAsset(assetId);
     }
   };
 
-  const handleBulkDelete = () => {
-    selectedAssets.forEach(id => deleteAsset(id));
-    setSelectedAssets([]);
-    toast({
-      title: "Assets Deleted",
-      description: `${selectedAssets.length} assets have been removed`,
-      variant: "destructive",
-    });
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'active': return 'default';
+      case 'inactive': return 'secondary';
+      case 'maintenance': return 'destructive';
+      case 'retired': return 'outline';
+      default: return 'secondary';
+    }
   };
 
-  const handleExport = () => {
-    const csvContent = "data:text/csv;charset=utf-8," 
-      + "ID,Name,Category,Status,Assignee,Value,Location\n"
-      + assets.map(a => `${a.id},${a.name},${a.category},${a.status},${a.assignee},${a.value},${a.location}`).join("\n");
-    
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "assets.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    toast({
-      title: "Export Complete",
-      description: "Asset data has been exported to CSV",
-    });
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'active': return <CheckCircle className="h-4 w-4" />;
+      case 'maintenance': return <AlertTriangle className="h-4 w-4" />;
+      default: return <Package className="h-4 w-4" />;
+    }
   };
-
-  const filteredAssets = assets.filter(asset =>
-    asset.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    asset.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    asset.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    asset.serial_number.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  console.log('Total assets:', assets.length);
-  console.log('Filtered assets:', filteredAssets.length);
-  console.log('Search query:', searchQuery);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading assets...</p>
-        </div>
+        <div className="text-lg">Loading assets...</div>
       </div>
     );
   }
 
-  const pieData = [
-    { name: 'Available', value: assetStats.available, color: '#10b981' },
-    { name: 'Assigned', value: assetStats.assigned, color: '#3b82f6' },
-    { name: 'In Repair', value: assetStats.inRepair, color: '#f59e0b' },
-    { name: 'Retired', value: assetStats.retired, color: '#6b7280' },
-  ];
-
   return (
-    <div className="space-y-6 bg-slate-50/50 p-6 min-h-screen">
-      {/* Header Actions */}
+    <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
-            <Input
-              placeholder="Search assets..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 w-80 bg-white border-slate-200 focus:border-blue-500 focus:ring-blue-500"
-            />
-          </div>
-          <Button variant="outline" size="sm" className="border-slate-200 text-slate-700 hover:bg-slate-50">
-            <Filter className="h-4 w-4 mr-2" />
-            Advanced Filter
-          </Button>
-          {selectedAssets.length > 0 && (
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={handleBulkDelete}
-              className="border-red-200 text-red-700 hover:bg-red-50"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete ({selectedAssets.length})
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Asset Management</h1>
+          <p className="text-gray-600 dark:text-gray-400">Manage your organization's assets</p>
+        </div>
+        <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
+          <DialogTrigger asChild>
+            <Button className="bg-indigo-600 hover:bg-indigo-700">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Asset
             </Button>
-          )}
-        </div>
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm" className="border-slate-200 text-slate-700 hover:bg-slate-50">
-            <Upload className="h-4 w-4 mr-2" />
-            Import CSV
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handleExport}
-            className="border-slate-200 text-slate-700 hover:bg-slate-50"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
-          <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
-            <DialogTrigger asChild>
-              <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Asset
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Add New Asset</DialogTitle>
-              </DialogHeader>
-              <AddAssetForm 
-                onClose={() => setShowAddForm(false)} 
-                onAssetCreated={handleAssetCreated}
-              />
-            </DialogContent>
-          </Dialog>
-        </div>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Add New Asset</DialogTitle>
+              <DialogDescription>
+                Fill in the details below to add a new asset to your inventory.
+              </DialogDescription>
+            </DialogHeader>
+            <SimpleAddAssetForm 
+              onClose={() => setShowAddForm(false)}
+              onAssetCreated={handleAssetCreated}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
 
-      <Tabs defaultValue="assets" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 bg-slate-100">
-          <TabsTrigger value="assets" className="data-[state=active]:bg-white data-[state=active]:text-slate-900">All Assets</TabsTrigger>
-          <TabsTrigger value="categories" className="data-[state=active]:bg-white data-[state=active]:text-slate-900">Categories</TabsTrigger>
-          <TabsTrigger value="analytics" className="data-[state=active]:bg-white data-[state=active]:text-slate-900">Analytics</TabsTrigger>
-          <TabsTrigger value="lifecycle" className="data-[state=active]:bg-white data-[state=active]:text-slate-900">Lifecycle</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="assets" className="space-y-4">
-          <Card className="border-slate-200 shadow-sm">
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-slate-50 border-slate-200">
-                    <TableHead className="w-12">
-                      <input
-                        type="checkbox"
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedAssets(filteredAssets.map(a => a.id));
-                          } else {
-                            setSelectedAssets([]);
-                          }
-                        }}
-                        className="rounded border-slate-300"
-                      />
-                    </TableHead>
-                    <TableHead className="font-semibold text-slate-700">Asset ID</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Name</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Category</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Status</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Assignee</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Value</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Location</TableHead>
-                    <TableHead className="font-semibold text-slate-700">QR Code</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredAssets.map((asset, index) => (
-                    <motion.tr 
-                      key={asset.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: index * 0.1 }}
-                      className="hover:bg-slate-50 border-slate-200"
-                    >
-                      <TableCell>
-                        <input
-                          type="checkbox"
-                          checked={selectedAssets.includes(asset.id)}
-                          onChange={() => handleSelectAsset(asset.id)}
-                          className="rounded border-slate-300"
-                        />
-                      </TableCell>
-                      <TableCell className="font-medium text-slate-900">{asset.id}</TableCell>
-                      <TableCell className="text-slate-900">{asset.name}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="border-slate-200 text-slate-700">{asset.category}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getStatusColor(asset.status)}>
-                          {asset.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-slate-600">{asset.assignee}</TableCell>
-                      <TableCell className="font-medium text-slate-900">${asset.value.toLocaleString()}</TableCell>
-                      <TableCell className="text-slate-600">{asset.location}</TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-900">
-                          <QrCode className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-1">
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            className="text-slate-600 hover:text-blue-600"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => handleEditAsset(asset)}
-                            className="text-slate-600 hover:text-amber-600"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => handleDeleteAsset(asset.id)}
-                            className="text-slate-600 hover:text-red-600"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            className="text-slate-600 hover:text-slate-900"
-                          >
-                            <Printer className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </motion.tr>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="categories" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {categoryStats.map((category, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3, delay: index * 0.1 }}
-              >
-                <Card className="hover:shadow-md transition-shadow border-slate-200">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <Package className="h-8 w-8 text-slate-400" />
-                      <Badge className={getCategoryColor(index)}>{category.name}</Badge>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-semibold text-slate-900 mb-1">{category.count}</p>
-                      <p className="text-sm text-slate-600">Total value: ${category.value.toLocaleString()}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="analytics" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="border-slate-200 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold text-slate-900">Asset Distribution</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={pieData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={90}
-                        paddingAngle={5}
-                        dataKey="value"
-                      >
-                        {pieData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-slate-200 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold text-slate-900">Category Values</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={categoryStats}>
-                      <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                      <XAxis dataKey="name" className="text-xs" />
-                      <YAxis className="text-xs" />
-                      <Tooltip />
-                      <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="border-slate-200 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-base text-slate-900">Asset Utilization</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center">
-                  <p className="text-3xl font-bold text-blue-600">{utilizationRate.toFixed(1)}%</p>
-                  <p className="text-sm text-slate-600">Currently in use</p>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="border-slate-200 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-base text-slate-900">Maintenance Rate</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center">
-                  <p className="text-3xl font-bold text-amber-600">{maintenanceRate.toFixed(1)}%</p>
-                  <p className="text-sm text-slate-600">Assets under repair</p>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="border-slate-200 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-base text-slate-900">Average Age</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center">
-                  <p className="text-3xl font-bold text-emerald-600">{averageAge.toFixed(1)}</p>
-                  <p className="text-sm text-slate-600">Years</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="lifecycle" className="space-y-4">
-          <Card className="border-slate-200 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold text-slate-900">Asset Lifecycle Management</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card className="border-red-200 bg-red-50">
-                  <CardContent className="p-4">
-                    <h4 className="font-medium text-red-800 mb-2">Warranty Expiring Soon</h4>
-                    <p className="text-2xl font-bold text-red-600">{upcomingWarranties.length}</p>
-                    <p className="text-sm text-red-700">Assets expiring in 30 days</p>
-                  </CardContent>
-                </Card>
-                
-                <Card className="border-amber-200 bg-amber-50">
-                  <CardContent className="p-4">
-                    <h4 className="font-medium text-amber-800 mb-2">Overdue Maintenance</h4>
-                    <p className="text-2xl font-bold text-amber-600">{overdueAssets.length}</p>
-                    <p className="text-sm text-amber-700">Assets requiring attention</p>
-                  </CardContent>
-                </Card>
-                
-                <Card className="border-slate-200 bg-slate-50">
-                  <CardContent className="p-4">
-                    <h4 className="font-medium text-slate-800 mb-2">Total Value</h4>
-                    <p className="text-2xl font-bold text-slate-600">${(assetStats.totalValue / 1000).toFixed(0)}K</p>
-                    <p className="text-sm text-slate-700">Current asset portfolio</p>
-                  </CardContent>
-                </Card>
+      {/* Filters and Search */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search assets..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-48">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="maintenance">Maintenance</SelectItem>
+                <SelectItem value="retired">Retired</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-full sm:w-48">
+                <SelectValue placeholder="Filter by category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                <SelectItem value="laptop">Laptops</SelectItem>
+                <SelectItem value="desktop">Desktops</SelectItem>
+                <SelectItem value="monitor">Monitors</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Assets Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Assets ({filteredAssets.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left p-2">Asset</th>
+                  <th className="text-left p-2">Serial Number</th>
+                  <th className="text-left p-2">Status</th>
+                  <th className="text-left p-2">Assignee</th>
+                  <th className="text-left p-2">Location</th>
+                  <th className="text-left p-2">Value</th>
+                  <th className="text-left p-2">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAssets.map((asset) => (
+                  <tr key={asset.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <td className="p-2">
+                      <div>
+                        <div className="font-medium">{asset.name}</div>
+                        <div className="text-sm text-gray-500">{asset.category}</div>
+                      </div>
+                    </td>
+                    <td className="p-2 font-mono text-sm">{asset.serial_number}</td>
+                    <td className="p-2">
+                      <Badge variant={getStatusBadgeVariant(asset.status)} className="flex items-center gap-1 w-fit">
+                        {getStatusIcon(asset.status)}
+                        {asset.status}
+                      </Badge>
+                    </td>
+                    <td className="p-2">{asset.assignee}</td>
+                    <td className="p-2">{asset.location || '-'}</td>
+                    <td className="p-2">${asset.value?.toLocaleString() || '0'}</td>
+                    <td className="p-2">
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedAsset(asset);
+                            setShowDetails(true);
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteAsset(asset.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {filteredAssets.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                No assets found matching your criteria.
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Asset Details Modal */}
+      {selectedAsset && (
+        <AssetDetailsModal
+          asset={selectedAsset}
+          isOpen={showDetails}
+          onClose={() => {
+            setShowDetails(false);
+            setSelectedAsset(null);
+          }}
+        />
+      )}
     </div>
   );
 };

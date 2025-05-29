@@ -1,6 +1,8 @@
+
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import type { Asset, User, Assignment, AssignmentRequest, Notification, ActivityLog } from '@/hooks/useSupabaseData';
+import type { CreateAssetData } from '@/services/assetService';
 
 interface AdminDataContextType {
   assets: Asset[];
@@ -10,7 +12,7 @@ interface AdminDataContextType {
   notifications: Notification[];
   activityLog: ActivityLog[];
   loading: boolean;
-  addAsset: (asset: Omit<Asset, 'id' | 'last_updated' | 'qr_code'>) => Promise<Asset | undefined>;
+  addAsset: (asset: CreateAssetData) => Promise<Asset | undefined>;
   updateAsset: (id: string, updates: Partial<Asset>) => Promise<void>;
   deleteAsset: (id: string) => Promise<void>;
   addUser: (user: Omit<User, 'id'>) => Promise<void>;
@@ -73,12 +75,10 @@ export const AdminDataProvider: React.FC<{ children: ReactNode }> = ({ children 
   };
 
   const approveAssignmentRequest = async (id: string) => {
-    // Implementation for approving assignment requests
     console.log('Approving request:', id);
   };
 
   const declineAssignmentRequest = async (id: string) => {
-    // Implementation for declining assignment requests
     console.log('Declining request:', id);
   };
 
