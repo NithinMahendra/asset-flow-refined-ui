@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import {
   Table,
   TableBody,
@@ -22,25 +23,71 @@ import {
   Eye,
   Download,
   Upload,
-  Package
+  Package,
+  QrCode,
+  MoreHorizontal
 } from 'lucide-react';
+import AddAssetForm from '@/components/admin/AddAssetForm';
+import AssetDetailsModal from '@/components/admin/AssetDetailsModal';
+import BulkOperationsPanel from '@/components/admin/BulkOperationsPanel';
 
 const AssetManagementContent = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [showBulkPanel, setShowBulkPanel] = useState(false);
+  const [selectedAsset, setSelectedAsset] = useState<any>(null);
 
   const assets = [
-    { id: 'AST-001', name: 'MacBook Pro M3', category: 'Laptop', status: 'Available', assignee: '-', value: '$2,499', location: 'Warehouse A', lastUpdated: '2024-01-15' },
-    { id: 'AST-002', name: 'iPhone 15 Pro', category: 'Mobile', status: 'Assigned', assignee: 'John Doe', value: '$999', location: 'Office Floor 2', lastUpdated: '2024-01-14' },
-    { id: 'AST-003', name: 'Dell Monitor 27"', category: 'Monitor', status: 'In Repair', assignee: '-', value: '$329', location: 'IT Department', lastUpdated: '2024-01-13' },
-    { id: 'AST-004', name: 'Surface Pro 9', category: 'Tablet', status: 'Available', assignee: '-', value: '$1,299', location: 'Warehouse B', lastUpdated: '2024-01-12' },
-    { id: 'AST-005', name: 'Wireless Keyboard', category: 'Accessory', status: 'Assigned', assignee: 'Sarah Smith', value: '$79', location: 'Office Floor 1', lastUpdated: '2024-01-11' },
+    { 
+      id: 'AST-001', 
+      name: 'MacBook Pro M3', 
+      category: 'Laptop', 
+      status: 'Available', 
+      assignee: '-', 
+      value: '$2,499', 
+      location: 'Warehouse A', 
+      lastUpdated: '2024-01-15',
+      qrCode: 'QR001',
+      serialNumber: 'MP-2024-001',
+      purchaseDate: '2024-01-10',
+      warrantyExpiry: '2027-01-10'
+    },
+    { 
+      id: 'AST-002', 
+      name: 'iPhone 15 Pro', 
+      category: 'Mobile', 
+      status: 'Assigned', 
+      assignee: 'John Doe', 
+      value: '$999', 
+      location: 'Office Floor 2', 
+      lastUpdated: '2024-01-14',
+      qrCode: 'QR002',
+      serialNumber: 'IP-2024-002',
+      purchaseDate: '2024-01-08',
+      warrantyExpiry: '2026-01-08'
+    },
+    { 
+      id: 'AST-003', 
+      name: 'Dell Monitor 27"', 
+      category: 'Monitor', 
+      status: 'In Repair', 
+      assignee: '-', 
+      value: '$329', 
+      location: 'IT Department', 
+      lastUpdated: '2024-01-13',
+      qrCode: 'QR003',
+      serialNumber: 'DM-2024-003',
+      purchaseDate: '2024-01-05',
+      warrantyExpiry: '2026-01-05'
+    },
   ];
 
   const categories = [
-    { name: 'Laptops', count: 45, value: '$112,455' },
-    { name: 'Mobile Devices', count: 32, value: '$31,968' },
-    { name: 'Monitors', count: 28, value: '$9,212' },
-    { name: 'Accessories', count: 156, value: '$12,324' },
+    { name: 'Laptops', count: 45, value: '$112,455', color: 'bg-blue-100 text-blue-800' },
+    { name: 'Mobile Devices', count: 32, value: '$31,968', color: 'bg-green-100 text-green-800' },
+    { name: 'Monitors', count: 28, value: '$9,212', color: 'bg-purple-100 text-purple-800' },
+    { name: 'Accessories', count: 156, value: '$12,324', color: 'bg-gray-100 text-gray-800' },
   ];
 
   const getStatusColor = (status: string) => {
@@ -50,12 +97,20 @@ const AssetManagementContent = () => {
       case 'Assigned':
         return 'bg-blue-100 text-blue-800';
       case 'In Repair':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-red-100 text-red-800';
       case 'Retired':
         return 'bg-gray-100 text-gray-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const handleSelectAsset = (assetId: string) => {
+    setSelectedAssets(prev => 
+      prev.includes(assetId) 
+        ? prev.filter(id => id !== assetId)
+        : [...prev, assetId]
+    );
   };
 
   return (
@@ -74,30 +129,50 @@ const AssetManagementContent = () => {
           </div>
           <Button variant="outline" size="sm">
             <Filter className="h-4 w-4 mr-2" />
-            Filter
+            Advanced Filter
           </Button>
+          {selectedAssets.length > 0 && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowBulkPanel(true)}
+            >
+              Bulk Actions ({selectedAssets.length})
+            </Button>
+          )}
         </div>
         <div className="flex items-center space-x-2">
           <Button variant="outline" size="sm">
             <Upload className="h-4 w-4 mr-2" />
-            Import
+            Import CSV
           </Button>
           <Button variant="outline" size="sm">
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
-          <Button size="sm">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Asset
-          </Button>
+          <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
+            <DialogTrigger asChild>
+              <Button size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Asset
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Add New Asset</DialogTitle>
+              </DialogHeader>
+              <AddAssetForm onClose={() => setShowAddForm(false)} />
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
       <Tabs defaultValue="assets" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="assets">All Assets</TabsTrigger>
           <TabsTrigger value="categories">Categories</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="lifecycle">Lifecycle</TabsTrigger>
         </TabsList>
 
         <TabsContent value="assets" className="space-y-4">
@@ -106,6 +181,19 @@ const AssetManagementContent = () => {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gray-50">
+                    <TableHead className="w-12">
+                      <input
+                        type="checkbox"
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedAssets(assets.map(a => a.id));
+                          } else {
+                            setSelectedAssets([]);
+                          }
+                        }}
+                        className="rounded border-gray-300"
+                      />
+                    </TableHead>
                     <TableHead className="font-semibold">Asset ID</TableHead>
                     <TableHead className="font-semibold">Name</TableHead>
                     <TableHead className="font-semibold">Category</TableHead>
@@ -113,12 +201,21 @@ const AssetManagementContent = () => {
                     <TableHead className="font-semibold">Assignee</TableHead>
                     <TableHead className="font-semibold">Value</TableHead>
                     <TableHead className="font-semibold">Location</TableHead>
+                    <TableHead className="font-semibold">QR Code</TableHead>
                     <TableHead className="font-semibold">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {assets.map((asset) => (
                     <TableRow key={asset.id} className="hover:bg-gray-50">
+                      <TableCell>
+                        <input
+                          type="checkbox"
+                          checked={selectedAssets.includes(asset.id)}
+                          onChange={() => handleSelectAsset(asset.id)}
+                          className="rounded border-gray-300"
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">{asset.id}</TableCell>
                       <TableCell>{asset.name}</TableCell>
                       <TableCell>
@@ -133,8 +230,17 @@ const AssetManagementContent = () => {
                       <TableCell className="font-medium">{asset.value}</TableCell>
                       <TableCell className="text-gray-600">{asset.location}</TableCell>
                       <TableCell>
+                        <Button variant="ghost" size="sm">
+                          <QrCode className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                      <TableCell>
                         <div className="flex items-center space-x-1">
-                          <Button variant="ghost" size="sm">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => setSelectedAsset(asset)}
+                          >
                             <Eye className="h-4 w-4" />
                           </Button>
                           <Button variant="ghost" size="sm">
@@ -142,6 +248,9 @@ const AssetManagementContent = () => {
                           </Button>
                           <Button variant="ghost" size="sm">
                             <Trash2 className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm">
+                            <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
@@ -156,15 +265,15 @@ const AssetManagementContent = () => {
         <TabsContent value="categories" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {categories.map((category, index) => (
-              <Card key={index}>
+              <Card key={index} className="hover:shadow-md transition-shadow">
                 <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600 mb-1">{category.name}</p>
-                      <p className="text-2xl font-semibold text-gray-900">{category.count}</p>
-                      <p className="text-sm text-gray-600">Total value: {category.value}</p>
-                    </div>
+                  <div className="flex items-center justify-between mb-4">
                     <Package className="h-8 w-8 text-gray-400" />
+                    <Badge className={category.color}>{category.name}</Badge>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-semibold text-gray-900 mb-1">{category.count}</p>
+                    <p className="text-sm text-gray-600">Total value: {category.value}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -211,7 +320,64 @@ const AssetManagementContent = () => {
             </Card>
           </div>
         </TabsContent>
+
+        <TabsContent value="lifecycle" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Asset Lifecycle Management</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Card className="border-orange-200">
+                    <CardContent className="p-4">
+                      <h4 className="font-medium text-orange-800 mb-2">Warranty Expiring Soon</h4>
+                      <p className="text-2xl font-bold text-orange-600">12</p>
+                      <p className="text-sm text-gray-600">Assets expiring in 30 days</p>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="border-red-200">
+                    <CardContent className="p-4">
+                      <h4 className="font-medium text-red-800 mb-2">Overdue Maintenance</h4>
+                      <p className="text-2xl font-bold text-red-600">5</p>
+                      <p className="text-sm text-gray-600">Assets requiring attention</p>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="border-blue-200">
+                    <CardContent className="p-4">
+                      <h4 className="font-medium text-blue-800 mb-2">Depreciation Alert</h4>
+                      <p className="text-2xl font-bold text-blue-600">8</p>
+                      <p className="text-sm text-gray-600">High depreciation assets</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
+
+      {/* Asset Details Modal */}
+      {selectedAsset && (
+        <AssetDetailsModal 
+          asset={selectedAsset} 
+          onClose={() => setSelectedAsset(null)} 
+        />
+      )}
+
+      {/* Bulk Operations Panel */}
+      {showBulkPanel && (
+        <BulkOperationsPanel 
+          selectedAssets={selectedAssets}
+          onClose={() => setShowBulkPanel(false)}
+          onComplete={() => {
+            setSelectedAssets([]);
+            setShowBulkPanel(false);
+          }}
+        />
+      )}
     </div>
   );
 };

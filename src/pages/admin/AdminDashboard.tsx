@@ -27,7 +27,8 @@ import {
   Settings,
   Bell,
   LogOut,
-  Building
+  Building,
+  UserCheck
 } from 'lucide-react';
 
 // Import content components
@@ -53,7 +54,7 @@ const AdminDashboard = () => {
   const menuItems = [
     { id: 'overview', label: 'Overview', icon: BarChart3 },
     { id: 'assets', label: 'Asset Management', icon: Package },
-    { id: 'assignments', label: 'Assignments', icon: Users },
+    { id: 'assignments', label: 'Assignments', icon: UserCheck },
     { id: 'qr-codes', label: 'QR Codes', icon: QrCode },
     { id: 'reports', label: 'Reports', icon: FileText },
     { id: 'users', label: 'User Management', icon: Users },
