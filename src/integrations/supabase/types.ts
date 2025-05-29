@@ -9,6 +9,88 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      asset_requests: {
+        Row: {
+          approved_by: string | null
+          approved_date: string | null
+          asset_type: string
+          brand: string | null
+          created_at: string | null
+          denial_reason: string | null
+          employee_id: string
+          fulfilled_by: string | null
+          fulfilled_date: string | null
+          id: string
+          justification: string
+          model: string | null
+          notes: string | null
+          priority: string | null
+          requested_date: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          approved_by?: string | null
+          approved_date?: string | null
+          asset_type: string
+          brand?: string | null
+          created_at?: string | null
+          denial_reason?: string | null
+          employee_id: string
+          fulfilled_by?: string | null
+          fulfilled_date?: string | null
+          id?: string
+          justification: string
+          model?: string | null
+          notes?: string | null
+          priority?: string | null
+          requested_date?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          approved_by?: string | null
+          approved_date?: string | null
+          asset_type?: string
+          brand?: string | null
+          created_at?: string | null
+          denial_reason?: string | null
+          employee_id?: string
+          fulfilled_by?: string | null
+          fulfilled_date?: string | null
+          id?: string
+          justification?: string
+          model?: string | null
+          notes?: string | null
+          priority?: string | null
+          requested_date?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_requests_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "employee_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_requests_fulfilled_by_fkey"
+            columns: ["fulfilled_by"]
+            isOneToOne: false
+            referencedRelation: "employee_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assets: {
         Row: {
           asset_tag: string | null
@@ -16,6 +98,7 @@ export type Database = {
           brand: string
           created_at: string | null
           device_type: Database["public"]["Enums"]["device_type"]
+          employee_id: string | null
           id: string
           location: string | null
           model: string
@@ -33,6 +116,7 @@ export type Database = {
           brand: string
           created_at?: string | null
           device_type: Database["public"]["Enums"]["device_type"]
+          employee_id?: string | null
           id?: string
           location?: string | null
           model: string
@@ -50,6 +134,7 @@ export type Database = {
           brand?: string
           created_at?: string | null
           device_type?: Database["public"]["Enums"]["device_type"]
+          employee_id?: string | null
           id?: string
           location?: string | null
           model?: string
@@ -61,7 +146,15 @@ export type Database = {
           updated_at?: string | null
           warranty_expiry?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "assets_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       device_components: {
         Row: {
@@ -97,6 +190,62 @@ export type Database = {
             columns: ["asset_id"]
             isOneToOne: false
             referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_profiles: {
+        Row: {
+          created_at: string | null
+          department: string | null
+          email: string
+          employee_id: string
+          first_name: string
+          hire_date: string | null
+          id: string
+          last_name: string
+          manager_id: string | null
+          phone: string | null
+          position: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          department?: string | null
+          email: string
+          employee_id: string
+          first_name: string
+          hire_date?: string | null
+          id?: string
+          last_name: string
+          manager_id?: string | null
+          phone?: string | null
+          position?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          department?: string | null
+          email?: string
+          employee_id?: string
+          first_name?: string
+          hire_date?: string | null
+          id?: string
+          last_name?: string
+          manager_id?: string | null
+          phone?: string | null
+          position?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_profiles_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "employee_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -138,6 +287,60 @@ export type Database = {
             columns: ["asset_id"]
             isOneToOne: false
             referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string
+          related_asset_id: string | null
+          related_request_id: string | null
+          title: string
+          type: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          related_asset_id?: string | null
+          related_request_id?: string | null
+          title: string
+          type?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          related_asset_id?: string | null
+          related_request_id?: string | null
+          title?: string
+          type?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_related_asset_id_fkey"
+            columns: ["related_asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_related_request_id_fkey"
+            columns: ["related_request_id"]
+            isOneToOne: false
+            referencedRelation: "asset_requests"
             referencedColumns: ["id"]
           },
         ]

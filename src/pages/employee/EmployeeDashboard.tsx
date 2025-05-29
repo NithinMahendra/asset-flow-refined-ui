@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,40 +8,106 @@ import { Package, Plus, User, Clock, Bell, LogOut, Smartphone, Laptop } from 'lu
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import ThemeToggle from '@/components/ThemeToggle';
+import AssetRequestModal from '@/components/employee/AssetRequestModal';
+import ProfileUpdateModal from '@/components/employee/ProfileUpdateModal';
+import { EmployeeService } from '@/services/employeeService';
 
 const EmployeeDashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [stats] = useState({
-    assignedAssets: 3,
-    pendingRequests: 1,
-    totalRequests: 8,
-    lastActivity: '2 hours ago'
+  const [stats, setStats] = useState({
+    assignedAssets: 0,
+    pendingRequests: 0,
+    totalRequests: 0,
+    unreadNotifications: 0,
+    lastActivity: 'No activity'
   });
+  const [assets, setAssets] = useState<any[]>([]);
+  const [requests, setRequests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [statsData, assetsData, requestsData] = await Promise.all([
+        EmployeeService.getEmployeeStats(),
+        EmployeeService.getMyAssets(),
+        EmployeeService.getMyRequests()
+      ]);
+      
+      setStats(statsData);
+      setAssets(assetsData.slice(0, 3)); // Show only first 3 assets
+      setRequests(requestsData.slice(0, 3)); // Show only first 3 requests
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const handleLogout = () => {
     logout();
     navigate('/');
   };
 
-  const myAssets = [
-    { name: 'MacBook Pro 16"', type: 'Laptop', serial: 'MBA-2024-001', status: 'Active', assignedDate: '2024-01-15' },
-    { name: 'iPhone 15 Pro', type: 'Mobile', serial: 'IPH-2024-042', status: 'Active', assignedDate: '2024-02-01' },
-    { name: 'AirPods Pro', type: 'Accessory', serial: 'APD-2024-123', status: 'Active', assignedDate: '2024-02-15' },
-  ];
-
-  const recentRequests = [
-    { item: 'iPad Air', status: 'Pending', date: '2024-01-20', type: 'Request' },
-    { item: 'MacBook Pro 16"', status: 'Approved', date: '2024-01-15', type: 'Request' },
-    { item: 'iPhone 15 Pro', status: 'Approved', date: '2024-02-01', type: 'Request' },
-  ];
-
   const quickActions = [
-    { title: 'Request New Asset', icon: Plus, color: 'bg-green-500', action: () => {} },
-    { title: 'View My Assets', icon: Package, color: 'bg-blue-500', action: () => {} },
-    { title: 'Update Profile', icon: User, color: 'bg-purple-500', action: () => {} },
-    { title: 'Request History', icon: Clock, color: 'bg-orange-500', action: () => {} },
+    { 
+      title: 'Request New Asset', 
+      icon: Plus, 
+      color: 'bg-green-500', 
+      action: () => setShowRequestModal(true)
+    },
+    { 
+      title: 'View My Assets', 
+      icon: Package, 
+      color: 'bg-blue-500', 
+      action: () => navigate('/employee/assets')
+    },
+    { 
+      title: 'Update Profile', 
+      icon: User, 
+      color: 'bg-purple-500', 
+      action: () => setShowProfileModal(true)
+    },
+    { 
+      title: 'Request History', 
+      icon: Clock, 
+      color: 'bg-orange-500', 
+      action: () => navigate('/employee/requests')
+    },
   ];
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <Badge variant="secondary">Pending</Badge>;
+      case 'approved':
+        return <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Approved</Badge>;
+      case 'fulfilled':
+        return <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Fulfilled</Badge>;
+      case 'denied':
+        return <Badge variant="destructive">Denied</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 dark:from-gray-900 dark:via-green-900 dark:to-emerald-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 dark:from-gray-900 dark:via-green-900 dark:to-emerald-900">
@@ -67,9 +133,9 @@ const EmployeeDashboard = () => {
               <ThemeToggle />
               <Button variant="ghost" size="icon" className="relative">
                 <Bell className="h-5 w-5" />
-                {stats.pendingRequests > 0 && (
+                {stats.unreadNotifications > 0 && (
                   <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs bg-red-500">
-                    {stats.pendingRequests}
+                    {stats.unreadNotifications}
                   </Badge>
                 )}
               </Button>
@@ -161,23 +227,23 @@ const EmployeeDashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {recentRequests.map((request, index) => (
+                  {requests.length > 0 ? requests.map((request, index) => (
                     <motion.div
-                      key={index}
+                      key={request.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.4, delay: 0.8 + index * 0.1 }}
                       className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                     >
                       <div>
-                        <p className="font-medium text-sm">{request.item}</p>
-                        <p className="text-xs text-gray-500">{request.date}</p>
+                        <p className="font-medium text-sm">{request.asset_type}</p>
+                        <p className="text-xs text-gray-500">{new Date(request.requested_date).toLocaleDateString()}</p>
                       </div>
-                      <Badge variant={request.status === 'Approved' ? 'default' : request.status === 'Pending' ? 'secondary' : 'destructive'}>
-                        {request.status}
-                      </Badge>
+                      {getStatusBadge(request.status)}
                     </motion.div>
-                  ))}
+                  )) : (
+                    <p className="text-gray-500 text-sm text-center py-4">No requests yet</p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -192,39 +258,64 @@ const EmployeeDashboard = () => {
           >
             <Card className="glass-effect">
               <CardHeader>
-                <CardTitle>My Assets</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle>My Assets</CardTitle>
+                  <Button variant="outline" size="sm" onClick={() => navigate('/employee/assets')}>
+                    View All
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {myAssets.map((asset, index) => (
+                  {assets.length > 0 ? assets.map((asset, index) => (
                     <motion.div
-                      key={asset.serial}
+                      key={asset.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.4, delay: 0.7 + index * 0.1 }}
                       className="flex items-center space-x-4 p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                     >
                       <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
-                        {asset.type === 'Laptop' ? <Laptop className="h-6 w-6 text-green-600 dark:text-green-400" /> :
-                         asset.type === 'Mobile' ? <Smartphone className="h-6 w-6 text-green-600 dark:text-green-400" /> :
+                        {asset.device_type === 'laptop' ? <Laptop className="h-6 w-6 text-green-600 dark:text-green-400" /> :
+                         asset.device_type === 'smartphone' ? <Smartphone className="h-6 w-6 text-green-600 dark:text-green-400" /> :
                          <Package className="h-6 w-6 text-green-600 dark:text-green-400" />}
                       </div>
                       <div className="flex-1">
-                        <h4 className="font-medium text-gray-900 dark:text-white">{asset.name}</h4>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Serial: {asset.serial}</p>
-                        <p className="text-xs text-gray-500">Assigned: {asset.assignedDate}</p>
+                        <h4 className="font-medium text-gray-900 dark:text-white">{asset.brand} {asset.model}</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Serial: {asset.serial_number}</p>
+                        {asset.purchase_date && (
+                          <p className="text-xs text-gray-500">Assigned: {new Date(asset.purchase_date).toLocaleDateString()}</p>
+                        )}
                       </div>
-                      <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                      <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                         {asset.status}
                       </Badge>
                     </motion.div>
-                  ))}
+                  )) : (
+                    <div className="text-center py-8">
+                      <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-500">No assets assigned yet</p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
           </motion.div>
         </div>
       </main>
+
+      {/* Modals */}
+      <AssetRequestModal
+        isOpen={showRequestModal}
+        onClose={() => setShowRequestModal(false)}
+        onSuccess={loadData}
+      />
+      
+      <ProfileUpdateModal
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+        onSuccess={loadData}
+      />
     </div>
   );
 };

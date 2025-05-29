@@ -15,6 +15,8 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import EmployeeLogin from "./pages/employee/EmployeeLogin";
 import EmployeeSignup from "./pages/employee/EmployeeSignup";
 import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
+import MyAssets from "./pages/employee/MyAssets";
+import RequestHistory from "./pages/employee/RequestHistory";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +52,22 @@ const App = () => (
               element={
                 <ProtectedRoute requiredRole="employee">
                   <EmployeeDashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/employee/assets" 
+              element={
+                <ProtectedRoute requiredRole="employee">
+                  <MyAssets />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/employee/requests" 
+              element={
+                <ProtectedRoute requiredRole="employee">
+                  <RequestHistory />
                 </ProtectedRoute>
               } 
             />
