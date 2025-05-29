@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -47,7 +46,9 @@ const AssetManagementContent = () => {
     getOverdueMaintenanceAssets,
     addAsset,
     updateAsset,
-    deleteAsset
+    deleteAsset,
+    loading,
+    refetch
   } = useAdminData();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -96,14 +97,27 @@ const AssetManagementContent = () => {
     );
   };
 
-  const handleAssetCreated = (newAsset: any) => {
-    addAsset(newAsset);
-    setShowAddForm(false);
-    
-    toast({
-      title: "Asset Created Successfully",
-      description: `${newAsset.name} has been added to inventory`,
-    });
+  const handleAssetCreated = async (newAsset: any) => {
+    try {
+      console.log('Creating new asset:', newAsset);
+      await addAsset(newAsset);
+      setShowAddForm(false);
+      
+      // Force refresh to ensure data is up to date
+      await refetch();
+      
+      toast({
+        title: "Asset Created Successfully",
+        description: `${newAsset.brand} ${newAsset.model} has been added to inventory`,
+      });
+    } catch (error) {
+      console.error('Error creating asset:', error);
+      toast({
+        title: "Error Creating Asset",
+        description: "Failed to create asset. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleEditAsset = (asset: any) => {
@@ -154,8 +168,24 @@ const AssetManagementContent = () => {
   const filteredAssets = assets.filter(asset =>
     asset.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     asset.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    asset.category.toLowerCase().includes(searchQuery.toLowerCase())
+    asset.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    asset.serial_number.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  console.log('Total assets:', assets.length);
+  console.log('Filtered assets:', filteredAssets.length);
+  console.log('Search query:', searchQuery);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading assets...</p>
+        </div>
+      </div>
+    );
+  }
 
   const pieData = [
     { name: 'Available', value: assetStats.available, color: '#10b981' },

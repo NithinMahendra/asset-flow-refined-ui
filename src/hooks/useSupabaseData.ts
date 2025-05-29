@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -103,16 +102,6 @@ export const useSupabaseData = () => {
 
   // Transform database asset to UI asset format
   const transformAsset = (dbAsset: any): Asset => {
-    // Create a mapping for status display
-    const statusDisplayMap = {
-      'active': 'Active',
-      'inactive': 'Inactive', 
-      'maintenance': 'In Maintenance',
-      'retired': 'Retired',
-      'missing': 'Missing',
-      'damaged': 'Damaged'
-    };
-
     return {
       id: dbAsset.id,
       device_type: dbAsset.device_type,
@@ -160,7 +149,6 @@ export const useSupabaseData = () => {
           description: `Failed to fetch assets: ${assetsError.message}`,
           variant: 'destructive'
         });
-        // Keep empty array on error
         setAssets([]);
       } else {
         console.log('Fetched assets data:', assetsData);
@@ -312,6 +300,8 @@ export const useSupabaseData = () => {
 
       console.log('Asset created successfully:', data);
       const newAsset = transformAsset(data);
+      
+      // Update local state immediately
       setAssets(prev => [newAsset, ...prev]);
       
       await logActivity('New Asset Added', `${newAsset.name} added to inventory`, 'addition', newAsset.id);
@@ -320,6 +310,9 @@ export const useSupabaseData = () => {
         title: 'Success',
         description: `${newAsset.name} has been added to inventory`
       });
+
+      // Refresh data to ensure consistency
+      await fetchData();
 
       return newAsset;
     } catch (error) {
