@@ -15,11 +15,6 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import EmployeeLogin from "./pages/employee/EmployeeLogin";
 import EmployeeSignup from "./pages/employee/EmployeeSignup";
 import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
-import Dashboard from "./pages/Dashboard";
-import AssetList from "./pages/AssetList";
-import AssetDetail from "./pages/AssetDetail";
-import AddAsset from "./pages/AddAsset";
-import Analytics from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,52 +34,12 @@ const App = () => (
             <Route path="/employee/login" element={<EmployeeLogin />} />
             <Route path="/employee/signup" element={<EmployeeSignup />} />
             
-            {/* Protected Admin Routes */}
+            {/* Protected Admin Routes - All admin functionality now in AdminDashboard */}
             <Route 
               path="/admin/dashboard" 
               element={
                 <ProtectedRoute requiredRole="admin">
                   <AdminDashboard />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/dashboard" 
-              element={
-                <ProtectedRoute requiredRole="admin">
-                  <Dashboard />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/assets" 
-              element={
-                <ProtectedRoute requiredRole="admin">
-                  <AssetList />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/assets/add" 
-              element={
-                <ProtectedRoute requiredRole="admin">
-                  <AddAsset />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/assets/:id" 
-              element={
-                <ProtectedRoute requiredRole="admin">
-                  <AssetDetail />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/analytics" 
-              element={
-                <ProtectedRoute requiredRole="admin">
-                  <Analytics />
                 </ProtectedRoute>
               } 
             />
