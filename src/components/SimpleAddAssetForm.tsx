@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -171,7 +170,7 @@ const SimpleAddAssetForm = ({ onClose, onAssetCreated }: SimpleAddAssetFormProps
               value={formData.device_type} 
               onValueChange={(value) => handleInputChange('device_type', value)}
             >
-              <SelectTrigger className={errors.device_type ? 'border-red-500' : ''}>
+              <SelectTrigger className={errors.device_type ? 'border-gray-500' : ''}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -182,7 +181,7 @@ const SimpleAddAssetForm = ({ onClose, onAssetCreated }: SimpleAddAssetFormProps
                 ))}
               </SelectContent>
             </Select>
-            {errors.device_type && <p className="text-sm text-red-500 mt-1">{errors.device_type}</p>}
+            {errors.device_type && <p className="text-sm text-gray-500 mt-1">{errors.device_type}</p>}
           </div>
 
           {/* Brand and Model */}
@@ -194,9 +193,9 @@ const SimpleAddAssetForm = ({ onClose, onAssetCreated }: SimpleAddAssetFormProps
                 value={formData.brand}
                 onChange={(e) => handleInputChange('brand', e.target.value)}
                 placeholder="e.g., Apple, Dell"
-                className={errors.brand ? 'border-red-500' : ''}
+                className={errors.brand ? 'border-gray-500' : ''}
               />
-              {errors.brand && <p className="text-sm text-red-500 mt-1">{errors.brand}</p>}
+              {errors.brand && <p className="text-sm text-gray-500 mt-1">{errors.brand}</p>}
             </div>
             <div>
               <Label htmlFor="model">Model *</Label>
@@ -205,9 +204,9 @@ const SimpleAddAssetForm = ({ onClose, onAssetCreated }: SimpleAddAssetFormProps
                 value={formData.model}
                 onChange={(e) => handleInputChange('model', e.target.value)}
                 placeholder="e.g., MacBook Pro"
-                className={errors.model ? 'border-red-500' : ''}
+                className={errors.model ? 'border-gray-500' : ''}
               />
-              {errors.model && <p className="text-sm text-red-500 mt-1">{errors.model}</p>}
+              {errors.model && <p className="text-sm text-gray-500 mt-1">{errors.model}</p>}
             </div>
           </div>
 
@@ -219,9 +218,9 @@ const SimpleAddAssetForm = ({ onClose, onAssetCreated }: SimpleAddAssetFormProps
               value={formData.serial_number}
               onChange={(e) => handleInputChange('serial_number', e.target.value)}
               placeholder="e.g., MP-2024-001"
-              className={errors.serial_number ? 'border-red-500' : ''}
+              className={errors.serial_number ? 'border-gray-500' : ''}
             />
-            {errors.serial_number && <p className="text-sm text-red-500 mt-1">{errors.serial_number}</p>}
+            {errors.serial_number && <p className="text-sm text-gray-500 mt-1">{errors.serial_number}</p>}
           </div>
 
           {/* Status and Location */}
@@ -255,10 +254,19 @@ const SimpleAddAssetForm = ({ onClose, onAssetCreated }: SimpleAddAssetFormProps
             </div>
           </div>
 
-          {/* Purchase Price and Date */}
+          {/* Additional Fields */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="purchase_price">Purchase Price ($)</Label>
+              <Label htmlFor="assigned_to">Assigned To</Label>
+              <Input
+                id="assigned_to"
+                value={formData.assigned_to}
+                onChange={(e) => handleInputChange('assigned_to', e.target.value)}
+                placeholder="Employee name"
+              />
+            </div>
+            <div>
+              <Label htmlFor="purchase_price">Purchase Price</Label>
               <Input
                 id="purchase_price"
                 type="number"
@@ -268,6 +276,9 @@ const SimpleAddAssetForm = ({ onClose, onAssetCreated }: SimpleAddAssetFormProps
                 placeholder="0.00"
               />
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="purchase_date">Purchase Date</Label>
               <Input
@@ -277,27 +288,15 @@ const SimpleAddAssetForm = ({ onClose, onAssetCreated }: SimpleAddAssetFormProps
                 onChange={(e) => handleInputChange('purchase_date', e.target.value)}
               />
             </div>
-          </div>
-
-          {/* Optional Fields */}
-          <div>
-            <Label htmlFor="assigned_to">Assigned To</Label>
-            <Input
-              id="assigned_to"
-              value={formData.assigned_to}
-              onChange={(e) => handleInputChange('assigned_to', e.target.value)}
-              placeholder="Employee name or email"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="warranty_expiry">Warranty Expiry</Label>
-            <Input
-              id="warranty_expiry"
-              type="date"
-              value={formData.warranty_expiry}
-              onChange={(e) => handleInputChange('warranty_expiry', e.target.value)}
-            />
+            <div>
+              <Label htmlFor="warranty_expiry">Warranty Expiry</Label>
+              <Input
+                id="warranty_expiry"
+                type="date"
+                value={formData.warranty_expiry}
+                onChange={(e) => handleInputChange('warranty_expiry', e.target.value)}
+              />
+            </div>
           </div>
 
           <div>
@@ -311,19 +310,21 @@ const SimpleAddAssetForm = ({ onClose, onAssetCreated }: SimpleAddAssetFormProps
           </div>
 
           {/* Submit Button */}
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
-              Cancel
-            </Button>
+          <div className="flex justify-end space-x-3 pt-4">
+            {onClose && (
+              <Button type="button" variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+            )}
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Creating...
                 </>
               ) : (
                 <>
-                  <Save className="mr-2 h-4 w-4" />
+                  <Save className="h-4 w-4 mr-2" />
                   Create Asset
                 </>
               )}

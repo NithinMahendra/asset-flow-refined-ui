@@ -11,7 +11,7 @@ const KPICards = () => {
       change: '+5.2%',
       trend: 'up',
       icon: Monitor,
-      color: 'bg-blue-500',
+      color: 'bg-gray-500',
     },
     {
       title: 'Assigned',
@@ -19,7 +19,7 @@ const KPICards = () => {
       change: '+2.1%',
       trend: 'up',
       icon: CheckCircle,
-      color: 'bg-green-500',
+      color: 'bg-gray-500',
     },
     {
       title: 'Available',
@@ -27,7 +27,7 @@ const KPICards = () => {
       change: '-1.5%',
       trend: 'down',
       icon: Clock,
-      color: 'bg-indigo-500',
+      color: 'bg-gray-500',
     },
     {
       title: 'Under Repair',
@@ -35,7 +35,7 @@ const KPICards = () => {
       change: '+12.3%',
       trend: 'up',
       icon: AlertTriangle,
-      color: 'bg-red-500',
+      color: 'bg-gray-500',
     },
   ];
 
@@ -66,13 +66,11 @@ const KPICards = () => {
                   </motion.p>
                   <div className="flex items-center space-x-1">
                     {kpi.trend === 'up' ? (
-                      <TrendingUp className="h-3 w-3 text-green-500" />
+                      <TrendingUp className="h-3 w-3 text-gray-500" />
                     ) : (
-                      <TrendingDown className="h-3 w-3 text-red-500" />
+                      <TrendingDown className="h-3 w-3 text-gray-500" />
                     )}
-                    <span className={`text-xs font-medium ${
-                      kpi.trend === 'up' ? 'text-green-500' : 'text-red-500'
-                    }`}>
+                    <span className="text-xs font-medium text-gray-500">
                       {kpi.change}
                     </span>
                     <span className="text-xs text-gray-500">vs last month</span>

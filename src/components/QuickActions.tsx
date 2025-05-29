@@ -13,35 +13,35 @@ const QuickActions = () => {
       icon: Plus,
       label: 'Add Device',
       description: 'Register new asset',
-      color: 'bg-blue-500 hover:bg-blue-600',
+      color: 'bg-gray-500 hover:bg-gray-600',
       action: () => navigate('/assets/add')
     },
     {
       icon: FileText,
       label: 'Generate Report',
       description: 'Create asset report',
-      color: 'bg-green-500 hover:bg-green-600',
+      color: 'bg-gray-500 hover:bg-gray-600',
       action: () => console.log('Generate report')
     },
     {
       icon: Users,
       label: 'Assign Device',
       description: 'Assign to user',
-      color: 'bg-purple-500 hover:bg-purple-600',
+      color: 'bg-gray-500 hover:bg-gray-600',
       action: () => console.log('Assign device')
     },
     {
       icon: QrCode,
       label: 'Scan QR Code',
       description: 'Quick asset lookup',
-      color: 'bg-orange-500 hover:bg-orange-600',
+      color: 'bg-gray-500 hover:bg-gray-600',
       action: () => console.log('Scan QR')
     },
     {
       icon: Package,
       label: 'Bulk Import',
       description: 'Import multiple assets',
-      color: 'bg-indigo-500 hover:bg-indigo-600',
+      color: 'bg-gray-500 hover:bg-gray-600',
       action: () => console.log('Bulk import')
     },
     {

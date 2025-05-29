@@ -15,12 +15,12 @@ const AssetChart = () => {
         <AreaChart data={data}>
           <defs>
             <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
-              <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+              <stop offset="5%" stopColor="#606060" stopOpacity={0.3}/>
+              <stop offset="95%" stopColor="#606060" stopOpacity={0}/>
             </linearGradient>
             <linearGradient id="colorInUse" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#10B981" stopOpacity={0.3}/>
-              <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+              <stop offset="5%" stopColor="#808080" stopOpacity={0.3}/>
+              <stop offset="95%" stopColor="#808080" stopOpacity={0}/>
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
@@ -46,7 +46,7 @@ const AssetChart = () => {
           <Area
             type="monotone"
             dataKey="total"
-            stroke="#3B82F6"
+            stroke="#606060"
             fillOpacity={1}
             fill="url(#colorTotal)"
             strokeWidth={2}
@@ -54,7 +54,7 @@ const AssetChart = () => {
           <Area
             type="monotone"
             dataKey="inUse"
-            stroke="#10B981"
+            stroke="#808080"
             fillOpacity={1}
             fill="url(#colorInUse)"
             strokeWidth={2}

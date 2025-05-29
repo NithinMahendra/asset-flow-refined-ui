@@ -21,17 +21,17 @@ const Dashboard = () => {
   const unreadNotifications = notifications.filter(n => !n.is_read).length;
 
   const statsCards = [
-    { title: 'Total Devices', value: assetStats.total, color: 'bg-indigo-500', icon: '📱' },
-    { title: 'In Use', value: assetStats.assigned, color: 'bg-emerald-500', icon: '✅' },
-    { title: 'Available', value: assetStats.available, color: 'bg-cyan-500', icon: '🔄' },
-    { title: 'In Repair', value: assetStats.inRepair, color: 'bg-orange-500', icon: '⚠️' },
+    { title: 'Total Devices', value: assetStats.total, color: 'bg-gray-500', icon: '📱' },
+    { title: 'In Use', value: assetStats.assigned, color: 'bg-gray-500', icon: '✅' },
+    { title: 'Available', value: assetStats.available, color: 'bg-gray-500', icon: '🔄' },
+    { title: 'In Repair', value: assetStats.inRepair, color: 'bg-gray-500', icon: '⚠️' },
   ];
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-900 dark:to-indigo-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-500 mx-auto mb-4"></div>
           <p className="text-gray-600 dark:text-gray-400">Loading dashboard...</p>
         </div>
       </div>
@@ -39,13 +39,13 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-900 dark:to-indigo-900">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900">
       {/* Header */}
       <header className="sticky top-0 z-50 glass-effect border-b border-gray-200/20 dark:border-gray-700/20">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-6">
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-cyan-600 bg-clip-text text-transparent">
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-600 to-gray-600 bg-clip-text text-transparent">
                 Asset Management
               </h1>
               <div className="relative">
@@ -69,7 +69,7 @@ const Dashboard = () => {
                 >
                   <Bell className="h-5 w-5" />
                   {unreadNotifications > 0 && (
-                    <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs bg-orange-500">
+                    <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs bg-gray-500">
                       {unreadNotifications}
                     </Badge>
                   )}
@@ -152,7 +152,7 @@ const Dashboard = () => {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <span>Asset Trends</span>
-                  <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300">Live Data</Badge>
+                  <Badge variant="secondary" className="bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">Live Data</Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -192,9 +192,9 @@ const Dashboard = () => {
                     className="flex items-center space-x-4 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                   >
                     <div className={`w-2 h-2 rounded-full ${
-                      activity.type === 'assignment' ? 'bg-indigo-500' :
-                      activity.type === 'maintenance' ? 'bg-emerald-500' :
-                      activity.type === 'addition' ? 'bg-cyan-500' : 'bg-orange-500'
+                      activity.type === 'assignment' ? 'bg-gray-500' :
+                      activity.type === 'maintenance' ? 'bg-gray-500' :
+                      activity.type === 'addition' ? 'bg-gray-500' : 'bg-gray-500'
                     }`} />
                     <div className="flex-1">
                       <p className="font-medium text-gray-900 dark:text-white">

@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -89,10 +90,10 @@ const NotificationCenter = () => {
 
   const getIcon = (type: string) => {
     switch (type) {
-      case 'warning': return <AlertTriangle className="h-4 w-4 text-cyan-500" />;
-      case 'error': return <AlertTriangle className="h-4 w-4 text-red-500" />;
-      case 'success': return <Check className="h-4 w-4 text-green-500" />;
-      default: return <Clock className="h-4 w-4 text-blue-500" />;
+      case 'warning': return <AlertTriangle className="h-4 w-4 text-gray-500" />;
+      case 'error': return <AlertTriangle className="h-4 w-4 text-gray-500" />;
+      case 'success': return <Check className="h-4 w-4 text-gray-500" />;
+      default: return <Clock className="h-4 w-4 text-gray-500" />;
     }
   };
 
@@ -123,7 +124,7 @@ const NotificationCenter = () => {
             <div className="flex items-center space-x-2">
               <CardTitle className="text-lg">Notifications</CardTitle>
               {unreadCount > 0 && (
-                <Badge variant="destructive" className="h-5 px-2 text-xs">
+                <Badge variant="destructive" className="h-5 px-2 text-xs bg-gray-500">
                   {unreadCount}
                 </Badge>
               )}
@@ -191,7 +192,7 @@ const NotificationCenter = () => {
                   exit={{ opacity: 0, x: 20 }}
                   transition={{ duration: 0.3, delay: index * 0.05 }}
                   className={`p-4 border-b border-gray-200 dark:border-gray-700 last:border-b-0 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50 ${
-                    !notification.read ? 'bg-blue-50/50 dark:bg-blue-900/20' : ''
+                    !notification.read ? 'bg-gray-50/50 dark:bg-gray-800/20' : ''
                   }`}
                 >
                   <div className="flex items-start space-x-3">
@@ -203,7 +204,7 @@ const NotificationCenter = () => {
                           {notification.title}
                         </p>
                         {!notification.read && (
-                          <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0" />
+                          <div className="w-2 h-2 bg-gray-500 rounded-full flex-shrink-0" />
                         )}
                       </div>
                       

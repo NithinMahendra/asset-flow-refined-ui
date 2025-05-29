@@ -29,11 +29,11 @@ const AnalyticsCharts = () => {
   ];
 
   const deviceDistributionData = [
-    { name: 'Laptops', value: 450, color: '#3B82F6' },
-    { name: 'Phones', value: 320, color: '#10B981' },
-    { name: 'Tablets', value: 180, color: '#06B6D4' },
-    { name: 'Monitors', value: 150, color: '#EF4444' },
-    { name: 'Others', value: 147, color: '#8B5CF6' },
+    { name: 'Laptops', value: 450, color: '#404040' },
+    { name: 'Phones', value: 320, color: '#606060' },
+    { name: 'Tablets', value: 180, color: '#808080' },
+    { name: 'Monitors', value: 150, color: '#A0A0A0' },
+    { name: 'Others', value: 147, color: '#C0C0C0' },
   ];
 
   const repairFrequencyData = [
@@ -66,12 +66,12 @@ const AnalyticsCharts = () => {
                 <AreaChart data={usageTrendData}>
                   <defs>
                     <linearGradient id="colorAssigned" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#606060" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#606060" stopOpacity={0}/>
                     </linearGradient>
                     <linearGradient id="colorAvailable" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10B981" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#808080" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#808080" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
@@ -89,7 +89,7 @@ const AnalyticsCharts = () => {
                   <Area
                     type="monotone"
                     dataKey="assigned"
-                    stroke="#3B82F6"
+                    stroke="#606060"
                     fillOpacity={1}
                     fill="url(#colorAssigned)"
                     strokeWidth={3}
@@ -97,7 +97,7 @@ const AnalyticsCharts = () => {
                   <Area
                     type="monotone"
                     dataKey="available"
-                    stroke="#10B981"
+                    stroke="#808080"
                     fillOpacity={1}
                     fill="url(#colorAvailable)"
                     strokeWidth={3}
@@ -105,7 +105,7 @@ const AnalyticsCharts = () => {
                   <Line
                     type="monotone"
                     dataKey="repaired"
-                    stroke="#EF4444"
+                    stroke="#A0A0A0"
                     strokeWidth={3}
                     strokeDasharray="5 5"
                   />
@@ -177,7 +177,7 @@ const AnalyticsCharts = () => {
                       boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
                     }}
                   />
-                  <Bar dataKey="repairs" fill="#EF4444" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="repairs" fill="#808080" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

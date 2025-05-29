@@ -57,27 +57,27 @@ const MaintenanceTab = () => {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'Completed': return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'In Progress': return <Clock className="h-4 w-4 text-blue-500" />;
-      case 'Pending': return <AlertTriangle className="h-4 w-4 text-cyan-500" />;
+      case 'Completed': return <CheckCircle className="h-4 w-4 text-gray-500" />;
+      case 'In Progress': return <Clock className="h-4 w-4 text-gray-500" />;
+      case 'Pending': return <AlertTriangle className="h-4 w-4 text-gray-500" />;
       default: return <Clock className="h-4 w-4 text-gray-400" />;
     }
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'Completed': return <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Completed</Badge>;
-      case 'In Progress': return <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">In Progress</Badge>;
-      case 'Pending': return <Badge className="bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200">Pending</Badge>;
+      case 'Completed': return <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200">Completed</Badge>;
+      case 'In Progress': return <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200">In Progress</Badge>;
+      case 'Pending': return <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200">Pending</Badge>;
       default: return <Badge variant="secondary">{status}</Badge>;
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'High': return 'text-red-500';
-      case 'Medium': return 'text-emerald-500';
-      case 'Low': return 'text-green-500';
+      case 'High': return 'text-gray-500';
+      case 'Medium': return 'text-gray-500';
+      case 'Low': return 'text-gray-500';
       default: return 'text-gray-500';
     }
   };
@@ -100,9 +100,9 @@ const MaintenanceTab = () => {
         <h4 className="font-medium text-gray-900 dark:text-white mb-3">Upcoming Maintenance</h4>
         <div className="space-y-3">
           {upcomingMaintenance.map((maintenance, index) => (
-            <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-blue-50/50 dark:bg-blue-900/20">
+            <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/20">
               <div className="flex items-center space-x-3">
-                <Calendar className="h-4 w-4 text-blue-500" />
+                <Calendar className="h-4 w-4 text-gray-500" />
                 <div>
                   <p className="font-medium text-gray-900 dark:text-white">
                     {maintenance.description}
@@ -137,7 +137,7 @@ const MaintenanceTab = () => {
               )}
               
               <div className="flex items-start space-x-4 p-4 rounded-lg bg-gray-50 dark:bg-gray-800/50">
-                <div className="p-2 rounded-full bg-blue-500">
+                <div className="p-2 rounded-full bg-gray-500">
                   {getStatusIcon(maintenance.status)}
                 </div>
                 

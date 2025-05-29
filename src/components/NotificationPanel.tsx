@@ -35,9 +35,9 @@ const NotificationPanel = () => {
 
   const getIcon = (type: string) => {
     switch (type) {
-      case 'warning': return <AlertTriangle className="h-4 w-4 text-cyan-500" />;
-      case 'success': return <CheckCircle className="h-4 w-4 text-green-500" />;
-      default: return <Clock className="h-4 w-4 text-blue-500" />;
+      case 'warning': return <AlertTriangle className="h-4 w-4 text-gray-500" />;
+      case 'success': return <CheckCircle className="h-4 w-4 text-gray-500" />;
+      default: return <Clock className="h-4 w-4 text-gray-500" />;
     }
   };
 
@@ -67,7 +67,7 @@ const NotificationPanel = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.1 }}
                 className={`p-3 rounded-lg border transition-colors cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 ${
-                  notification.unread ? 'bg-blue-50/50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' : 'border-gray-200 dark:border-gray-700'
+                  notification.unread ? 'bg-gray-50/50 dark:bg-gray-800/20 border-gray-200 dark:border-gray-700' : 'border-gray-200 dark:border-gray-700'
                 }`}
               >
                 <div className="flex items-start space-x-3">
@@ -78,7 +78,7 @@ const NotificationPanel = () => {
                         {notification.title}
                       </p>
                       {notification.unread && (
-                        <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                        <div className="w-2 h-2 bg-gray-500 rounded-full" />
                       )}
                     </div>
                     <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">

@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -51,16 +52,16 @@ const OverviewContent = () => {
     { month: 'Jun', assets: 67, utilization: 88 }
   ];
 
-  const COLORS = ['#3b82f6', '#06b6d4', '#8b5cf6', '#10b981', '#06b6d4', '#ef4444'];
+  const COLORS = ['#404040', '#606060', '#808080', '#A0A0A0', '#C0C0C0', '#E0E0E0'];
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'high':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
       case 'medium':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300';
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
       case 'low':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
       default:
         return 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300';
     }
@@ -69,11 +70,11 @@ const OverviewContent = () => {
   const getActivityIcon = (type: string) => {
     switch (type) {
       case 'assignment':
-        return <Users className="h-4 w-4 text-blue-500" />;
+        return <Users className="h-4 w-4 text-gray-500" />;
       case 'maintenance':
-        return <AlertTriangle className="h-4 w-4 text-orange-500" />;
+        return <AlertTriangle className="h-4 w-4 text-gray-500" />;
       case 'addition':
-        return <Package className="h-4 w-4 text-green-500" />;
+        return <Package className="h-4 w-4 text-gray-500" />;
       default:
         return <Activity className="h-4 w-4 text-slate-500" />;
     }
@@ -93,9 +94,9 @@ const OverviewContent = () => {
         </div>
         <div className="flex items-center space-x-3">
           {unreadNotifications > 0 && (
-            <div className="flex items-center space-x-2 bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800">
-              <Bell className="h-4 w-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-800 dark:text-blue-300">
+            <div className="flex items-center space-x-2 bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700">
+              <Bell className="h-4 w-4 text-gray-600" />
+              <span className="text-sm font-medium text-gray-800 dark:text-gray-300">
                 {unreadNotifications} new notifications
               </span>
             </div>
@@ -109,52 +110,52 @@ const OverviewContent = () => {
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="border-blue-200 dark:border-blue-800">
+        <Card className="border-gray-200 dark:border-gray-700">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Total Assets</p>
                 <p className="text-3xl font-bold text-slate-900 dark:text-white">{assetStats.total}</p>
-                <p className="text-xs text-green-600 dark:text-green-400">+12% from last month</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">+12% from last month</p>
               </div>
-              <div className="h-12 w-12 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
-                <Package className="h-6 w-6 text-blue-600" />
+              <div className="h-12 w-12 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
+                <Package className="h-6 w-6 text-gray-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-green-200 dark:border-green-800">
+        <Card className="border-gray-200 dark:border-gray-700">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Utilization Rate</p>
                 <p className="text-3xl font-bold text-slate-900 dark:text-white">{utilizationRate.toFixed(1)}%</p>
-                <p className="text-xs text-green-600 dark:text-green-400">+5% from last month</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">+5% from last month</p>
               </div>
-              <div className="h-12 w-12 bg-green-100 dark:bg-green-900/20 rounded-lg flex items-center justify-center">
-                <TrendingUp className="h-6 w-6 text-green-600" />
+              <div className="h-12 w-12 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
+                <TrendingUp className="h-6 w-6 text-gray-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-orange-200 dark:border-orange-800">
+        <Card className="border-gray-200 dark:border-gray-700">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-600 dark:text-slate-400">In Maintenance</p>
                 <p className="text-3xl font-bold text-slate-900 dark:text-white">{assetStats.inRepair}</p>
-                <p className="text-xs text-orange-600 dark:text-orange-400">{maintenanceRate.toFixed(1)}% of total</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">{maintenanceRate.toFixed(1)}% of total</p>
               </div>
-              <div className="h-12 w-12 bg-orange-100 dark:bg-orange-900/20 rounded-lg flex items-center justify-center">
-                <AlertTriangle className="h-6 w-6 text-orange-600" />
+              <div className="h-12 w-12 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
+                <AlertTriangle className="h-6 w-6 text-gray-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-purple-200 dark:border-purple-800">
+        <Card className="border-gray-200 dark:border-gray-700">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -162,10 +163,10 @@ const OverviewContent = () => {
                 <p className="text-3xl font-bold text-slate-900 dark:text-white">
                   ${assetStats.totalValue.toLocaleString()}
                 </p>
-                <p className="text-xs text-purple-600 dark:text-purple-400">Avg age: {averageAge.toFixed(1)}y</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">Avg age: {averageAge.toFixed(1)}y</p>
               </div>
-              <div className="h-12 w-12 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
-                <DollarSign className="h-6 w-6 text-purple-600" />
+              <div className="h-12 w-12 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
+                <DollarSign className="h-6 w-6 text-gray-600" />
               </div>
             </div>
           </CardContent>
@@ -185,8 +186,8 @@ const OverviewContent = () => {
                 <XAxis dataKey="month" />
                 <YAxis />
                 <Tooltip />
-                <Line type="monotone" dataKey="assets" stroke="#3b82f6" strokeWidth={2} />
-                <Line type="monotone" dataKey="utilization" stroke="#10b981" strokeWidth={2} />
+                <Line type="monotone" dataKey="assets" stroke="#606060" strokeWidth={2} />
+                <Line type="monotone" dataKey="utilization" stroke="#808080" strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
@@ -224,26 +225,26 @@ const OverviewContent = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
-              <CheckCircle className="h-5 w-5 mr-2 text-green-600" />
+              <CheckCircle className="h-5 w-5 mr-2 text-gray-600" />
               Assignment Status
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-sm text-slate-600 dark:text-slate-400">Active Assignments</span>
-              <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300">
+              <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300">
                 {assignmentStats.active}
               </Badge>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-slate-600 dark:text-slate-400">Pending Requests</span>
-              <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
+              <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300">
                 {assignmentStats.pending}
               </Badge>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-slate-600 dark:text-slate-400">Overdue Returns</span>
-              <Badge className="bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300">
+              <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300">
                 {assignmentStats.overdue}
               </Badge>
             </div>
@@ -253,26 +254,26 @@ const OverviewContent = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
-              <AlertTriangle className="h-5 w-5 mr-2 text-orange-600" />
+              <AlertTriangle className="h-5 w-5 mr-2 text-gray-600" />
               Attention Required
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-sm text-slate-600 dark:text-slate-400">Warranty Expiring</span>
-              <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
+              <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300">
                 {upcomingWarranties.length}
               </Badge>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-slate-600 dark:text-slate-400">Maintenance Due</span>
-              <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300">
+              <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300">
                 {overdueAssets.length}
               </Badge>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-slate-600 dark:text-slate-400">Unread Notifications</span>
-              <Badge className="bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300">
+              <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300">
                 {unreadNotifications}
               </Badge>
             </div>
@@ -282,7 +283,7 @@ const OverviewContent = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
-              <Clock className="h-5 w-5 mr-2 text-blue-600" />
+              <Clock className="h-5 w-5 mr-2 text-gray-600" />
               Upcoming Tasks
             </CardTitle>
           </CardHeader>
