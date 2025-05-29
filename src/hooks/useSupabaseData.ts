@@ -1,15 +1,14 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
-
-// Export types from the database
-export type Asset = Database['public']['Tables']['assets']['Row'];
-export type AssetRequest = Database['public']['Tables']['asset_requests']['Row'];
-export type AssetAssignment = Database['public']['Tables']['asset_assignments']['Row'];
-export type ActivityLog = Database['public']['Tables']['activity_log']['Row'];
-export type Notification = Database['public']['Tables']['notifications']['Row'];
-export type EmployeeProfile = Database['public']['Tables']['employee_profiles']['Row'];
+import type { 
+  Asset, 
+  AssetRequest, 
+  AssetAssignment, 
+  ActivityLog, 
+  Notification, 
+  EmployeeProfile 
+} from '@/types/database';
 
 // Legacy types for compatibility
 export type User = {
@@ -68,15 +67,8 @@ export const useSupabaseData = () => {
       setLoading(true);
       setError(null);
 
-      // Load all data in parallel
-      const [
-        assetsResult,
-        requestsResult,
-        assignmentsResult,
-        activityResult,
-        notificationsResult,
-        profilesResult
-      ] = await Promise.all([
+      // Load data with error handling for missing tables
+      const results = await Promise.allSettled([
         supabase.from('assets').select('*').order('created_at', { ascending: false }),
         supabase.from('asset_requests').select('*').order('requested_at', { ascending: false }),
         supabase.from('asset_assignments').select('*').order('assigned_at', { ascending: false }),
@@ -85,19 +77,76 @@ export const useSupabaseData = () => {
         supabase.from('employee_profiles').select('*').order('created_at', { ascending: false })
       ]);
 
-      if (assetsResult.error) throw assetsResult.error;
-      if (requestsResult.error) throw requestsResult.error;
-      if (assignmentsResult.error) throw assignmentsResult.error;
-      if (activityResult.error) throw activityResult.error;
-      if (notificationsResult.error) throw notificationsResult.error;
-      if (profilesResult.error) throw profilesResult.error;
+      // Handle assets
+      if (results[0].status === 'fulfilled' && !results[0].value.error) {
+        const assetsData = results[0].value.data || [];
+        // Transform data to include legacy fields
+        const transformedAssets = assetsData.map((asset: any) => ({
+          ...asset,
+          name: `${asset.brand} ${asset.model}`,
+          category: asset.device_type,
+          assignee: asset.assigned_to || 'Unassigned',
+          value: asset.purchase_price
+        }));
+        setAssets(transformedAssets);
+      } else {
+        console.log('Assets table not available yet');
+        setAssets([]);
+      }
 
-      setAssets(assetsResult.data || []);
-      setAssetRequests(requestsResult.data || []);
-      setAssetAssignments(assignmentsResult.data || []);
-      setActivityLog(activityResult.data || []);
-      setNotifications(notificationsResult.data || []);
-      setProfiles(profilesResult.data || []);
+      // Handle asset requests
+      if (results[1].status === 'fulfilled' && !results[1].value.error) {
+        setAssetRequests(results[1].value.data || []);
+      } else {
+        console.log('Asset requests table not available yet');
+        setAssetRequests([]);
+      }
+
+      // Handle asset assignments
+      if (results[2].status === 'fulfilled' && !results[2].value.error) {
+        setAssetAssignments(results[2].value.data || []);
+      } else {
+        console.log('Asset assignments table not available yet');
+        setAssetAssignments([]);
+      }
+
+      // Handle activity log
+      if (results[3].status === 'fulfilled' && !results[3].value.error) {
+        const activityData = results[3].value.data || [];
+        // Transform data to include legacy fields
+        const transformedActivity = activityData.map((activity: any) => ({
+          ...activity,
+          type: activity.action?.toLowerCase().includes('assignment') ? 'assignment' :
+                activity.action?.toLowerCase().includes('maintenance') ? 'maintenance' :
+                activity.action?.toLowerCase().includes('addition') ? 'addition' : 'general'
+        }));
+        setActivityLog(transformedActivity);
+      } else {
+        console.log('Activity log table not available yet');
+        setActivityLog([]);
+      }
+
+      // Handle notifications
+      if (results[4].status === 'fulfilled' && !results[4].value.error) {
+        const notificationsData = results[4].value.data || [];
+        // Transform data to include legacy fields
+        const transformedNotifications = notificationsData.map((notification: any) => ({
+          ...notification,
+          timestamp: notification.created_at
+        }));
+        setNotifications(transformedNotifications);
+      } else {
+        console.log('Notifications table not available yet');
+        setNotifications([]);
+      }
+
+      // Handle employee profiles
+      if (results[5].status === 'fulfilled' && !results[5].value.error) {
+        setProfiles(results[5].value.data || []);
+      } else {
+        console.log('Employee profiles table not available yet');
+        setProfiles([]);
+      }
 
     } catch (err) {
       console.error('Error loading data:', err);
@@ -108,43 +157,80 @@ export const useSupabaseData = () => {
   };
 
   const addAsset = async (assetData: any): Promise<Asset | undefined> => {
-    const { data, error } = await supabase
-      .from('assets')
-      .insert(assetData)
-      .select()
-      .single();
+    try {
+      // Transform the data to match the database schema
+      const dbAssetData = {
+        device_type: assetData.device_type,
+        brand: assetData.brand,
+        model: assetData.model,
+        serial_number: assetData.serial_number,
+        status: assetData.status || 'active',
+        location: assetData.location,
+        assigned_to: assetData.assigned_to,
+        purchase_price: assetData.purchase_price,
+        purchase_date: assetData.purchase_date,
+        warranty_expiry: assetData.warranty_expiry,
+        notes: assetData.notes
+      };
 
-    if (error) throw error;
-    
-    if (data) {
-      setAssets(prev => [data, ...prev]);
+      const { data, error } = await supabase
+        .from('assets')
+        .insert(dbAssetData)
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      if (data) {
+        // Transform data to include legacy fields
+        const transformedAsset = {
+          ...data,
+          name: `${data.brand} ${data.model}`,
+          category: data.device_type,
+          assignee: data.assigned_to || 'Unassigned',
+          value: data.purchase_price
+        };
+        setAssets(prev => [transformedAsset, ...prev]);
+        return transformedAsset;
+      }
+    } catch (error) {
+      console.error('Error adding asset:', error);
+      throw error;
     }
-    
-    return data;
   };
 
   const updateAsset = async (id: string, updates: Partial<Asset>): Promise<void> => {
-    const { error } = await supabase
-      .from('assets')
-      .update(updates)
-      .eq('id', id);
+    try {
+      const { error } = await supabase
+        .from('assets')
+        .update(updates)
+        .eq('id', id);
 
-    if (error) throw error;
-    
-    setAssets(prev => prev.map(asset => 
-      asset.id === id ? { ...asset, ...updates } : asset
-    ));
+      if (error) throw error;
+      
+      setAssets(prev => prev.map(asset => 
+        asset.id === id ? { ...asset, ...updates } : asset
+      ));
+    } catch (error) {
+      console.error('Error updating asset:', error);
+      throw error;
+    }
   };
 
   const deleteAsset = async (id: string): Promise<void> => {
-    const { error } = await supabase
-      .from('assets')
-      .delete()
-      .eq('id', id);
+    try {
+      const { error } = await supabase
+        .from('assets')
+        .delete()
+        .eq('id', id);
 
-    if (error) throw error;
-    
-    setAssets(prev => prev.filter(asset => asset.id !== id));
+      if (error) throw error;
+      
+      setAssets(prev => prev.filter(asset => asset.id !== id));
+    } catch (error) {
+      console.error('Error deleting asset:', error);
+      throw error;
+    }
   };
 
   const addUser = async (user: Omit<User, 'id'>): Promise<void> => {
@@ -156,22 +242,32 @@ export const useSupabaseData = () => {
   };
 
   const addNotification = async (notification: Omit<Notification, 'id' | 'created_at' | 'is_read'>): Promise<void> => {
-    const { error } = await supabase
-      .from('notifications')
-      .insert(notification);
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .insert(notification);
 
-    if (error) throw error;
-    await loadData();
+      if (error) throw error;
+      await loadData();
+    } catch (error) {
+      console.error('Error adding notification:', error);
+      throw error;
+    }
   };
 
   const markNotificationAsRead = async (id: string): Promise<void> => {
-    const { error } = await supabase
-      .from('notifications')
-      .update({ is_read: true })
-      .eq('id', id);
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', id);
 
-    if (error) throw error;
-    await loadData();
+      if (error) throw error;
+      await loadData();
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      throw error;
+    }
   };
 
   // Statistics functions
@@ -252,3 +348,6 @@ export const useSupabaseData = () => {
     refetch: loadData
   };
 };
+
+// Re-export types for compatibility
+export type { Asset, AssetRequest, AssetAssignment, ActivityLog, Notification, EmployeeProfile };

@@ -1,7 +1,44 @@
 
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
-import type { Asset, User, Assignment, AssignmentRequest, Notification, ActivityLog } from '@/hooks/useSupabaseData';
+import type { Asset, AssetRequest, AssetAssignment, Notification, ActivityLog } from '@/types/database';
+
+// Legacy types for compatibility
+export type User = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  department: string;
+  status: string;
+  lastActivity: string;
+};
+
+export type Assignment = {
+  id: string;
+  employee_name: string;
+  employee_email: string;
+  asset_name: string;
+  asset_id: string;
+  department: string;
+  assigned_date: string;
+  due_date: string;
+  status: string;
+  condition: string;
+};
+
+export type AssignmentRequest = {
+  id: string;
+  employee_name: string;
+  employee_email: string;
+  requested_asset: string;
+  department: string;
+  request_date: string;
+  priority: string;
+  manager_name: string;
+  status: string;
+  justification: string;
+};
 
 interface AdminDataContextType {
   assets: Asset[];
