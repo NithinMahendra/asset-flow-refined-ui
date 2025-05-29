@@ -16,11 +16,7 @@ interface ProfileUpdateModalProps {
 const ProfileUpdateModal = ({ isOpen, onClose, onSuccess }: ProfileUpdateModalProps) => {
   const [profile, setProfile] = useState<EmployeeProfile | null>(null);
   const [formData, setFormData] = useState({
-    first_name: '',
-    last_name: '',
-    phone: '',
-    department: '',
-    position: ''
+    first_name: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -34,11 +30,7 @@ const ProfileUpdateModal = ({ isOpen, onClose, onSuccess }: ProfileUpdateModalPr
         if (profileData) {
           setProfile(profileData);
           setFormData({
-            first_name: profileData.first_name || '',
-            last_name: profileData.last_name || '',
-            phone: profileData.phone || '',
-            department: profileData.department || '',
-            position: profileData.position || ''
+            first_name: profileData.first_name || ''
           });
         }
         setIsLoading(false);
@@ -51,10 +43,10 @@ const ProfileUpdateModal = ({ isOpen, onClose, onSuccess }: ProfileUpdateModalPr
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.first_name || !formData.last_name) {
+    if (!formData.first_name) {
       toast({
         title: 'Error',
-        description: 'First name and last name are required',
+        description: 'First name is required',
         variant: 'destructive'
       });
       return;
@@ -111,25 +103,14 @@ const ProfileUpdateModal = ({ isOpen, onClose, onSuccess }: ProfileUpdateModalPr
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="first_name">First Name *</Label>
-              <Input
-                id="first_name"
-                value={formData.first_name}
-                onChange={(e) => setFormData({...formData, first_name: e.target.value})}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="last_name">Last Name *</Label>
-              <Input
-                id="last_name"
-                value={formData.last_name}
-                onChange={(e) => setFormData({...formData, last_name: e.target.value})}
-                required
-              />
-            </div>
+          <div>
+            <Label htmlFor="first_name">First Name *</Label>
+            <Input
+              id="first_name"
+              value={formData.first_name}
+              onChange={(e) => setFormData({...formData, first_name: e.target.value})}
+              required
+            />
           </div>
 
           <div>
@@ -149,36 +130,6 @@ const ProfileUpdateModal = ({ isOpen, onClose, onSuccess }: ProfileUpdateModalPr
               value={profile?.employee_id || ''}
               disabled
               className="bg-gray-100 dark:bg-gray-800"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="department">Department</Label>
-            <Input
-              id="department"
-              value={formData.department}
-              onChange={(e) => setFormData({...formData, department: e.target.value})}
-              placeholder="e.g., Engineering, Marketing"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="position">Position</Label>
-            <Input
-              id="position"
-              value={formData.position}
-              onChange={(e) => setFormData({...formData, position: e.target.value})}
-              placeholder="e.g., Software Developer, Marketing Manager"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="phone">Phone</Label>
-            <Input
-              id="phone"
-              value={formData.phone}
-              onChange={(e) => setFormData({...formData, phone: e.target.value})}
-              placeholder="e.g., +1 (555) 123-4567"
             />
           </div>
 
