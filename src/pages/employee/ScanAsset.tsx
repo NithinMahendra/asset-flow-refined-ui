@@ -57,18 +57,8 @@ const ScanAsset = () => {
 
     setIsProcessing(true);
     try {
-      // Check if asset is available (not assigned)
-      if (!scannedAsset.assigned_to && scannedAsset.status === 'active') {
-        // Directly assign the asset to the employee
-        const success = await EmployeeService.assignAssetToEmployee(scannedAsset.id);
-        
-        if (success) {
-          toast.success('Asset added to your assets!');
-          navigate('/employee/assets');
-        } else {
-          toast.error('Failed to add asset');
-        }
-      } else if (scannedAsset.assigned_to) {
+      // Check if asset is assigned or available
+      if (scannedAsset.assigned_to) {
         // Asset is already assigned - create a request
         const success = await EmployeeService.createAssetRequestFromScan(scannedAsset);
         
@@ -77,6 +67,16 @@ const ScanAsset = () => {
           navigate('/employee/requests');
         } else {
           toast.error('Failed to create asset request');
+        }
+      } else if (scannedAsset.status === 'active') {
+        // Asset is available - directly assign to employee
+        const success = await EmployeeService.assignAssetToEmployee(scannedAsset.id);
+        
+        if (success) {
+          toast.success('Asset added to your assets!');
+          navigate('/employee/assets');
+        } else {
+          toast.error('Failed to add asset');
         }
       } else {
         // Asset is not active
@@ -99,8 +99,9 @@ const ScanAsset = () => {
     }
   };
 
-  const isAssetAvailable = scannedAsset && !scannedAsset.assigned_to && scannedAsset.status === 'active';
+  // Determine if asset is available for assignment or already assigned
   const isAssetAssigned = scannedAsset && scannedAsset.assigned_to;
+  const isAssetAvailable = scannedAsset && !scannedAsset.assigned_to && scannedAsset.status === 'active';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 dark:from-gray-900 dark:via-green-900 dark:to-emerald-900">
@@ -265,10 +266,10 @@ const ScanAsset = () => {
                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
                             Processing...
                           </>
-                        ) : isAssetAvailable ? (
-                          'Add to My Assets'
-                        ) : (
+                        ) : isAssetAssigned ? (
                           'Request Asset'
+                        ) : (
+                          'Add to My Assets'
                         )}
                       </Button>
                     )}
