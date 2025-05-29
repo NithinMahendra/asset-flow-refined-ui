@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -264,10 +265,26 @@ export const useSupabaseData = () => {
     try {
       const assetTag = `QR${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
-      // Ensure clean data with proper enum validation
+      // Validate enum values before sending to database
+      const validDeviceTypes = ['laptop', 'desktop', 'server', 'monitor', 'tablet', 'smartphone', 'network_switch', 'router', 'printer', 'scanner', 'projector', 'other'] as const;
+      const validStatuses = ['active', 'inactive', 'maintenance', 'retired', 'missing', 'damaged'] as const;
+
+      // Ensure device_type is valid
+      const deviceType = String(assetData.device_type);
+      if (!validDeviceTypes.includes(deviceType as any)) {
+        throw new Error(`Invalid device type: ${deviceType}. Must be one of: ${validDeviceTypes.join(', ')}`);
+      }
+
+      // Ensure status is valid
+      const status = String(assetData.status);
+      if (!validStatuses.includes(status as any)) {
+        throw new Error(`Invalid status: ${status}. Must be one of: ${validStatuses.join(', ')}`);
+      }
+
+      // Prepare clean data with proper type assertions
       const dbAssetData = {
-        device_type: String(assetData.device_type), // Ensure string
-        status: String(assetData.status), // Ensure string
+        device_type: deviceType as Database['public']['Enums']['device_type'],
+        status: status as Database['public']['Enums']['device_status'],
         assigned_to: assetData.assigned_to || null,
         purchase_price: Number(assetData.purchase_price) || 0,
         location: String(assetData.location),
@@ -279,18 +296,6 @@ export const useSupabaseData = () => {
         notes: assetData.notes || null,
         asset_tag: assetTag
       };
-
-      // Validate enum values before sending to database
-      const validDeviceTypes = ['laptop', 'desktop', 'server', 'monitor', 'tablet', 'smartphone', 'network_switch', 'router', 'printer', 'scanner', 'projector', 'other'];
-      const validStatuses = ['active', 'inactive', 'maintenance', 'retired', 'missing', 'damaged'];
-
-      if (!validDeviceTypes.includes(dbAssetData.device_type)) {
-        throw new Error(`Invalid device type: ${dbAssetData.device_type}. Must be one of: ${validDeviceTypes.join(', ')}`);
-      }
-
-      if (!validStatuses.includes(dbAssetData.status)) {
-        throw new Error(`Invalid status: ${dbAssetData.status}. Must be one of: ${validStatuses.join(', ')}`);
-      }
 
       console.log('Validated asset data for insertion:', dbAssetData);
 
