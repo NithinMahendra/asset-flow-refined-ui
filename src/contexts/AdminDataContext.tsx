@@ -2,7 +2,6 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import type { Asset, User, Assignment, AssignmentRequest, Notification, ActivityLog } from '@/hooks/useSupabaseData';
-import type { CreateAssetData } from '@/services/assetService';
 
 interface AdminDataContextType {
   assets: Asset[];
@@ -12,12 +11,12 @@ interface AdminDataContextType {
   notifications: Notification[];
   activityLog: ActivityLog[];
   loading: boolean;
-  addAsset: (asset: CreateAssetData) => Promise<Asset | undefined>;
+  addAsset: (asset: any) => Promise<Asset | undefined>;
   updateAsset: (id: string, updates: Partial<Asset>) => Promise<void>;
   deleteAsset: (id: string) => Promise<void>;
   addUser: (user: Omit<User, 'id'>) => Promise<void>;
   addAssignment: (assignment: Omit<Assignment, 'id'>) => Promise<void>;
-  addNotification: (notification: Omit<Notification, 'id' | 'timestamp' | 'is_read'>) => Promise<void>;
+  addNotification: (notification: Omit<Notification, 'id' | 'created_at' | 'is_read'>) => Promise<void>;
   markNotificationAsRead: (id: string) => Promise<void>;
   approveAssignmentRequest: (id: string) => Promise<void>;
   declineAssignmentRequest: (id: string) => Promise<void>;
@@ -84,7 +83,7 @@ export const AdminDataProvider: React.FC<{ children: ReactNode }> = ({ children 
 
   const getUtilizationRate = () => {
     const total = supabaseData.assets.length;
-    const inUse = supabaseData.assets.filter(a => a.assignee !== '-').length;
+    const inUse = supabaseData.assets.filter(a => a.assigned_to !== null && a.assigned_to !== '').length;
     return total > 0 ? (inUse / total) * 100 : 0;
   };
 
@@ -99,6 +98,7 @@ export const AdminDataProvider: React.FC<{ children: ReactNode }> = ({ children 
     
     const currentDate = new Date();
     const totalAge = supabaseData.assets.reduce((sum, asset) => {
+      if (!asset.purchase_date) return sum;
       const purchaseDate = new Date(asset.purchase_date);
       const ageInYears = (currentDate.getTime() - purchaseDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
       return sum + ageInYears;
@@ -112,6 +112,7 @@ export const AdminDataProvider: React.FC<{ children: ReactNode }> = ({ children 
     thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
 
     return supabaseData.assets.filter(asset => {
+      if (!asset.warranty_expiry) return false;
       const warrantyDate = new Date(asset.warranty_expiry);
       const today = new Date();
       return warrantyDate > today && warrantyDate <= thirtyDaysFromNow;
@@ -149,7 +150,7 @@ export const AdminDataProvider: React.FC<{ children: ReactNode }> = ({ children 
       });
     }
 
-    const pendingRequests = supabaseData.assignmentRequests.filter(r => r.status === 'Pending');
+    const pendingRequests = supabaseData.assetRequests.filter(r => r.status === 'pending');
     if (pendingRequests.length > 0) {
       tasks.push({
         task: 'Pending Assignment Requests',
