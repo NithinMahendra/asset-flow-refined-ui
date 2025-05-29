@@ -110,11 +110,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       if (error) {
         console.error('❌ Signup error:', error.message);
-        // Check for specific database errors and provide helpful messages
-        if (error.message.includes('Database error saving new user')) {
-          console.error('Database trigger failed - this might be due to missing sequence');
-          return false;
-        }
         return false;
       }
 
