@@ -41,9 +41,11 @@ const AssetRequestModal = ({ isOpen, onClose, onSuccess }: AssetRequestModalProp
     setIsSubmitting(true);
     
     try {
+      console.log('🚀 Submitting asset request:', formData);
       const success = await EmployeeService.createAssetRequest(formData);
       
       if (success) {
+        console.log('✅ Asset request submitted successfully');
         toast({
           title: 'Success!',
           description: 'Your asset request has been submitted successfully'
@@ -58,17 +60,18 @@ const AssetRequestModal = ({ isOpen, onClose, onSuccess }: AssetRequestModalProp
         onSuccess();
         onClose();
       } else {
+        console.error('❌ Failed to submit asset request');
         toast({
           title: 'Error',
-          description: 'Failed to submit asset request',
+          description: 'Failed to submit asset request. Please ensure you have a complete profile.',
           variant: 'destructive'
         });
       }
     } catch (error) {
-      console.error('Error submitting request:', error);
+      console.error('❌ Error submitting request:', error);
       toast({
         title: 'Error',
-        description: 'An unexpected error occurred',
+        description: 'An unexpected error occurred. Please try again.',
         variant: 'destructive'
       });
     } finally {

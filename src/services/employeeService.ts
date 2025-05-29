@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -51,21 +50,72 @@ type NotificationRow = Database['public']['Tables']['notifications']['Row'];
 
 export class EmployeeService {
   static async getEmployeeProfile(): Promise<EmployeeProfile | null> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error('❌ No authenticated user found');
+        return null;
+      }
 
-    const { data, error } = await supabase
-      .from('employee_profiles')
-      .select('*')
-      .eq('user_id', user.id)
-      .single();
+      console.log('🔍 Looking for employee profile for user:', user.id);
 
-    if (error) {
-      console.error('Error fetching employee profile:', error);
+      const { data, error } = await supabase
+        .from('employee_profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) {
+        console.error('❌ Error fetching employee profile:', error);
+        
+        // If profile doesn't exist, try to create one
+        if (error.code === 'PGRST116') {
+          console.log('🔄 No profile found, attempting to create one...');
+          return await this.createEmployeeProfile(user);
+        }
+        
+        return null;
+      }
+
+      console.log('✅ Employee profile found:', data);
+      return data;
+    } catch (error) {
+      console.error('❌ Exception in getEmployeeProfile:', error);
       return null;
     }
+  }
 
-    return data;
+  static async createEmployeeProfile(user: any): Promise<EmployeeProfile | null> {
+    try {
+      console.log('🚀 Creating employee profile for user:', user.id);
+      
+      const profileData = {
+        user_id: user.id,
+        employee_id: `EMP-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
+        first_name: user.user_metadata?.first_name || user.email?.split('@')[0] || 'Unknown',
+        last_name: user.user_metadata?.last_name || '',
+        email: user.email,
+        department: user.user_metadata?.department || 'General',
+        position: user.user_metadata?.position || 'Employee'
+      };
+
+      const { data, error } = await supabase
+        .from('employee_profiles')
+        .insert(profileData)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Error creating employee profile:', error);
+        return null;
+      }
+
+      console.log('✅ Employee profile created:', data);
+      return data;
+    } catch (error) {
+      console.error('❌ Exception in createEmployeeProfile:', error);
+      return null;
+    }
   }
 
   static async updateEmployeeProfile(updates: Partial<EmployeeProfile>): Promise<boolean> {
@@ -104,7 +154,12 @@ export class EmployeeService {
 
   static async getMyRequests(): Promise<AssetRequest[]> {
     const profile = await this.getEmployeeProfile();
-    if (!profile) return [];
+    if (!profile) {
+      console.error('❌ No employee profile found for requests');
+      return [];
+    }
+
+    console.log('🔍 Fetching requests for employee:', profile.id);
 
     const { data, error } = await supabase
       .from('asset_requests')
@@ -116,6 +171,8 @@ export class EmployeeService {
       console.error('Error fetching asset requests:', error);
       return [];
     }
+
+    console.log('✅ Fetched asset requests:', data?.length || 0);
 
     // Type assertion to ensure proper typing from database
     return (data as AssetRequestRow[]).map(row => ({
@@ -136,22 +193,34 @@ export class EmployeeService {
   }
 
   static async createAssetRequest(request: Omit<AssetRequest, 'id' | 'employee_id' | 'requested_date' | 'status'>): Promise<boolean> {
-    const profile = await this.getEmployeeProfile();
-    if (!profile) return false;
+    try {
+      const profile = await this.getEmployeeProfile();
+      if (!profile) {
+        console.error('❌ No employee profile found, cannot create request');
+        return false;
+      }
 
-    const { error } = await supabase
-      .from('asset_requests')
-      .insert({
-        employee_id: profile.id,
-        ...request
-      });
+      console.log('🚀 Creating asset request for employee:', profile.id);
+      console.log('📝 Request data:', request);
 
-    if (error) {
-      console.error('Error creating asset request:', error);
+      const { error } = await supabase
+        .from('asset_requests')
+        .insert({
+          employee_id: profile.id,
+          ...request
+        });
+
+      if (error) {
+        console.error('❌ Error creating asset request:', error);
+        return false;
+      }
+
+      console.log('✅ Asset request created successfully');
+      return true;
+    } catch (error) {
+      console.error('❌ Exception in createAssetRequest:', error);
       return false;
     }
-
-    return true;
   }
 
   static async createAssetRequestFromScan(assetId: string, justification: string, priority: 'low' | 'medium' | 'high' | 'urgent' = 'medium'): Promise<boolean> {
