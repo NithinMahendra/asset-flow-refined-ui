@@ -82,15 +82,11 @@ export class EmployeeService {
     };
 
     try {
-      // Get employee profile to get employee_id
-      const profile = await this.getEmployeeProfile();
-      if (!profile) throw new Error('Profile not found');
-
-      // Count assigned assets
+      // Count assigned assets using user_id directly
       const { count: assignedAssets } = await supabase
         .from('assets')
         .select('*', { count: 'exact', head: true })
-        .eq('assigned_to', profile.employee_id);
+        .eq('assigned_to', user.id);
 
       // Count pending requests
       const { count: pendingRequests } = await supabase
@@ -136,13 +132,11 @@ export class EmployeeService {
     if (!user) return [];
 
     try {
-      const profile = await this.getEmployeeProfile();
-      if (!profile) return [];
-
+      // Use user.id directly instead of employee_id
       const { data, error } = await supabase
         .from('assets')
         .select('*')
-        .eq('assigned_to', profile.employee_id);
+        .eq('assigned_to', user.id);
 
       if (error) throw error;
       return data || [];
@@ -225,22 +219,18 @@ export class EmployeeService {
     if (!user) return false;
 
     try {
-      // Get employee profile to get employee_id
-      const profile = await this.getEmployeeProfile();
-      if (!profile) throw new Error('Employee profile not found');
-
-      // Update the asset to assign it to the employee
+      // Update the asset to assign it to the user directly
       const { error: updateError } = await supabase
         .from('assets')
         .update({ 
-          assigned_to: profile.employee_id,
+          assigned_to: user.id,  // Use user.id directly
           status: 'active'
         })
         .eq('id', assetId);
 
       if (updateError) throw updateError;
 
-      // Log the assignment activity
+      // Log the assignment activity with simplified details
       const { error: logError } = await supabase
         .from('activity_log')
         .insert({
@@ -248,8 +238,8 @@ export class EmployeeService {
           user_id: user.id,
           action: 'Asset Assigned via QR Scan',
           details: {
-            assigned_to: profile.employee_id,
-            employee_name: profile.first_name,
+            assigned_to: user.id,
+            user_email: user.email,
             assignment_method: 'qr_scan'
           }
         });
