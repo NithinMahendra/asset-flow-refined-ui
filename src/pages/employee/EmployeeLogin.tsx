@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -42,7 +41,7 @@ const EmployeeLogin = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          {/* Back to home */}
+          {/* Back to role selection */}
           <Link to="/" className="inline-flex items-center text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 mb-8 transition-colors">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to role selection

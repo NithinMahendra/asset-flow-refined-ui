@@ -41,8 +41,8 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               {/* Public Routes */}
-              <Route path="/" element={<Index />} />
-              <Route path="/role-selection" element={<RoleSelection />} />
+              <Route path="/" element={<RoleSelection />} />
+              <Route path="/home" element={<Index />} />
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/admin/signup" element={<AdminSignup />} />
               <Route path="/employee/login" element={<EmployeeLogin />} />
