@@ -1,27 +1,32 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 export interface Asset {
   id: string;
+  device_type: string;
+  status: 'active' | 'inactive' | 'maintenance' | 'retired' | 'missing' | 'damaged';
+  assigned_to: string | null;
+  purchase_price: number | null;
+  location: string | null;
+  updated_at: string;
+  serial_number: string;
+  purchase_date: string | null;
+  warranty_expiry: string | null;
+  brand: string;
+  model: string;
+  notes: string | null;
+  asset_tag: string | null;
+  // Computed fields for compatibility
   name: string;
   category: string;
-  status: 'active' | 'inactive' | 'maintenance' | 'retired' | 'missing' | 'damaged';
   assignee: string;
   value: number;
-  location: string;
   last_updated: string;
   qr_code: string;
-  serial_number: string;
-  purchase_date: string;
-  warranty_expiry: string;
   condition: 'Excellent' | 'Good' | 'Fair' | 'Poor';
-  brand?: string;
-  model?: string;
   department?: string;
   description?: string;
-  device_type?: string;
 }
 
 export interface User {
@@ -94,57 +99,105 @@ export const useSupabaseData = () => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  // Fetch all data
+  // Transform database asset to UI asset format
+  const transformAsset = (dbAsset: any): Asset => ({
+    id: dbAsset.id,
+    device_type: dbAsset.device_type,
+    status: dbAsset.status || 'active',
+    assigned_to: dbAsset.assigned_to,
+    purchase_price: dbAsset.purchase_price,
+    location: dbAsset.location,
+    updated_at: dbAsset.updated_at,
+    serial_number: dbAsset.serial_number,
+    purchase_date: dbAsset.purchase_date,
+    warranty_expiry: dbAsset.warranty_expiry,
+    brand: dbAsset.brand,
+    model: dbAsset.model,
+    notes: dbAsset.notes,
+    asset_tag: dbAsset.asset_tag,
+    // Computed fields
+    name: `${dbAsset.brand} ${dbAsset.model}`,
+    category: dbAsset.device_type,
+    assignee: dbAsset.assigned_to || '-',
+    value: dbAsset.purchase_price || 0,
+    last_updated: dbAsset.updated_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+    qr_code: dbAsset.asset_tag || `QR${dbAsset.serial_number}`,
+    condition: 'Good',
+    department: '',
+    description: dbAsset.notes
+  });
+
+  // Fetch all data from Supabase
   const fetchData = async () => {
     try {
       setLoading(true);
       
-      // For now, we'll use mock data until the database types are regenerated
-      // This prevents TypeScript errors while maintaining functionality
-      
-      // Mock assets data
-      const mockAssets: Asset[] = [
-        {
-          id: '1',
-          name: 'MacBook Pro M3',
-          category: 'Laptop',
-          status: 'active',
-          assignee: 'John Doe',
-          value: 2499,
-          location: 'Office Floor 2',
-          last_updated: '2024-01-15',
-          qr_code: 'QR001-AST001-2024',
-          serial_number: 'MP-2024-001',
-          purchase_date: '2024-01-01',
-          warranty_expiry: '2027-01-01',
-          condition: 'Excellent',
-          brand: 'Apple',
-          model: 'MacBook Pro 16-inch',
-          department: 'Engineering',
-          device_type: 'laptop'
-        },
-        {
-          id: '2',
-          name: 'Dell XPS 13',
-          category: 'Laptop',
-          status: 'active',
-          assignee: '-',
-          value: 1299,
-          location: 'Warehouse A',
-          last_updated: '2024-01-10',
-          qr_code: 'QR002-AST002-2024',
-          serial_number: 'DX-2024-002',
-          purchase_date: '2024-01-05',
-          warranty_expiry: '2027-01-05',
-          condition: 'Excellent',
-          brand: 'Dell',
-          model: 'XPS 13',
-          department: '',
-          device_type: 'laptop'
-        }
-      ];
+      // Fetch assets from Supabase
+      const { data: assetsData, error: assetsError } = await supabase
+        .from('assets')
+        .select('*')
+        .order('updated_at', { ascending: false });
 
-      const mockUsers: User[] = [
+      if (assetsError) {
+        console.error('Error fetching assets:', assetsError);
+        // Fallback to mock data if database fails
+        setAssets([
+          {
+            id: '1',
+            device_type: 'laptop',
+            status: 'active',
+            assigned_to: 'John Doe',
+            purchase_price: 2499,
+            location: 'Office Floor 2',
+            updated_at: '2024-01-15T00:00:00Z',
+            serial_number: 'MP-2024-001',
+            purchase_date: '2024-01-01',
+            warranty_expiry: '2027-01-01',
+            brand: 'Apple',
+            model: 'MacBook Pro M3',
+            notes: 'Engineering laptop',
+            asset_tag: 'QR001-AST001-2024',
+            name: 'MacBook Pro M3',
+            category: 'Laptop',
+            assignee: 'John Doe',
+            value: 2499,
+            last_updated: '2024-01-15',
+            qr_code: 'QR001-AST001-2024',
+            condition: 'Excellent',
+            department: 'Engineering'
+          },
+          {
+            id: '2',
+            device_type: 'laptop',
+            status: 'active',
+            assigned_to: null,
+            purchase_price: 1299,
+            location: 'Warehouse A',
+            updated_at: '2024-01-10T00:00:00Z',
+            serial_number: 'DX-2024-002',
+            purchase_date: '2024-01-05',
+            warranty_expiry: '2027-01-05',
+            brand: 'Dell',
+            model: 'XPS 13',
+            notes: null,
+            asset_tag: 'QR002-AST002-2024',
+            name: 'Dell XPS 13',
+            category: 'Laptop',
+            assignee: '-',
+            value: 1299,
+            last_updated: '2024-01-10',
+            qr_code: 'QR002-AST002-2024',
+            condition: 'Excellent',
+            department: ''
+          }
+        ]);
+      } else {
+        const transformedAssets = assetsData?.map(transformAsset) || [];
+        setAssets(transformedAssets);
+      }
+
+      // Set mock data for other entities (to be replaced with real Supabase queries later)
+      setUsers([
         {
           id: '1',
           name: 'John Doe',
@@ -163,9 +216,9 @@ export const useSupabaseData = () => {
           join_date: '2022-03-10',
           status: 'Active'
         }
-      ];
+      ]);
 
-      const mockAssignments: Assignment[] = [
+      setAssignments([
         {
           id: '1',
           employee_id: '1',
@@ -179,9 +232,9 @@ export const useSupabaseData = () => {
           department: 'Engineering',
           condition: 'Excellent'
         }
-      ];
+      ]);
 
-      const mockRequests: AssignmentRequest[] = [
+      setAssignmentRequests([
         {
           id: '1',
           employee_id: '2',
@@ -196,9 +249,9 @@ export const useSupabaseData = () => {
           manager_name: 'Mike Manager',
           status: 'Pending'
         }
-      ];
+      ]);
 
-      const mockNotifications: Notification[] = [
+      setNotifications([
         {
           id: '1',
           type: 'warning',
@@ -208,9 +261,9 @@ export const useSupabaseData = () => {
           is_read: false,
           asset_id: '1'
         }
-      ];
+      ]);
 
-      const mockActivityLog: ActivityLog[] = [
+      setActivityLog([
         {
           id: '1',
           action: 'Asset Assignment',
@@ -220,14 +273,7 @@ export const useSupabaseData = () => {
           asset_id: '1',
           user_id: '1'
         }
-      ];
-
-      setAssets(mockAssets);
-      setUsers(mockUsers);
-      setAssignments(mockAssignments);
-      setAssignmentRequests(mockRequests);
-      setNotifications(mockNotifications);
-      setActivityLog(mockActivityLog);
+      ]);
 
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -241,21 +287,39 @@ export const useSupabaseData = () => {
     }
   };
 
-  // Add asset
-  const addAsset = async (assetData: Omit<Asset, 'id' | 'last_updated' | 'qr_code'>) => {
+  // Add asset to Supabase
+  const addAsset = async (assetData: Omit<Asset, 'id' | 'last_updated' | 'qr_code' | 'name' | 'category' | 'assignee' | 'value'>) => {
     try {
-      const qrCode = `QR${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const assetTag = `QR${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
-      const newAsset: Asset = {
-        ...assetData,
-        id: Math.random().toString(36).substr(2, 9),
-        qr_code: qrCode,
-        last_updated: new Date().toISOString().split('T')[0]
+      const dbAssetData = {
+        device_type: assetData.device_type,
+        status: assetData.status || 'active',
+        assigned_to: assetData.assigned_to,
+        purchase_price: assetData.purchase_price,
+        location: assetData.location,
+        serial_number: assetData.serial_number,
+        purchase_date: assetData.purchase_date,
+        warranty_expiry: assetData.warranty_expiry,
+        brand: assetData.brand,
+        model: assetData.model,
+        notes: assetData.notes,
+        asset_tag: assetTag
       };
 
-      setAssets(prev => [...prev, newAsset]);
+      const { data, error } = await supabase
+        .from('assets')
+        .insert([dbAssetData])
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      const newAsset = transformAsset(data);
+      setAssets(prev => [newAsset, ...prev]);
       
-      // Log activity
       await logActivity('New Asset Added', `${newAsset.name} added to inventory`, 'addition', newAsset.id);
       
       toast({
@@ -275,19 +339,41 @@ export const useSupabaseData = () => {
     }
   };
 
-  // Update asset
+  // Update asset in Supabase
   const updateAsset = async (id: string, updates: Partial<Asset>) => {
     try {
+      const dbUpdates: any = {};
+      
+      // Map UI fields to database fields
+      if (updates.device_type) dbUpdates.device_type = updates.device_type;
+      if (updates.status) dbUpdates.status = updates.status;
+      if (updates.assigned_to !== undefined) dbUpdates.assigned_to = updates.assigned_to;
+      if (updates.purchase_price !== undefined) dbUpdates.purchase_price = updates.purchase_price;
+      if (updates.location !== undefined) dbUpdates.location = updates.location;
+      if (updates.serial_number) dbUpdates.serial_number = updates.serial_number;
+      if (updates.purchase_date !== undefined) dbUpdates.purchase_date = updates.purchase_date;
+      if (updates.warranty_expiry !== undefined) dbUpdates.warranty_expiry = updates.warranty_expiry;
+      if (updates.brand) dbUpdates.brand = updates.brand;
+      if (updates.model) dbUpdates.model = updates.model;
+      if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
+
+      const { data, error } = await supabase
+        .from('assets')
+        .update(dbUpdates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      const updatedAsset = transformAsset(data);
       setAssets(prev => prev.map(asset => 
-        asset.id === id 
-          ? { ...asset, ...updates, last_updated: new Date().toISOString().split('T')[0] }
-          : asset
+        asset.id === id ? updatedAsset : asset
       ));
       
-      const asset = assets.find(a => a.id === id);
-      if (asset) {
-        await logActivity('Asset Updated', `${asset.name} information updated`, 'update', id);
-      }
+      await logActivity('Asset Updated', `${updatedAsset.name} information updated`, 'update', id);
       
       toast({
         title: 'Success',
@@ -303,10 +389,19 @@ export const useSupabaseData = () => {
     }
   };
 
-  // Delete asset
+  // Delete asset from Supabase
   const deleteAsset = async (id: string) => {
     try {
       const asset = assets.find(a => a.id === id);
+      
+      const { error } = await supabase
+        .from('assets')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        throw error;
+      }
       
       setAssets(prev => prev.filter(asset => asset.id !== id));
       
@@ -362,10 +457,9 @@ export const useSupabaseData = () => {
 
       setAssignments(prev => [...prev, newAssignment]);
 
-      // Update asset status to assigned
       await updateAsset(assignmentData.asset_id, { 
         status: 'active',
-        assignee: assignmentData.employee_name,
+        assigned_to: assignmentData.employee_name,
         department: assignmentData.department
       });
 
@@ -434,8 +528,8 @@ export const useSupabaseData = () => {
   // Get asset stats
   const getAssetStats = () => {
     const total = assets.length;
-    const available = assets.filter(a => a.status === 'active' && a.assignee === '-').length;
-    const assigned = assets.filter(a => a.assignee !== '-').length;
+    const available = assets.filter(a => a.status === 'active' && (a.assignee === '-' || !a.assigned_to)).length;
+    const assigned = assets.filter(a => a.assignee !== '-' && a.assigned_to).length;
     const inRepair = assets.filter(a => a.status === 'maintenance').length;
     const retired = assets.filter(a => a.status === 'retired').length;
     const totalValue = assets.reduce((sum, asset) => sum + (asset.value || 0), 0);
@@ -475,9 +569,26 @@ export const useSupabaseData = () => {
     return { active, pending, overdue, completed };
   };
 
-  // Initialize data
+  // Set up real-time subscriptions
   useEffect(() => {
     fetchData();
+
+    // Subscribe to asset changes
+    const assetsSubscription = supabase
+      .channel('assets-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'assets'
+      }, (payload) => {
+        console.log('Asset change detected:', payload);
+        fetchData(); // Refresh data on any change
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(assetsSubscription);
+    };
   }, []);
 
   return {

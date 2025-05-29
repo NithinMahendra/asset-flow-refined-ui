@@ -122,25 +122,25 @@
     transform: translateY(0);
   }
 
-  /* Completely remove all yellow/amber colors and replace with blue/slate variants */
-  .bg-yellow-50 {
+  /* Replace ALL yellow/amber colors with blue/orange/slate variants */
+  .bg-yellow-50, .bg-amber-50 {
     @apply bg-blue-50;
   }
   
-  .bg-yellow-100 {
+  .bg-yellow-100, .bg-amber-100 {
     @apply bg-blue-100;
   }
   
-  .bg-yellow-200 {
-    @apply bg-blue-200;
+  .bg-yellow-200, .bg-amber-200 {
+    @apply bg-orange-100;
   }
   
-  .bg-yellow-500 {
-    @apply bg-blue-500;
+  .bg-yellow-500, .bg-amber-500 {
+    @apply bg-orange-500;
   }
   
-  .bg-yellow-600 {
-    @apply bg-blue-600;
+  .bg-yellow-600, .bg-amber-600 {
+    @apply bg-orange-600;
   }
   
   .text-yellow-50 {
@@ -155,111 +155,47 @@
     @apply text-blue-200;
   }
   
-  .text-yellow-600 {
-    @apply text-blue-600;
-  }
-  
-  .text-yellow-700 {
-    @apply text-blue-700;
-  }
-  
-  .text-yellow-800 {
-    @apply text-blue-800;
-  }
-  
-  .text-yellow-900 {
-    @apply text-blue-900;
-  }
-  
-  .border-yellow-100 {
-    @apply border-blue-100;
-  }
-  
-  .border-yellow-200 {
-    @apply border-blue-200;
-  }
-  
-  .border-yellow-300 {
-    @apply border-blue-300;
-  }
-  
-  .border-yellow-500 {
-    @apply border-blue-500;
-  }
-  
-  .dark .bg-yellow-900 {
-    @apply bg-blue-900;
-  }
-  
-  .dark .text-yellow-200 {
-    @apply text-blue-200;
-  }
-  
-  .dark .text-yellow-300 {
-    @apply text-blue-300;
-  }
-
-  .bg-amber-50 {
-    @apply bg-orange-50;
-  }
-  
-  .bg-amber-100 {
-    @apply bg-orange-100;
-  }
-  
-  .bg-amber-200 {
-    @apply bg-orange-200;
-  }
-  
-  .bg-amber-500 {
-    @apply bg-orange-500;
-  }
-  
-  .bg-amber-600 {
-    @apply bg-orange-600;
-  }
-  
-  .text-amber-600 {
+  .text-yellow-600, .text-amber-600 {
     @apply text-orange-600;
   }
   
-  .text-amber-700 {
+  .text-yellow-700, .text-amber-700 {
     @apply text-orange-700;
   }
   
-  .text-amber-800 {
+  .text-yellow-800, .text-amber-800 {
     @apply text-orange-800;
   }
   
-  .text-amber-900 {
+  .text-yellow-900, .text-amber-900 {
     @apply text-orange-900;
   }
   
-  .border-amber-100 {
-    @apply border-orange-100;
+  .border-yellow-100, .border-amber-100 {
+    @apply border-blue-100;
   }
   
-  .border-amber-200 {
+  .border-yellow-200, .border-amber-200 {
     @apply border-orange-200;
   }
   
-  .border-amber-300 {
+  .border-yellow-300, .border-amber-300 {
     @apply border-orange-300;
   }
   
-  .border-amber-500 {
+  .border-yellow-500, .border-amber-500 {
     @apply border-orange-500;
   }
   
-  .dark .bg-amber-900 {
+  .dark .bg-yellow-900, .dark .bg-amber-900 {
     @apply bg-orange-900;
   }
   
-  .dark .text-amber-200 {
+  .dark .text-yellow-200, .dark .text-amber-200 {
     @apply text-orange-200;
   }
   
-  .dark .text-amber-300 {
+  .dark .text-yellow-300, .dark .text-amber-300 {
     @apply text-orange-300;
   }
 }
