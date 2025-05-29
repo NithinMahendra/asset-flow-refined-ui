@@ -58,23 +58,33 @@ const ScanAsset = () => {
     setIsProcessing(true);
     try {
       // Check if asset is available (not assigned)
-      if (!scannedAsset.assigned_to) {
-        // Create asset request for instant assignment
+      if (!scannedAsset.assigned_to && scannedAsset.status === 'active') {
+        // Directly assign the asset to the employee
+        const success = await EmployeeService.assignAssetToEmployee(scannedAsset.id);
+        
+        if (success) {
+          toast.success('Asset added to your assets!');
+          navigate('/employee/assets');
+        } else {
+          toast.error('Failed to add asset');
+        }
+      } else if (scannedAsset.assigned_to) {
+        // Asset is already assigned - create a request
         const success = await EmployeeService.createAssetRequestFromScan(scannedAsset);
         
         if (success) {
-          toast.success('Asset request created! Admin will assign it to you.');
+          toast.success('Asset request created! Admin will review it.');
           navigate('/employee/requests');
         } else {
           toast.error('Failed to create asset request');
         }
       } else {
-        // Asset is already assigned
-        toast.error('This asset is already assigned to someone else');
+        // Asset is not active
+        toast.error('This asset is not available for assignment');
       }
     } catch (error) {
-      console.error('Error adding asset:', error);
-      toast.error('Failed to add asset');
+      console.error('Error processing asset:', error);
+      toast.error('Failed to process asset');
     } finally {
       setIsProcessing(false);
     }
@@ -90,6 +100,7 @@ const ScanAsset = () => {
   };
 
   const isAssetAvailable = scannedAsset && !scannedAsset.assigned_to && scannedAsset.status === 'active';
+  const isAssetAssigned = scannedAsset && scannedAsset.assigned_to;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 dark:from-gray-900 dark:via-green-900 dark:to-emerald-900">
@@ -105,7 +116,7 @@ const ScanAsset = () => {
                 Scan Asset
               </h1>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Scan QR codes to view and request assets
+                Scan QR codes to view and add assets
               </p>
             </div>
           </div>
@@ -188,7 +199,7 @@ const ScanAsset = () => {
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
                           <span className="text-gray-500 dark:text-gray-400">Type:</span>
-                          <p className="font-medium capitalize">{scannedAsset.device_type}</p>
+                          <p className="font-medium capitalize">{scannedAsset.device_type?.replace('_', ' ')}</p>
                         </div>
                         <div>
                           <span className="text-gray-500 dark:text-gray-400">Serial:</span>
@@ -216,13 +227,15 @@ const ScanAsset = () => {
                           <AlertTriangle className="h-5 w-5 text-yellow-600" />
                         )}
                         <span className="font-medium">
-                          {isAssetAvailable ? 'Available' : 'Not Available'}
+                          {isAssetAvailable ? 'Available' : isAssetAssigned ? 'Already Assigned' : 'Not Available'}
                         </span>
                       </div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {scannedAsset.assigned_to 
+                        {isAssetAvailable 
+                          ? 'This asset is available and can be added to your assets'
+                          : isAssetAssigned
                           ? `Currently assigned to: ${scannedAsset.assigned_to}`
-                          : 'This asset is available for assignment'
+                          : 'This asset is not available for assignment'
                         }
                       </p>
                     </div>
@@ -241,7 +254,7 @@ const ScanAsset = () => {
                       Scan Another
                     </Button>
                     
-                    {isAssetAvailable && (
+                    {(isAssetAvailable || isAssetAssigned) && (
                       <Button
                         onClick={handleAddToMyAssets}
                         disabled={isProcessing}
@@ -252,6 +265,8 @@ const ScanAsset = () => {
                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
                             Processing...
                           </>
+                        ) : isAssetAvailable ? (
+                          'Add to My Assets'
                         ) : (
                           'Request Asset'
                         )}

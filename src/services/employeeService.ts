@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface EmployeeProfile {
@@ -217,6 +216,52 @@ export class EmployeeService {
       return true;
     } catch (error) {
       console.error('Error creating asset request from scan:', error);
+      return false;
+    }
+  }
+
+  static async assignAssetToEmployee(assetId: string): Promise<boolean> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+
+    try {
+      // Get employee profile to get employee_id
+      const profile = await this.getEmployeeProfile();
+      if (!profile) throw new Error('Employee profile not found');
+
+      // Update the asset to assign it to the employee
+      const { error: updateError } = await supabase
+        .from('assets')
+        .update({ 
+          assigned_to: profile.employee_id,
+          status: 'active'
+        })
+        .eq('id', assetId);
+
+      if (updateError) throw updateError;
+
+      // Log the assignment activity
+      const { error: logError } = await supabase
+        .from('activity_log')
+        .insert({
+          asset_id: assetId,
+          user_id: user.id,
+          action: 'Asset Assigned via QR Scan',
+          details: {
+            assigned_to: profile.employee_id,
+            employee_name: profile.first_name,
+            assignment_method: 'qr_scan'
+          }
+        });
+
+      if (logError) {
+        console.error('Error logging activity:', logError);
+        // Don't fail the assignment if logging fails
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error assigning asset to employee:', error);
       return false;
     }
   }

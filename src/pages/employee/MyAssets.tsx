@@ -35,6 +35,16 @@ const MyAssets = () => {
     loadMyAssets();
   }, []);
 
+  // Reload assets when the component receives focus (e.g., when navigating back from scan)
+  useEffect(() => {
+    const handleFocus = () => {
+      loadMyAssets();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
+
   const loadMyAssets = async () => {
     try {
       setLoading(true);
@@ -143,7 +153,7 @@ const MyAssets = () => {
                   No Assets Assigned
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400 mb-6">
-                  You don't have any assets assigned to you yet. Try scanning QR codes to request assets.
+                  You don't have any assets assigned to you yet. Try scanning QR codes to add assets.
                 </p>
                 <Button
                   onClick={() => navigate('/employee/scan')}
@@ -176,7 +186,7 @@ const MyAssets = () => {
                             {asset.brand} {asset.model}
                           </CardTitle>
                           <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">
-                            {asset.device_type.replace('_', ' ')}
+                            {asset.device_type?.replace('_', ' ')}
                           </p>
                         </div>
                       </div>
