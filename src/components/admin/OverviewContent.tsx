@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -52,7 +51,7 @@ const OverviewContent = () => {
     { month: 'Jun', assets: 67, utilization: 88 }
   ];
 
-  const COLORS = ['#3b82f6', '#06b6d4', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444'];
+  const COLORS = ['#3b82f6', '#06b6d4', '#8b5cf6', '#10b981', '#06b6d4', '#ef4444'];
 
   const getStatusColor = (status: string) => {
     switch (status) {

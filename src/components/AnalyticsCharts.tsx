@@ -31,7 +31,7 @@ const AnalyticsCharts = () => {
   const deviceDistributionData = [
     { name: 'Laptops', value: 450, color: '#3B82F6' },
     { name: 'Phones', value: 320, color: '#10B981' },
-    { name: 'Tablets', value: 180, color: '#F59E0B' },
+    { name: 'Tablets', value: 180, color: '#06B6D4' },
     { name: 'Monitors', value: 150, color: '#EF4444' },
     { name: 'Others', value: 147, color: '#8B5CF6' },
   ];
