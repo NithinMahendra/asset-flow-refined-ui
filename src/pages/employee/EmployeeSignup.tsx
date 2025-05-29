@@ -18,33 +18,42 @@ const EmployeeSignup = () => {
     confirmPassword: ''
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
   const { signup, isLoading } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     
     if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
+      setError('Please fill in all fields');
       toast.error('Please fill in all fields');
       return;
     }
 
     if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
       toast.error('Passwords do not match');
       return;
     }
 
     if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters');
       toast.error('Password must be at least 6 characters');
       return;
     }
 
+    console.log('🚀 Starting signup process...');
     const success = await signup(formData.email, formData.password, formData.name, 'employee');
+    
     if (success) {
-      toast.success('Employee account created successfully!');
-      navigate('/employee/dashboard');
+      toast.success('Employee account created successfully! Please check your email to verify your account.');
+      navigate('/employee/login');
     } else {
-      toast.error('Failed to create account');
+      const errorMsg = 'Failed to create account. Please try again or contact support.';
+      setError(errorMsg);
+      toast.error(errorMsg);
     }
   };
 
@@ -75,6 +84,12 @@ const EmployeeSignup = () => {
             </CardHeader>
             
             <CardContent className="space-y-6">
+              {error && (
+                <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
+                  {error}
+                </div>
+              )}
+              
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Full Name</Label>

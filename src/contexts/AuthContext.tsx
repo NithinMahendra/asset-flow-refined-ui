@@ -94,7 +94,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const signup = async (email: string, password: string, name: string, role: 'admin' | 'employee'): Promise<boolean> => {
     try {
       setIsLoading(true);
-      console.log('🚀 Attempting signup for:', email, 'as', role);
+      console.log('🚀 Attempting signup for:', email, 'as', role, 'with name:', name);
       
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -110,12 +110,54 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       if (error) {
         console.error('❌ Signup error:', error.message);
+        // Check for specific database errors and provide helpful messages
+        if (error.message.includes('Database error saving new user')) {
+          console.error('Database trigger failed - this might be due to missing sequence');
+          return false;
+        }
         return false;
       }
 
       if (data.user) {
         console.log('✅ Signup successful for:', data.user.email);
-        // Note: User might need to confirm email depending on Supabase settings
+        console.log('User created with ID:', data.user.id);
+        
+        // Wait a moment for the trigger to complete, then verify profile creation
+        setTimeout(async () => {
+          try {
+            const { data: profile, error: profileError } = await supabase
+              .from('employee_profiles')
+              .select('*')
+              .eq('user_id', data.user.id)
+              .single();
+            
+            if (profileError || !profile) {
+              console.log('⚠️ Profile not found, trigger might have failed. Creating manually...');
+              // Fallback: create profile manually if trigger failed
+              const { error: insertError } = await supabase
+                .from('employee_profiles')
+                .insert({
+                  user_id: data.user.id,
+                  employee_id: `EMP-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
+                  first_name: name,
+                  last_name: '',
+                  email: email,
+                  department: role === 'admin' ? 'Administration' : 'General'
+                });
+              
+              if (insertError) {
+                console.error('❌ Failed to create profile manually:', insertError);
+              } else {
+                console.log('✅ Profile created manually');
+              }
+            } else {
+              console.log('✅ Profile created by trigger:', profile);
+            }
+          } catch (error) {
+            console.error('Error checking/creating profile:', error);
+          }
+        }, 1000);
+        
         return true;
       }
 
