@@ -1,383 +1,337 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Package, Users, AlertTriangle, CheckCircle, TrendingUp, Activity, Clock, Calendar } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { 
+  TrendingUp, 
+  Package, 
+  Users, 
+  AlertTriangle, 
+  CheckCircle, 
+  Clock,
+  DollarSign,
+  Activity,
+  Bell
+} from 'lucide-react';
 import { useAdminData } from '@/contexts/AdminDataContext';
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
-import { motion } from 'framer-motion';
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell } from 'recharts';
 
 const OverviewContent = () => {
-  const {
-    getAssetStats,
+  const { 
+    getAssetStats, 
+    getCategoryStats, 
     getAssignmentStats,
     getUtilizationRate,
+    getMaintenanceRate,
+    getAverageAssetAge,
+    getUpcomingWarrantyExpiries,
+    getOverdueMaintenanceAssets,
     getRecentActivity,
     getUpcomingTasks,
-    getCategoryStats,
-    users,
     notifications
   } = useAdminData();
 
   const assetStats = getAssetStats();
+  const categoryStats = getCategoryStats();
   const assignmentStats = getAssignmentStats();
   const utilizationRate = getUtilizationRate();
+  const maintenanceRate = getMaintenanceRate();
+  const averageAge = getAverageAssetAge();
+  const upcomingWarranties = getUpcomingWarrantyExpiries();
+  const overdueAssets = getOverdueMaintenanceAssets();
   const recentActivity = getRecentActivity();
   const upcomingTasks = getUpcomingTasks();
-  const categoryStats = getCategoryStats();
 
-  const stats = [
-    { 
-      title: 'Total Assets', 
-      value: assetStats.total.toString(), 
-      change: '+12%', 
-      icon: Package, 
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50'
-    },
-    { 
-      title: 'Active Users', 
-      value: users.filter(u => u.status === 'Active').length.toString(), 
-      change: '+8%', 
-      icon: Users, 
-      color: 'text-emerald-600',
-      bgColor: 'bg-emerald-50'
-    },
-    { 
-      title: 'Pending Requests', 
-      value: assignmentStats.pending.toString(), 
-      change: '-5%', 
-      icon: AlertTriangle, 
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-50'
-    },
-    { 
-      title: 'Available Assets', 
-      value: assetStats.available.toString(), 
-      change: '+15%', 
-      icon: CheckCircle, 
-      color: 'text-green-600',
-      bgColor: 'bg-green-50'
-    },
+  // Mock trend data for charts
+  const trendData = [
+    { month: 'Jan', assets: 45, utilization: 78 },
+    { month: 'Feb', assets: 52, utilization: 82 },
+    { month: 'Mar', assets: 49, utilization: 75 },
+    { month: 'Apr', assets: 63, utilization: 85 },
+    { month: 'May', assets: 58, utilization: 80 },
+    { month: 'Jun', assets: 67, utilization: 88 }
   ];
 
-  const pieData = [
-    { name: 'Available', value: assetStats.available, color: '#10b981' },
-    { name: 'Assigned', value: assetStats.assigned, color: '#3b82f6' },
-    { name: 'In Repair', value: assetStats.inRepair, color: '#f97316' },
-    { name: 'Retired', value: assetStats.retired, color: '#6b7280' },
-  ];
+  const COLORS = ['#3b82f6', '#06b6d4', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444'];
 
-  const utilizationData = [
-    { name: 'Week 1', utilization: 75 },
-    { name: 'Week 2', utilization: 82 },
-    { name: 'Week 3', utilization: 78 },
-    { name: 'Week 4', utilization: utilizationRate },
-  ];
-
-  const formatTimestamp = (timestamp: string) => {
-    try {
-      const date = new Date(timestamp);
-      const now = new Date();
-      const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-      
-      if (diffInMinutes < 60) {
-        return `${diffInMinutes} min ago`;
-      } else if (diffInMinutes < 1440) {
-        return `${Math.floor(diffInMinutes / 60)} hour${Math.floor(diffInMinutes / 60) !== 1 ? 's' : ''} ago`;
-      } else {
-        return `${Math.floor(diffInMinutes / 1440)} day${Math.floor(diffInMinutes / 1440) !== 1 ? 's' : ''} ago`;
-      }
-    } catch {
-      return 'Recently';
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'high':
+        return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
+      case 'medium':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300';
+      case 'low':
+        return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
+      default:
+        return 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300';
     }
   };
 
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'assignment':
+        return <Users className="h-4 w-4 text-blue-500" />;
+      case 'maintenance':
+        return <AlertTriangle className="h-4 w-4 text-orange-500" />;
+      case 'addition':
+        return <Package className="h-4 w-4 text-green-500" />;
+      default:
+        return <Activity className="h-4 w-4 text-slate-500" />;
+    }
+  };
+
+  const unreadNotifications = notifications.filter(n => !n.is_read).length;
+
   return (
-    <div className="space-y-8 bg-slate-50 p-6 min-h-screen">
-      {/* Stats Grid */}
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Overview</h1>
+          <p className="text-slate-600 dark:text-slate-400">
+            Dashboard overview of your asset management system
+          </p>
+        </div>
+        <div className="flex items-center space-x-3">
+          {unreadNotifications > 0 && (
+            <div className="flex items-center space-x-2 bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800">
+              <Bell className="h-4 w-4 text-blue-600" />
+              <span className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                {unreadNotifications} new notifications
+              </span>
+            </div>
+          )}
+          <Button variant="outline" size="sm">
+            <TrendingUp className="h-4 w-4 mr-2" />
+            View Reports
+          </Button>
+        </div>
+      </div>
+
+      {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
-          <motion.div
-            key={index}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: index * 0.1 }}
-          >
-            <Card className="border-slate-200 shadow-sm hover:shadow-md transition-all duration-300 group">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-600 mb-1">{stat.title}</p>
-                    <motion.p
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ duration: 0.5, delay: 0.5 + index * 0.1 }}
-                      className="text-3xl font-bold text-slate-900"
-                    >
-                      {stat.value}
-                    </motion.p>
-                    <div className="flex items-center mt-2">
-                      <TrendingUp className="h-3 w-3 text-emerald-500 mr-1" />
-                      <span className="text-xs text-emerald-600 font-medium">{stat.change}</span>
-                    </div>
-                  </div>
-                  <div className={`p-3 rounded-xl ${stat.bgColor} group-hover:scale-110 transition-transform duration-300`}>
-                    <stat.icon className={`h-6 w-6 ${stat.color}`} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Asset Distribution Pie Chart */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-        >
-          <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg font-semibold text-slate-900 flex items-center">
-                <Package className="h-5 w-5 mr-2 text-blue-600" />
-                Asset Distribution
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={pieData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={90}
-                      paddingAngle={5}
-                      dataKey="value"
-                    >
-                      {pieData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="grid grid-cols-2 gap-2 mt-4">
-                {pieData.map((item, index) => (
-                  <div key={index} className="flex items-center">
-                    <div 
-                      className="w-3 h-3 rounded-full mr-2" 
-                      style={{ backgroundColor: item.color }}
-                    />
-                    <span className="text-sm text-slate-600">{item.name}: {item.value}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Utilization Trend */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-        >
-          <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg font-semibold text-slate-900 flex items-center">
-                <TrendingUp className="h-5 w-5 mr-2 text-emerald-600" />
-                Utilization Trend
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={utilizationData}>
-                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                    <XAxis dataKey="name" className="text-xs" />
-                    <YAxis className="text-xs" />
-                    <Tooltip />
-                    <Line 
-                      type="monotone" 
-                      dataKey="utilization" 
-                      stroke="#3b82f6" 
-                      strokeWidth={3}
-                      dot={{ fill: '#3b82f6', strokeWidth: 2 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Category Breakdown */}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6, delay: 0.5 }}
-        >
-          <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg font-semibold text-slate-900 flex items-center">
-                <BarChart className="h-5 w-5 mr-2 text-purple-600" />
-                Category Breakdown
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={categoryStats} layout="horizontal">
-                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                    <XAxis type="number" className="text-xs" />
-                    <YAxis dataKey="name" type="category" className="text-xs" />
-                    <Tooltip />
-                    <Bar dataKey="count" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-
-      {/* Recent Activity and Upcoming Tasks */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Recent Activity */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.6 }}
-        >
-          <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg font-semibold text-slate-900 flex items-center">
-                <Activity className="h-5 w-5 mr-2 text-blue-600" />
-                Recent Activity
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {recentActivity.length > 0 ? (
-                recentActivity.map((activity, index) => (
-                  <motion.div
-                    key={activity.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.4, delay: 0.7 + index * 0.1 }}
-                    className="flex items-center space-x-4 p-4 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
-                  >
-                    <div className={`w-3 h-3 rounded-full ${
-                      activity.type === 'assignment' ? 'bg-blue-500' :
-                      activity.type === 'addition' ? 'bg-emerald-500' :
-                      activity.type === 'maintenance' ? 'bg-orange-500' : 
-                      activity.type === 'return' ? 'bg-purple-500' : 'bg-slate-500'
-                    }`} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-900">{activity.action}</p>
-                      <p className="text-xs text-slate-600 truncate">{activity.details}</p>
-                    </div>
-                    <div className="flex items-center text-xs text-slate-500">
-                      <Clock className="h-3 w-3 mr-1" />
-                      {formatTimestamp(activity.timestamp)}
-                    </div>
-                  </motion.div>
-                ))
-              ) : (
-                <div className="text-center py-8 text-slate-500">
-                  <Activity className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-                  <p className="text-sm">No recent activity</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Upcoming Tasks */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.7 }}
-        >
-          <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg font-semibold text-slate-900 flex items-center">
-                <Calendar className="h-5 w-5 mr-2 text-orange-600" />
-                Upcoming Tasks
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {upcomingTasks.length > 0 ? (
-                upcomingTasks.map((task, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.4, delay: 0.8 + index * 0.1 }}
-                    className="flex items-center justify-between p-4 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
-                  >
-                    <div>
-                      <p className="text-sm font-medium text-slate-900">{task.task}</p>
-                      <p className="text-xs text-slate-600">{task.due}</p>
-                    </div>
-                    <Badge 
-                      variant={task.priority === 'high' ? 'destructive' : task.priority === 'medium' ? 'default' : 'secondary'}
-                      className="text-xs"
-                    >
-                      {task.priority}
-                    </Badge>
-                  </motion.div>
-                ))
-              ) : (
-                <div className="text-center py-8 text-slate-500">
-                  <Calendar className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-                  <p className="text-sm">No upcoming tasks</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-
-      {/* Quick Stats Bar */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.8 }}
-      >
-        <Card className="border-slate-200 shadow-sm">
+        <Card className="border-blue-200 dark:border-blue-800">
           <CardContent className="p-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-3xl font-bold text-slate-900">{utilizationRate.toFixed(1)}%</p>
-                <p className="text-sm text-slate-600">Asset Utilization</p>
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Total Assets</p>
+                <p className="text-3xl font-bold text-slate-900 dark:text-white">{assetStats.total}</p>
+                <p className="text-xs text-green-600 dark:text-green-400">+12% from last month</p>
               </div>
-              <div>
-                <p className="text-3xl font-bold text-slate-900">
-                  {assignmentStats.active > 0 ? (assignmentStats.active * 2.1).toFixed(1) : '0'} days
-                </p>
-                <p className="text-sm text-slate-600">Avg. Request Time</p>
-              </div>
-              <div>
-                <p className="text-3xl font-bold text-slate-900">
-                  ${(assetStats.totalValue / 1000).toFixed(0)}K
-                </p>
-                <p className="text-sm text-slate-600">Total Asset Value</p>
-              </div>
-              <div>
-                <p className="text-3xl font-bold text-slate-900">
-                  {notifications.filter(n => !n.isRead).length === 0 ? '99.2' : '98.5'}%
-                </p>
-                <p className="text-sm text-slate-600">System Uptime</p>
+              <div className="h-12 w-12 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
+                <Package className="h-6 w-6 text-blue-600" />
               </div>
             </div>
           </CardContent>
         </Card>
-      </motion.div>
+
+        <Card className="border-green-200 dark:border-green-800">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Utilization Rate</p>
+                <p className="text-3xl font-bold text-slate-900 dark:text-white">{utilizationRate.toFixed(1)}%</p>
+                <p className="text-xs text-green-600 dark:text-green-400">+5% from last month</p>
+              </div>
+              <div className="h-12 w-12 bg-green-100 dark:bg-green-900/20 rounded-lg flex items-center justify-center">
+                <TrendingUp className="h-6 w-6 text-green-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-orange-200 dark:border-orange-800">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">In Maintenance</p>
+                <p className="text-3xl font-bold text-slate-900 dark:text-white">{assetStats.inRepair}</p>
+                <p className="text-xs text-orange-600 dark:text-orange-400">{maintenanceRate.toFixed(1)}% of total</p>
+              </div>
+              <div className="h-12 w-12 bg-orange-100 dark:bg-orange-900/20 rounded-lg flex items-center justify-center">
+                <AlertTriangle className="h-6 w-6 text-orange-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-purple-200 dark:border-purple-800">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Total Value</p>
+                <p className="text-3xl font-bold text-slate-900 dark:text-white">
+                  ${assetStats.totalValue.toLocaleString()}
+                </p>
+                <p className="text-xs text-purple-600 dark:text-purple-400">Avg age: {averageAge.toFixed(1)}y</p>
+              </div>
+              <div className="h-12 w-12 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
+                <DollarSign className="h-6 w-6 text-purple-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Asset Trends</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={trendData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="assets" stroke="#3b82f6" strokeWidth={2} />
+                <Line type="monotone" dataKey="utilization" stroke="#10b981" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Asset Categories</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={categoryStats}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={100}
+                  fill="#8884d8"
+                  dataKey="count"
+                  label={({ name, count }) => `${name}: ${count}`}
+                >
+                  {categoryStats.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Status Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <CheckCircle className="h-5 w-5 mr-2 text-green-600" />
+              Assignment Status
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-slate-600 dark:text-slate-400">Active Assignments</span>
+              <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300">
+                {assignmentStats.active}
+              </Badge>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-slate-600 dark:text-slate-400">Pending Requests</span>
+              <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
+                {assignmentStats.pending}
+              </Badge>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-slate-600 dark:text-slate-400">Overdue Returns</span>
+              <Badge className="bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300">
+                {assignmentStats.overdue}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <AlertTriangle className="h-5 w-5 mr-2 text-orange-600" />
+              Attention Required
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-slate-600 dark:text-slate-400">Warranty Expiring</span>
+              <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
+                {upcomingWarranties.length}
+              </Badge>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-slate-600 dark:text-slate-400">Maintenance Due</span>
+              <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300">
+                {overdueAssets.length}
+              </Badge>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-slate-600 dark:text-slate-400">Unread Notifications</span>
+              <Badge className="bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300">
+                {unreadNotifications}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Clock className="h-5 w-5 mr-2 text-blue-600" />
+              Upcoming Tasks
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {upcomingTasks.length > 0 ? upcomingTasks.map((task, index) => (
+              <div key={index} className="flex items-center justify-between">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-slate-900 dark:text-white">{task.task}</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-400">{task.due}</p>
+                </div>
+                <Badge className={getStatusColor(task.priority)}>
+                  {task.priority}
+                </Badge>
+              </div>
+            )) : (
+              <p className="text-sm text-slate-600 dark:text-slate-400">No upcoming tasks</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent Activity */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Activity</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {recentActivity.length > 0 ? recentActivity.map((activity) => (
+              <div key={activity.id} className="flex items-center space-x-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                {getActivityIcon(activity.type)}
+                <div className="flex-1">
+                  <p className="font-medium text-slate-900 dark:text-white">{activity.action}</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">{activity.details}</p>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {new Date(activity.timestamp).toLocaleString()}
+                </p>
+              </div>
+            )) : (
+              <div className="text-center py-8">
+                <Activity className="h-12 w-12 mx-auto text-slate-300 dark:text-slate-600 mb-4" />
+                <p className="text-slate-500 dark:text-slate-400">No recent activity</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

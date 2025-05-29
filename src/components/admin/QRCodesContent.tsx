@@ -1,11 +1,12 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -14,68 +15,194 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { QrCode, Download, Printer, Search, RefreshCw, Eye, Copy } from 'lucide-react';
+import { QrCode, Download, Printer, Search, RefreshCw, Eye, Copy, Plus } from 'lucide-react';
+import { useAdminData } from '@/contexts/AdminDataContext';
+import QRCodeLib from 'qrcode';
 
 const QRCodesContent = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedQRs, setSelectedQRs] = useState<string[]>([]);
   const [showQRDetail, setShowQRDetail] = useState<any>(null);
+  const [qrCodeImages, setQrCodeImages] = useState<Record<string, string>>({});
+  const [newQRPreview, setNewQRPreview] = useState<string>('');
+  const [selectedAssetForQR, setSelectedAssetForQR] = useState<string>('');
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  // Mock QR code data linked to assets
-  const qrCodes = [
-    {
-      id: 'QR001',
-      assetId: 'AST-001',
-      assetName: 'MacBook Pro M3',
-      qrCode: 'QR001-AST001-2024',
-      generatedDate: '2024-01-15',
-      lastScanned: '2024-01-20',
-      scanCount: 5,
-      status: 'Active',
-      assignedTo: '-',
-      location: 'Warehouse A'
-    },
-    {
-      id: 'QR002',
-      assetId: 'AST-002',
-      assetName: 'iPhone 15 Pro',
-      qrCode: 'QR002-AST002-2024',
-      generatedDate: '2024-01-14',
-      lastScanned: '2024-01-21',
-      scanCount: 12,
-      status: 'Active',
-      assignedTo: 'John Doe',
-      location: 'Office Floor 2'
-    },
-    {
-      id: 'QR003',
-      assetId: 'AST-003',
-      assetName: 'Dell Monitor 27"',
-      qrCode: 'QR003-AST003-2024',
-      generatedDate: '2024-01-13',
-      lastScanned: '2024-01-18',
-      scanCount: 3,
-      status: 'Active',
-      assignedTo: '-',
-      location: 'IT Department'
-    },
-  ];
+  const { assets, generateQRCode, addAsset } = useAdminData();
 
-  const generateQRCode = (assetId: string) => {
-    const timestamp = Date.now();
-    const uniqueCode = `QR${timestamp}-${assetId}-${new Date().getFullYear()}`;
-    console.log('Generated QR Code:', uniqueCode);
-    return uniqueCode;
+  // Generate QR code images for all assets
+  useEffect(() => {
+    const generateQRImages = async () => {
+      const images: Record<string, string> = {};
+      
+      for (const asset of assets) {
+        try {
+          const qrData = JSON.stringify({
+            id: asset.id,
+            name: asset.name,
+            serial: asset.serial_number,
+            type: asset.device_type,
+            timestamp: Date.now()
+          });
+          
+          const qrImageUrl = await QRCodeLib.toDataURL(qrData, {
+            width: 200,
+            margin: 2,
+            color: {
+              dark: '#000000',
+              light: '#FFFFFF'
+            }
+          });
+          
+          images[asset.id] = qrImageUrl;
+        } catch (error) {
+          console.error('Error generating QR code for asset:', asset.id, error);
+        }
+      }
+      
+      setQrCodeImages(images);
+    };
+
+    if (assets.length > 0) {
+      generateQRImages();
+    }
+  }, [assets]);
+
+  // Create QR code records from assets
+  const qrCodes = assets.map(asset => ({
+    id: asset.id,
+    assetId: asset.id,
+    assetName: asset.name,
+    qrCode: asset.qr_code,
+    generatedDate: asset.last_updated,
+    lastScanned: asset.last_updated,
+    scanCount: Math.floor(Math.random() * 20), // Mock scan count
+    status: asset.status === 'active' ? 'Active' : 'Inactive',
+    assignedTo: asset.assignee === '-' ? 'Unassigned' : asset.assignee,
+    location: asset.location,
+    category: asset.category,
+    serialNumber: asset.serial_number
+  }));
+
+  const filteredQRCodes = qrCodes.filter(qr => 
+    qr.assetName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    qr.qrCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    qr.serialNumber.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const generateNewQRCode = async (assetId: string) => {
+    setIsGenerating(true);
+    try {
+      const asset = assets.find(a => a.id === assetId);
+      if (!asset) return;
+
+      const qrData = JSON.stringify({
+        id: asset.id,
+        name: asset.name,
+        serial: asset.serial_number,
+        type: asset.device_type,
+        timestamp: Date.now()
+      });
+      
+      const qrImageUrl = await QRCodeLib.toDataURL(qrData, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
+      
+      setNewQRPreview(qrImageUrl);
+    } catch (error) {
+      console.error('Error generating QR code:', error);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
-  const handleBulkGenerate = () => {
-    console.log('Generating QR codes for multiple assets...');
-    // Implementation for bulk QR generation
+  const handleBulkGenerate = async () => {
+    setIsGenerating(true);
+    try {
+      // Regenerate QR codes for all selected assets
+      const images: Record<string, string> = {};
+      
+      for (const assetId of selectedQRs) {
+        const asset = assets.find(a => a.id === assetId);
+        if (asset) {
+          const qrData = JSON.stringify({
+            id: asset.id,
+            name: asset.name,
+            serial: asset.serial_number,
+            type: asset.device_type,
+            timestamp: Date.now()
+          });
+          
+          const qrImageUrl = await QRCodeLib.toDataURL(qrData, {
+            width: 200,
+            margin: 2,
+            color: {
+              dark: '#000000',
+              light: '#FFFFFF'
+            }
+          });
+          
+          images[asset.id] = qrImageUrl;
+        }
+      }
+      
+      setQrCodeImages(prev => ({ ...prev, ...images }));
+      console.log(`Generated QR codes for ${selectedQRs.length} assets`);
+    } catch (error) {
+      console.error('Error in bulk generation:', error);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handlePrintLabels = (qrIds: string[]) => {
-    console.log('Printing labels for:', qrIds);
-    // Implementation for printing QR code labels
+    // Create a print window with QR codes
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const qrHTML = qrIds.map(id => {
+      const qr = qrCodes.find(q => q.id === id);
+      const qrImage = qrCodeImages[id];
+      
+      if (!qr || !qrImage) return '';
+      
+      return `
+        <div style="page-break-inside: avoid; margin: 20px; text-align: center; border: 1px solid #ccc; padding: 15px;">
+          <h3>${qr.assetName}</h3>
+          <img src="${qrImage}" alt="QR Code" style="width: 150px; height: 150px;" />
+          <p><strong>Asset ID:</strong> ${qr.assetId}</p>
+          <p><strong>Serial:</strong> ${qr.serialNumber}</p>
+          <p><strong>QR Code:</strong> ${qr.qrCode}</p>
+        </div>
+      `;
+    }).join('');
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>QR Code Labels</title>
+          <style>
+            body { font-family: Arial, sans-serif; }
+            @media print { 
+              .no-print { display: none; }
+              body { margin: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          <h1 class="no-print">QR Code Labels</h1>
+          <button class="no-print" onclick="window.print()">Print</button>
+          ${qrHTML}
+        </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
   };
 
   const copyQRCode = (qrCode: string) => {
@@ -83,18 +210,34 @@ const QRCodesContent = () => {
     console.log('QR code copied to clipboard:', qrCode);
   };
 
+  const downloadQRCode = (assetId: string, assetName: string) => {
+    const qrImage = qrCodeImages[assetId];
+    if (!qrImage) return;
+
+    const link = document.createElement('a');
+    link.download = `qr-code-${assetName.replace(/\s+/g, '-')}.png`;
+    link.href = qrImage;
+    link.click();
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Active':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
       case 'Inactive':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300';
       case 'Expired':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300';
     }
   };
+
+  // Analytics data based on actual assets
+  const totalScans = qrCodes.reduce((sum, qr) => sum + qr.scanCount, 0);
+  const uniqueUsers = new Set(qrCodes.filter(qr => qr.assignedTo !== 'Unassigned').map(qr => qr.assignedTo)).size;
+  const averageScansPerDay = Math.round(totalScans / 30); // Mock 30-day period
+  const failedScans = Math.floor(totalScans * 0.02); // Mock 2% failure rate
 
   return (
     <div className="space-y-6">
@@ -102,7 +245,7 @@ const QRCodesContent = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
             <Input
               placeholder="Search QR codes..."
               value={searchQuery}
@@ -122,24 +265,25 @@ const QRCodesContent = () => {
           )}
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm" onClick={handleBulkGenerate}>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleBulkGenerate}
+            disabled={selectedQRs.length === 0 || isGenerating}
+          >
             <QrCode className="h-4 w-4 mr-2" />
-            Bulk Generate
+            {isGenerating ? 'Generating...' : 'Bulk Generate'}
           </Button>
           <Button variant="outline" size="sm">
             <Download className="h-4 w-4 mr-2" />
             Export QR Codes
-          </Button>
-          <Button size="sm">
-            <QrCode className="h-4 w-4 mr-2" />
-            Generate QR Code
           </Button>
         </div>
       </div>
 
       <Tabs defaultValue="all" className="space-y-4">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="all">All QR Codes</TabsTrigger>
+          <TabsTrigger value="all">All QR Codes ({qrCodes.length})</TabsTrigger>
           <TabsTrigger value="generator">QR Generator</TabsTrigger>
           <TabsTrigger value="scanner">QR Scanner</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
@@ -150,7 +294,7 @@ const QRCodesContent = () => {
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-gray-50">
+                  <TableRow className="bg-slate-50 dark:bg-slate-800">
                     <TableHead className="w-12">
                       <input
                         type="checkbox"
@@ -161,10 +305,9 @@ const QRCodesContent = () => {
                             setSelectedQRs([]);
                           }
                         }}
-                        className="rounded border-gray-300"
+                        className="rounded border-slate-300"
                       />
                     </TableHead>
-                    <TableHead className="font-semibold">QR ID</TableHead>
                     <TableHead className="font-semibold">Asset</TableHead>
                     <TableHead className="font-semibold">QR Code</TableHead>
                     <TableHead className="font-semibold">Status</TableHead>
@@ -175,8 +318,8 @@ const QRCodesContent = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {qrCodes.map((qr) => (
-                    <TableRow key={qr.id} className="hover:bg-gray-50">
+                  {filteredQRCodes.map((qr) => (
+                    <TableRow key={qr.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
                       <TableCell>
                         <input
                           type="checkbox"
@@ -188,19 +331,19 @@ const QRCodesContent = () => {
                               setSelectedQRs(prev => prev.filter(id => id !== qr.id));
                             }
                           }}
-                          className="rounded border-gray-300"
+                          className="rounded border-slate-300"
                         />
                       </TableCell>
-                      <TableCell className="font-medium">{qr.id}</TableCell>
                       <TableCell>
                         <div>
                           <p className="font-medium">{qr.assetName}</p>
-                          <p className="text-sm text-gray-500">{qr.assetId}</p>
+                          <p className="text-sm text-slate-500">{qr.category}</p>
+                          <p className="text-xs text-slate-400">{qr.serialNumber}</p>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
-                          <code className="text-sm bg-gray-100 px-2 py-1 rounded">
+                          <code className="text-sm bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
                             {qr.qrCode}
                           </code>
                           <Button
@@ -218,8 +361,10 @@ const QRCodesContent = () => {
                         </Badge>
                       </TableCell>
                       <TableCell>{qr.scanCount}</TableCell>
-                      <TableCell className="text-gray-600">{qr.lastScanned}</TableCell>
-                      <TableCell className="text-gray-600">{qr.assignedTo}</TableCell>
+                      <TableCell className="text-slate-600 dark:text-slate-400">
+                        {new Date(qr.lastScanned).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="text-slate-600 dark:text-slate-400">{qr.assignedTo}</TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-1">
                           <Button 
@@ -229,13 +374,25 @@ const QRCodesContent = () => {
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => generateNewQRCode(qr.id)}
+                          >
                             <RefreshCw className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => downloadQRCode(qr.id, qr.assetName)}
+                          >
                             <Download className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handlePrintLabels([qr.id])}
+                          >
                             <Printer className="h-4 w-4" />
                           </Button>
                         </div>
@@ -257,16 +414,31 @@ const QRCodesContent = () => {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Select Asset</label>
-                  <select className="w-full p-2 border rounded-md">
-                    <option value="">Choose an asset...</option>
-                    <option value="AST-001">AST-001 - MacBook Pro M3</option>
-                    <option value="AST-002">AST-002 - iPhone 15 Pro</option>
-                    <option value="AST-003">AST-003 - Dell Monitor 27"</option>
-                  </select>
+                  <Select value={selectedAssetForQR} onValueChange={(value) => {
+                    setSelectedAssetForQR(value);
+                    if (value) {
+                      generateNewQRCode(value);
+                    }
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose an asset..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {assets.map((asset) => (
+                        <SelectItem key={asset.id} value={asset.id}>
+                          {asset.name} - {asset.serial_number}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <Button className="w-full">
+                <Button 
+                  className="w-full" 
+                  onClick={() => selectedAssetForQR && generateNewQRCode(selectedAssetForQR)}
+                  disabled={!selectedAssetForQR || isGenerating}
+                >
                   <QrCode className="h-4 w-4 mr-2" />
-                  Generate QR Code
+                  {isGenerating ? 'Generating...' : 'Generate QR Code'}
                 </Button>
               </CardContent>
             </Card>
@@ -276,20 +448,47 @@ const QRCodesContent = () => {
                 <CardTitle>QR Code Preview</CardTitle>
               </CardHeader>
               <CardContent className="text-center space-y-4">
-                <div className="w-48 h-48 bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center mx-auto">
-                  <QrCode className="h-16 w-16 text-gray-400" />
+                <div className="w-48 h-48 bg-slate-100 dark:bg-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg flex items-center justify-center mx-auto">
+                  {newQRPreview ? (
+                    <img src={newQRPreview} alt="QR Code Preview" className="w-full h-full object-contain" />
+                  ) : (
+                    <QrCode className="h-16 w-16 text-slate-400" />
+                  )}
                 </div>
-                <p className="text-sm text-gray-600">QR code will appear here</p>
-                <div className="flex space-x-2">
-                  <Button variant="outline" size="sm">
-                    <Download className="h-4 w-4 mr-2" />
-                    Download PNG
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <Printer className="h-4 w-4 mr-2" />
-                    Print Label
-                  </Button>
-                </div>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  {newQRPreview ? 'QR code generated successfully' : 'QR code will appear here'}
+                </p>
+                {newQRPreview && (
+                  <div className="flex space-x-2">
+                    <Button variant="outline" size="sm" onClick={() => {
+                      const link = document.createElement('a');
+                      link.download = 'qr-code.png';
+                      link.href = newQRPreview;
+                      link.click();
+                    }}>
+                      <Download className="h-4 w-4 mr-2" />
+                      Download PNG
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => {
+                      const printWindow = window.open('', '_blank');
+                      if (printWindow) {
+                        printWindow.document.write(`
+                          <html>
+                            <head><title>QR Code</title></head>
+                            <body style="text-align: center; padding: 20px;">
+                              <img src="${newQRPreview}" style="width: 300px; height: 300px;" />
+                              <script>window.print();</script>
+                            </body>
+                          </html>
+                        `);
+                        printWindow.document.close();
+                      }
+                    }}>
+                      <Printer className="h-4 w-4 mr-2" />
+                      Print Label
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -302,36 +501,52 @@ const QRCodesContent = () => {
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Asset Category</label>
-                  <select className="w-full p-2 border rounded-md">
-                    <option value="">All Categories</option>
-                    <option value="laptop">Laptops</option>
-                    <option value="mobile">Mobile Devices</option>
-                    <option value="monitor">Monitors</option>
-                  </select>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Categories" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      <SelectItem value="laptop">Laptops</SelectItem>
+                      <SelectItem value="mobile">Mobile Devices</SelectItem>
+                      <SelectItem value="monitor">Monitors</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Location</label>
-                  <select className="w-full p-2 border rounded-md">
-                    <option value="">All Locations</option>
-                    <option value="warehouse-a">Warehouse A</option>
-                    <option value="warehouse-b">Warehouse B</option>
-                    <option value="office">Office</option>
-                  </select>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Locations" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Locations</SelectItem>
+                      <SelectItem value="warehouse-a">Warehouse A</SelectItem>
+                      <SelectItem value="office">Office</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Status</label>
-                  <select className="w-full p-2 border rounded-md">
-                    <option value="">All Statuses</option>
-                    <option value="available">Available</option>
-                    <option value="assigned">Assigned</option>
-                  </select>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Statuses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="flex items-center justify-between pt-4 border-t">
-                <p className="text-sm text-gray-600">45 assets selected for QR generation</p>
-                <Button>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  {assets.length} assets available for QR generation
+                </p>
+                <Button onClick={handleBulkGenerate} disabled={isGenerating}>
                   <QrCode className="h-4 w-4 mr-2" />
-                  Generate Bulk QR Codes
+                  {isGenerating ? 'Generating...' : 'Generate Bulk QR Codes'}
                 </Button>
               </div>
             </CardContent>
@@ -345,9 +560,9 @@ const QRCodesContent = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="text-center py-8">
-                <QrCode className="h-24 w-24 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Mobile QR Scanner</h3>
-                <p className="text-gray-600 mb-6">
+                <QrCode className="h-24 w-24 text-slate-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">Mobile QR Scanner</h3>
+                <p className="text-slate-600 dark:text-slate-400 mb-6">
                   Employees can scan QR codes to claim assets, view details, or report issues
                 </p>
                 <Button>
@@ -356,27 +571,27 @@ const QRCodesContent = () => {
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card className="border-blue-200">
+                <Card className="border-blue-200 dark:border-blue-800">
                   <CardContent className="p-4 text-center">
-                    <h4 className="font-medium text-blue-800 mb-2">Asset Claims</h4>
-                    <p className="text-2xl font-bold text-blue-600">23</p>
-                    <p className="text-sm text-gray-600">This week</p>
+                    <h4 className="font-medium text-blue-800 dark:text-blue-300 mb-2">Asset Claims</h4>
+                    <p className="text-2xl font-bold text-blue-600">{qrCodes.filter(qr => qr.assignedTo !== 'Unassigned').length}</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">This week</p>
                   </CardContent>
                 </Card>
                 
-                <Card className="border-green-200">
+                <Card className="border-green-200 dark:border-green-800">
                   <CardContent className="p-4 text-center">
-                    <h4 className="font-medium text-green-800 mb-2">Successful Scans</h4>
-                    <p className="text-2xl font-bold text-green-600">156</p>
-                    <p className="text-sm text-gray-600">This month</p>
+                    <h4 className="font-medium text-green-800 dark:text-green-300 mb-2">Successful Scans</h4>
+                    <p className="text-2xl font-bold text-green-600">{totalScans}</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">This month</p>
                   </CardContent>
                 </Card>
                 
-                <Card className="border-purple-200">
+                <Card className="border-purple-200 dark:border-purple-800">
                   <CardContent className="p-4 text-center">
-                    <h4 className="font-medium text-purple-800 mb-2">Active QR Codes</h4>
-                    <p className="text-2xl font-bold text-purple-600">89</p>
-                    <p className="text-sm text-gray-600">Currently active</p>
+                    <h4 className="font-medium text-purple-800 dark:text-purple-300 mb-2">Active QR Codes</h4>
+                    <p className="text-2xl font-bold text-purple-600">{qrCodes.filter(qr => qr.status === 'Active').length}</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">Currently active</p>
                   </CardContent>
                 </Card>
               </div>
@@ -393,20 +608,24 @@ const QRCodesContent = () => {
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Total Scans</span>
-                    <span className="font-semibold">1,234</span>
+                    <span className="text-sm text-slate-600 dark:text-slate-400">Total Scans</span>
+                    <span className="font-semibold">{totalScans.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Unique Users</span>
-                    <span className="font-semibold">89</span>
+                    <span className="text-sm text-slate-600 dark:text-slate-400">Unique Users</span>
+                    <span className="font-semibold">{uniqueUsers}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Average Scans/Day</span>
-                    <span className="font-semibold">42</span>
+                    <span className="text-sm text-slate-600 dark:text-slate-400">Average Scans/Day</span>
+                    <span className="font-semibold">{averageScansPerDay}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Failed Scans</span>
-                    <span className="font-semibold text-red-600">3</span>
+                    <span className="text-sm text-slate-600 dark:text-slate-400">Failed Scans</span>
+                    <span className="font-semibold text-red-600">{failedScans}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-slate-600 dark:text-slate-400">Active QR Codes</span>
+                    <span className="font-semibold">{qrCodes.filter(qr => qr.status === 'Active').length}</span>
                   </div>
                 </div>
               </CardContent>
@@ -418,11 +637,14 @@ const QRCodesContent = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {qrCodes.slice(0, 3).map((qr, index) => (
+                  {qrCodes
+                    .sort((a, b) => b.scanCount - a.scanCount)
+                    .slice(0, 5)
+                    .map((qr, index) => (
                     <div key={qr.id} className="flex items-center justify-between">
                       <div>
                         <p className="font-medium">{qr.assetName}</p>
-                        <p className="text-sm text-gray-500">{qr.assetId}</p>
+                        <p className="text-sm text-slate-500">{qr.category}</p>
                       </div>
                       <Badge variant="outline">{qr.scanCount} scans</Badge>
                     </div>
@@ -437,43 +659,51 @@ const QRCodesContent = () => {
       {/* QR Detail Modal */}
       {showQRDetail && (
         <Dialog open={!!showQRDetail} onOpenChange={() => setShowQRDetail(null)}>
-          <DialogContent>
+          <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>QR Code Details</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div className="text-center">
-                <div className="w-32 h-32 bg-gray-100 border rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <QrCode className="h-16 w-16 text-gray-600" />
+                <div className="w-48 h-48 bg-slate-100 dark:bg-slate-800 border rounded-lg flex items-center justify-center mx-auto mb-4">
+                  {qrCodeImages[showQRDetail.id] ? (
+                    <img 
+                      src={qrCodeImages[showQRDetail.id]} 
+                      alt="QR Code" 
+                      className="w-full h-full object-contain p-4" 
+                    />
+                  ) : (
+                    <QrCode className="h-16 w-16 text-slate-600" />
+                  )}
                 </div>
-                <code className="text-sm bg-gray-100 px-2 py-1 rounded">
+                <code className="text-sm bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
                   {showQRDetail.qrCode}
                 </code>
               </div>
               
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <label className="font-medium text-gray-700">Asset Name:</label>
+                  <label className="font-medium text-slate-700 dark:text-slate-300">Asset Name:</label>
                   <p>{showQRDetail.assetName}</p>
                 </div>
                 <div>
-                  <label className="font-medium text-gray-700">Asset ID:</label>
+                  <label className="font-medium text-slate-700 dark:text-slate-300">Asset ID:</label>
                   <p>{showQRDetail.assetId}</p>
                 </div>
                 <div>
-                  <label className="font-medium text-gray-700">Generated:</label>
-                  <p>{showQRDetail.generatedDate}</p>
+                  <label className="font-medium text-slate-700 dark:text-slate-300">Generated:</label>
+                  <p>{new Date(showQRDetail.generatedDate).toLocaleDateString()}</p>
                 </div>
                 <div>
-                  <label className="font-medium text-gray-700">Scan Count:</label>
+                  <label className="font-medium text-slate-700 dark:text-slate-300">Scan Count:</label>
                   <p>{showQRDetail.scanCount}</p>
                 </div>
                 <div>
-                  <label className="font-medium text-gray-700">Last Scanned:</label>
-                  <p>{showQRDetail.lastScanned}</p>
+                  <label className="font-medium text-slate-700 dark:text-slate-300">Last Scanned:</label>
+                  <p>{new Date(showQRDetail.lastScanned).toLocaleDateString()}</p>
                 </div>
                 <div>
-                  <label className="font-medium text-gray-700">Status:</label>
+                  <label className="font-medium text-slate-700 dark:text-slate-300">Status:</label>
                   <Badge className={getStatusColor(showQRDetail.status)}>
                     {showQRDetail.status}
                   </Badge>
@@ -481,15 +711,15 @@ const QRCodesContent = () => {
               </div>
               
               <div className="flex space-x-2 pt-4 border-t">
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={() => downloadQRCode(showQRDetail.id, showQRDetail.assetName)}>
                   <Download className="h-4 w-4 mr-2" />
                   Download
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={() => handlePrintLabels([showQRDetail.id])}>
                   <Printer className="h-4 w-4 mr-2" />
                   Print
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={() => generateNewQRCode(showQRDetail.id)}>
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Regenerate
                 </Button>
