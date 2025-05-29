@@ -7,8 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { SignupService } from '@/services/signupService';
 
 const EmployeeSignup = () => {
   const [formData, setFormData] = useState({
@@ -18,13 +18,12 @@ const EmployeeSignup = () => {
     confirmPassword: ''
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const { signup, isLoading } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Only check if fields are filled
     if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
       toast.error('Please fill in all fields');
       return;
@@ -35,25 +34,18 @@ const EmployeeSignup = () => {
       return;
     }
 
-    setIsLoading(true);
-    console.log('🚀 [EmployeeSignup] Starting signup process');
-
-    const result = await SignupService.createEmployeeAccount(
-      formData.email,
-      formData.password,
-      formData.name
-    );
-
-    if (result.success) {
-      console.log('✅ [EmployeeSignup] Signup successful');
-      toast.success('Account created successfully!');
-      navigate('/employee/login');
-    } else {
-      console.error('❌ [EmployeeSignup] Signup failed:', result.error);
-      toast.error(result.error || 'Signup failed');
+    if (formData.password.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
     }
 
-    setIsLoading(false);
+    const success = await signup(formData.email, formData.password, formData.name, 'employee');
+    if (success) {
+      toast.success('Employee account created successfully!');
+      navigate('/employee/dashboard');
+    } else {
+      toast.error('Failed to create account');
+    }
   };
 
   return (
@@ -102,7 +94,7 @@ const EmployeeSignup = () => {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="test@gmail.com"
+                    placeholder="employee@company.com"
                     value={formData.email}
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
                     className="h-12"
