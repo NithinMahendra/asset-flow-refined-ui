@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { useToast } from '@/hooks/use-toast';
 import { 
   Search, 
   Filter, 
@@ -31,14 +32,30 @@ import AddAssetForm from '@/components/admin/AddAssetForm';
 import AssetDetailsModal from '@/components/admin/AssetDetailsModal';
 import BulkOperationsPanel from '@/components/admin/BulkOperationsPanel';
 
+interface Asset {
+  id: string;
+  name: string;
+  category: string;
+  status: string;
+  assignee: string;
+  value: string;
+  location: string;
+  lastUpdated: string;
+  qrCode: string;
+  serialNumber: string;
+  purchaseDate: string;
+  warrantyExpiry: string;
+}
+
 const AssetManagementContent = () => {
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showBulkPanel, setShowBulkPanel] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<any>(null);
-
-  const assets = [
+  
+  const [assets, setAssets] = useState<Asset[]>([
     { 
       id: 'AST-001', 
       name: 'MacBook Pro M3', 
@@ -48,7 +65,7 @@ const AssetManagementContent = () => {
       value: '$2,499', 
       location: 'Warehouse A', 
       lastUpdated: '2024-01-15',
-      qrCode: 'QR001',
+      qrCode: 'QR001-AST001-2024',
       serialNumber: 'MP-2024-001',
       purchaseDate: '2024-01-10',
       warrantyExpiry: '2027-01-10'
@@ -62,7 +79,7 @@ const AssetManagementContent = () => {
       value: '$999', 
       location: 'Office Floor 2', 
       lastUpdated: '2024-01-14',
-      qrCode: 'QR002',
+      qrCode: 'QR002-AST002-2024',
       serialNumber: 'IP-2024-002',
       purchaseDate: '2024-01-08',
       warrantyExpiry: '2026-01-08'
@@ -76,12 +93,12 @@ const AssetManagementContent = () => {
       value: '$329', 
       location: 'IT Department', 
       lastUpdated: '2024-01-13',
-      qrCode: 'QR003',
+      qrCode: 'QR003-AST003-2024',
       serialNumber: 'DM-2024-003',
       purchaseDate: '2024-01-05',
       warrantyExpiry: '2026-01-05'
     },
-  ];
+  ]);
 
   const categories = [
     { name: 'Laptops', count: 45, value: '$112,455', color: 'bg-blue-100 text-blue-800' },
@@ -111,6 +128,35 @@ const AssetManagementContent = () => {
         ? prev.filter(id => id !== assetId)
         : [...prev, assetId]
     );
+  };
+
+  const handleAssetCreated = (newAsset: any) => {
+    // Generate unique asset ID and QR code
+    const assetId = `AST-${String(assets.length + 1).padStart(3, '0')}`;
+    const qrCode = `QR${Date.now()}-${assetId}-${new Date().getFullYear()}`;
+    
+    const asset: Asset = {
+      id: assetId,
+      name: newAsset.name,
+      category: newAsset.category,
+      status: newAsset.status,
+      assignee: newAsset.assignedTo || '-',
+      value: `$${newAsset.purchasePrice}`,
+      location: newAsset.location,
+      lastUpdated: new Date().toISOString().split('T')[0],
+      qrCode: qrCode,
+      serialNumber: newAsset.serialNumber,
+      purchaseDate: newAsset.purchaseDate,
+      warrantyExpiry: newAsset.warrantyExpiry
+    };
+
+    setAssets(prev => [...prev, asset]);
+    setShowAddForm(false);
+    
+    toast({
+      title: "Asset Created Successfully",
+      description: `${newAsset.name} has been added with ID ${assetId}`,
+    });
   };
 
   return (
@@ -161,7 +207,10 @@ const AssetManagementContent = () => {
               <DialogHeader>
                 <DialogTitle>Add New Asset</DialogTitle>
               </DialogHeader>
-              <AddAssetForm onClose={() => setShowAddForm(false)} />
+              <AddAssetForm 
+                onClose={() => setShowAddForm(false)} 
+                onAssetCreated={handleAssetCreated}
+              />
             </DialogContent>
           </Dialog>
         </div>
@@ -329,26 +378,26 @@ const AssetManagementContent = () => {
             <CardContent>
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Card className="border-orange-200">
-                    <CardContent className="p-4">
-                      <h4 className="font-medium text-orange-800 mb-2">Warranty Expiring Soon</h4>
-                      <p className="text-2xl font-bold text-orange-600">12</p>
-                      <p className="text-sm text-gray-600">Assets expiring in 30 days</p>
-                    </CardContent>
-                  </Card>
-                  
                   <Card className="border-red-200">
                     <CardContent className="p-4">
-                      <h4 className="font-medium text-red-800 mb-2">Overdue Maintenance</h4>
-                      <p className="text-2xl font-bold text-red-600">5</p>
-                      <p className="text-sm text-gray-600">Assets requiring attention</p>
+                      <h4 className="font-medium text-red-800 mb-2">Warranty Expiring Soon</h4>
+                      <p className="text-2xl font-bold text-red-600">12</p>
+                      <p className="text-sm text-gray-600">Assets expiring in 30 days</p>
                     </CardContent>
                   </Card>
                   
                   <Card className="border-blue-200">
                     <CardContent className="p-4">
-                      <h4 className="font-medium text-blue-800 mb-2">Depreciation Alert</h4>
-                      <p className="text-2xl font-bold text-blue-600">8</p>
+                      <h4 className="font-medium text-blue-800 mb-2">Overdue Maintenance</h4>
+                      <p className="text-2xl font-bold text-blue-600">5</p>
+                      <p className="text-sm text-gray-600">Assets requiring attention</p>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="border-gray-200">
+                    <CardContent className="p-4">
+                      <h4 className="font-medium text-gray-800 mb-2">Depreciation Alert</h4>
+                      <p className="text-2xl font-bold text-gray-600">8</p>
                       <p className="text-sm text-gray-600">High depreciation assets</p>
                     </CardContent>
                   </Card>

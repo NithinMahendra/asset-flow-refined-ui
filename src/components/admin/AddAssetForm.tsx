@@ -9,15 +9,19 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Upload, X } from 'lucide-react';
+import { CalendarIcon, Upload, X, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 interface AddAssetFormProps {
   onClose: () => void;
+  onAssetCreated: (asset: any) => void;
 }
 
-const AddAssetForm = ({ onClose }: AddAssetFormProps) => {
+const AddAssetForm = ({ onClose, onAssetCreated }: AddAssetFormProps) => {
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     category: '',
@@ -84,15 +88,39 @@ const AddAssetForm = ({ onClose }: AddAssetFormProps) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = () => {
-    if (validateForm()) {
-      // Generate QR code and asset ID here
-      const assetId = `AST-${Date.now()}`;
-      const qrCode = `QR-${Date.now()}`;
+  const handleSubmit = async () => {
+    if (!validateForm()) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
-      console.log('Creating asset:', { ...formData, assetId, qrCode });
-      // Here you would typically make an API call to create the asset
-      onClose();
+      // Format the data for creation
+      const assetData = {
+        ...formData,
+        purchaseDate: formData.purchaseDate ? format(formData.purchaseDate, 'yyyy-MM-dd') : '',
+        warrantyExpiry: formData.warrantyExpiry ? format(formData.warrantyExpiry, 'yyyy-MM-dd') : '',
+      };
+      
+      onAssetCreated(assetData);
+      
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create asset. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -450,7 +478,7 @@ const AddAssetForm = ({ onClose }: AddAssetFormProps) => {
       </Tabs>
 
       <div className="flex justify-between pt-6 border-t">
-        <Button variant="outline" onClick={onClose}>
+        <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
           Cancel
         </Button>
         <div className="space-x-2">
@@ -462,6 +490,7 @@ const AddAssetForm = ({ onClose }: AddAssetFormProps) => {
                 const currentIndex = tabs.indexOf(currentTab);
                 setCurrentTab(tabs[currentIndex - 1]);
               }}
+              disabled={isSubmitting}
             >
               Previous
             </Button>
@@ -473,12 +502,20 @@ const AddAssetForm = ({ onClose }: AddAssetFormProps) => {
                 const currentIndex = tabs.indexOf(currentTab);
                 setCurrentTab(tabs[currentIndex + 1]);
               }}
+              disabled={isSubmitting}
             >
               Next
             </Button>
           ) : (
-            <Button onClick={handleSubmit}>
-              Create Asset
+            <Button onClick={handleSubmit} disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Creating Asset...
+                </>
+              ) : (
+                'Create Asset'
+              )}
             </Button>
           )}
         </div>
