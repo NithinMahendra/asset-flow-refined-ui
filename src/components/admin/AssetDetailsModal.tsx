@@ -8,10 +8,11 @@ import { Edit, QrCode, History, FileText, X } from 'lucide-react';
 
 interface AssetDetailsModalProps {
   asset: any;
+  isOpen: boolean;
   onClose: () => void;
 }
 
-const AssetDetailsModal = ({ asset, onClose }: AssetDetailsModalProps) => {
+const AssetDetailsModal = ({ asset, isOpen, onClose }: AssetDetailsModalProps) => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Available':
@@ -26,7 +27,7 @@ const AssetDetailsModal = ({ asset, onClose }: AssetDetailsModalProps) => {
   };
 
   return (
-    <Dialog open={true} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center justify-between">
@@ -76,7 +77,7 @@ const AssetDetailsModal = ({ asset, onClose }: AssetDetailsModalProps) => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Serial Number:</span>
-                    <span className="font-medium">{asset.serialNumber}</span>
+                    <span className="font-medium">{asset.serial_number}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Location:</span>
@@ -92,19 +93,19 @@ const AssetDetailsModal = ({ asset, onClose }: AssetDetailsModalProps) => {
                 <CardContent className="space-y-3">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Purchase Value:</span>
-                    <span className="font-medium">{asset.value}</span>
+                    <span className="font-medium">${asset.value?.toLocaleString() || '0'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Purchase Date:</span>
-                    <span className="font-medium">{asset.purchaseDate}</span>
+                    <span className="font-medium">{asset.purchase_date || 'N/A'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Warranty Expiry:</span>
-                    <span className="font-medium">{asset.warrantyExpiry}</span>
+                    <span className="font-medium">{asset.warranty_expiry || 'N/A'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Current Value:</span>
-                    <span className="font-medium">$1,899</span>
+                    <span className="font-medium">${(asset.value * 0.76)?.toLocaleString() || '0'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Depreciation:</span>
@@ -211,7 +212,7 @@ const AssetDetailsModal = ({ asset, onClose }: AssetDetailsModalProps) => {
                   <div className="flex items-start space-x-3 p-3 border-l-4 border-green-500 bg-green-50">
                     <div className="flex-1">
                       <p className="font-medium">QR Code Generated</p>
-                      <p className="text-sm text-gray-600">Unique QR code created: {asset.qrCode}</p>
+                      <p className="text-sm text-gray-600">Unique QR code created: {asset.qr_code}</p>
                       <p className="text-xs text-gray-500">2024-01-15 10:31 AM by System</p>
                     </div>
                   </div>
