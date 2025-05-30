@@ -1,10 +1,10 @@
-
 import { MyAsset } from './employeeService';
 
 export interface LocalAsset extends MyAsset {
   isLocal: boolean;
   scannedAt: string;
   localId: string;
+  qr_code?: string; // Add this property to match MyAsset
 }
 
 export class LocalAssetService {

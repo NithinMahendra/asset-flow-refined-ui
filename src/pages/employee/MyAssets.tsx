@@ -74,6 +74,9 @@ const MyAssets = () => {
   };
 
   const handleShowQRCode = (asset: MyAsset | LocalAsset) => {
+    // Only show QR code if the asset has one
+    if (!asset.qr_code) return;
+    
     setSelectedAsset({
       ...asset,
       name: `${asset.brand} ${asset.model}`,
