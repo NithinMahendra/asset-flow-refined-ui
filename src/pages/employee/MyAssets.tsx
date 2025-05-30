@@ -1,13 +1,14 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Package, QrCode, Calendar, MapPin, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Package, QrCode, Calendar, MapPin, RefreshCw, Smartphone, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { EmployeeService } from '@/services/employeeService';
+import { LocalAsset } from '@/services/localAssetService';
 import QRCodeModal from '@/components/admin/QRCodeModal';
+import { toast } from 'sonner';
 
 interface MyAsset {
   id: string;
@@ -26,7 +27,7 @@ interface MyAsset {
 
 const MyAssets = () => {
   const navigate = useNavigate();
-  const [assets, setAssets] = useState<MyAsset[]>([]);
+  const [assets, setAssets] = useState<(MyAsset | LocalAsset)[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAsset, setSelectedAsset] = useState<MyAsset | null>(null);
   const [showQRCode, setShowQRCode] = useState(false);
@@ -57,15 +58,34 @@ const MyAssets = () => {
     }
   };
 
-  const handleShowQRCode = (asset: MyAsset) => {
+  const handleRemoveLocalAsset = async (localId: string) => {
+    try {
+      const success = await EmployeeService.removeLocalAsset(localId);
+      if (success) {
+        toast.success('Local asset removed');
+        loadMyAssets(); // Refresh the list
+      } else {
+        toast.error('Failed to remove asset');
+      }
+    } catch (error) {
+      console.error('Error removing local asset:', error);
+      toast.error('Failed to remove asset');
+    }
+  };
+
+  const handleShowQRCode = (asset: MyAsset | LocalAsset) => {
     setSelectedAsset({
       ...asset,
-      name: `${asset.brand} ${asset.model}`, // Add name for QR modal compatibility
+      name: `${asset.brand} ${asset.model}`,
       category: asset.device_type,
       assignee: asset.assigned_to,
-      value: 0 // Default value for QR modal compatibility
+      value: 0
     } as any);
     setShowQRCode(true);
+  };
+
+  const isLocalAsset = (asset: MyAsset | LocalAsset): asset is LocalAsset => {
+    return 'isLocal' in asset && asset.isLocal;
   };
 
   const getStatusColor = (status: string) => {
@@ -126,6 +146,11 @@ const MyAssets = () => {
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My Assets</h1>
               <p className="text-gray-600 dark:text-gray-400 mt-1">
                 {assets.length} asset{assets.length !== 1 ? 's' : ''} assigned to you
+                {assets.some(isLocalAsset) && (
+                  <span className="ml-2 text-sm">
+                    ({assets.filter(isLocalAsset).length} local)
+                  </span>
+                )}
               </p>
             </div>
           </div>
@@ -169,12 +194,22 @@ const MyAssets = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {assets.map((asset, index) => (
               <motion.div
-                key={asset.id}
+                key={isLocalAsset(asset) ? asset.localId : asset.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: index * 0.1 }}
               >
-                <Card className="glass-effect hover:shadow-lg transition-all duration-300 group">
+                <Card className="glass-effect hover:shadow-lg transition-all duration-300 group relative">
+                  {/* Local Asset Indicator */}
+                  {isLocalAsset(asset) && (
+                    <div className="absolute top-2 right-2 z-10">
+                      <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-xs">
+                        <Smartphone className="h-3 w-3 mr-1" />
+                        Local
+                      </Badge>
+                    </div>
+                  )}
+
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center space-x-3">
@@ -191,16 +226,28 @@ const MyAssets = () => {
                         </div>
                       </div>
                       
-                      {asset.qr_code && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleShowQRCode(asset)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <QrCode className="h-4 w-4" />
-                        </Button>
-                      )}
+                      <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {asset.qr_code && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleShowQRCode(asset)}
+                          >
+                            <QrCode className="h-4 w-4" />
+                          </Button>
+                        )}
+                        
+                        {isLocalAsset(asset) && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveLocalAsset(asset.localId)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </CardHeader>
                   
@@ -241,6 +288,15 @@ const MyAssets = () => {
                           </span>
                         </div>
                       )}
+
+                      {isLocalAsset(asset) && (
+                        <div className="flex items-center space-x-2 text-sm">
+                          <Calendar className="h-4 w-4 text-blue-400" />
+                          <span className="text-blue-600 dark:text-blue-400">
+                            Scanned: {formatDate(asset.scannedAt)}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Notes */}
@@ -248,6 +304,14 @@ const MyAssets = () => {
                       <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
                         <p className="text-sm text-gray-600 dark:text-gray-400">
                           {asset.notes}
+                        </p>
+                      </div>
+                    )}
+
+                    {isLocalAsset(asset) && (
+                      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
+                        <p className="text-sm text-blue-600 dark:text-blue-400">
+                          This asset is stored locally on your device
                         </p>
                       </div>
                     )}

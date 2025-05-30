@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { LocalAssetService, LocalAsset } from './localAssetService';
 
 export interface EmployeeProfile {
   id: string;
@@ -127,22 +128,33 @@ export class EmployeeService {
     }
   }
 
-  static async getMyAssets(): Promise<MyAsset[]> {
+  static async getMyAssets(): Promise<(MyAsset | LocalAsset)[]> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return [];
 
     try {
-      // Use user.id directly instead of employee_id
-      const { data, error } = await supabase
+      // Get database assets
+      const { data: dbAssets, error } = await supabase
         .from('assets')
         .select('*')
         .eq('assigned_to', user.id);
 
       if (error) throw error;
-      return data || [];
+      
+      // Get local assets
+      const localAssets = LocalAssetService.getLocalAssets(user.id);
+      
+      // Merge both lists, with local assets marked as such
+      const allAssets = [
+        ...(dbAssets || []),
+        ...localAssets
+      ];
+
+      return allAssets;
     } catch (error) {
       console.error('Error fetching my assets:', error);
-      return [];
+      // Return at least local assets if database fails
+      return LocalAssetService.getLocalAssets(user.id);
     }
   }
 
@@ -223,7 +235,7 @@ export class EmployeeService {
       const { error: updateError } = await supabase
         .from('assets')
         .update({ 
-          assigned_to: user.id,  // Use user.id directly
+          assigned_to: user.id,
           status: 'active'
         })
         .eq('id', assetId);
@@ -254,6 +266,27 @@ export class EmployeeService {
       console.error('Error assigning asset to employee:', error);
       return false;
     }
+  }
+
+  static addAssetToMyLocalAssets(asset: MyAsset): Promise<boolean> {
+    return new Promise((resolve) => {
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (!user) {
+          resolve(false);
+          return;
+        }
+        
+        const success = LocalAssetService.addLocalAsset(user.id, asset);
+        resolve(success);
+      });
+    });
+  }
+
+  static async removeLocalAsset(localId: string): Promise<boolean> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+
+    return LocalAssetService.removeLocalAsset(user.id, localId);
   }
 
   static async getAssetByQRCode(qrCode: string): Promise<MyAsset | null> {

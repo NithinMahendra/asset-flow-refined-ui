@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
@@ -57,18 +56,18 @@ const ScanAsset = () => {
 
     setIsProcessing(true);
     try {
-      // Always attempt to assign the asset directly
-      const success = await EmployeeService.assignAssetToEmployee(scannedAsset.id);
+      // Add to local storage instead of database
+      const success = await EmployeeService.addAssetToMyLocalAssets(scannedAsset);
       
       if (success) {
-        toast.success('Asset added to your assets!');
+        toast.success('Asset added to your local assets!');
         navigate('/employee/assets');
       } else {
-        toast.error('Failed to add asset');
+        toast.error('Failed to add asset locally');
       }
     } catch (error) {
-      console.error('Error processing asset:', error);
-      toast.error('Failed to process asset');
+      console.error('Error adding asset locally:', error);
+      toast.error('Failed to add asset');
     } finally {
       setIsProcessing(false);
     }
