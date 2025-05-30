@@ -3,11 +3,14 @@ import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Package, QrCode, Calendar, MapPin, RefreshCw, Smartphone, Trash2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ArrowLeft, Package, QrCode, Calendar, MapPin, RefreshCw, Smartphone, Trash2, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { EmployeeService } from '@/services/employeeService';
 import { LocalAsset } from '@/services/localAssetService';
+import { AssetCreationService } from '@/services/assetCreationService';
 import QRCodeModal from '@/components/admin/QRCodeModal';
+import SimpleAddAssetForm from '@/components/SimpleAddAssetForm';
 import { toast } from 'sonner';
 
 interface MyAsset {
@@ -31,6 +34,7 @@ const MyAssets = () => {
   const [loading, setLoading] = useState(true);
   const [selectedAsset, setSelectedAsset] = useState<MyAsset | null>(null);
   const [showQRCode, setShowQRCode] = useState(false);
+  const [showAddAssetModal, setShowAddAssetModal] = useState(false);
 
   useEffect(() => {
     loadMyAssets();
@@ -105,6 +109,26 @@ const MyAssets = () => {
     return new Date(dateString).toLocaleDateString();
   };
 
+  const handleAssetCreated = async (assetData: any) => {
+    try {
+      console.log('Creating asset with data:', assetData);
+      
+      const result = await AssetCreationService.createAndStoreAsset(assetData);
+      
+      if (result.success) {
+        toast.success('Asset created successfully!');
+        setShowAddAssetModal(false);
+        // Refresh the assets list to show the new asset
+        await loadMyAssets();
+      } else {
+        toast.error(`Failed to create asset: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error creating asset:', error);
+      toast.error('Failed to create asset');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 dark:from-gray-900 dark:via-green-900 dark:to-emerald-900">
@@ -158,14 +182,23 @@ const MyAssets = () => {
             </div>
           </div>
           
-          <Button
-            variant="outline"
-            onClick={loadMyAssets}
-            className="flex items-center space-x-2"
-          >
-            <RefreshCw className="h-4 w-4" />
-            <span>Refresh</span>
-          </Button>
+          <div className="flex items-center space-x-3">
+            <Button
+              onClick={() => setShowAddAssetModal(true)}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Asset
+            </Button>
+            <Button
+              variant="outline"
+              onClick={loadMyAssets}
+              className="flex items-center space-x-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              <span>Refresh</span>
+            </Button>
+          </div>
         </div>
 
         {assets.length === 0 ? (
@@ -181,15 +214,24 @@ const MyAssets = () => {
                   No Assets Assigned
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400 mb-6">
-                  You don't have any assets assigned to you yet. Try scanning QR codes to add assets.
+                  You don't have any assets assigned to you yet. Add an asset or scan QR codes.
                 </p>
-                <Button
-                  onClick={() => navigate('/employee/scan')}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  <QrCode className="h-4 w-4 mr-2" />
-                  Scan Asset QR Code
-                </Button>
+                <div className="flex justify-center space-x-4">
+                  <Button
+                    onClick={() => setShowAddAssetModal(true)}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Asset
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate('/employee/scan')}
+                  >
+                    <QrCode className="h-4 w-4 mr-2" />
+                    Scan QR Code
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </motion.div>
@@ -325,6 +367,19 @@ const MyAssets = () => {
           </div>
         )}
       </div>
+
+      {/* Add Asset Modal */}
+      <Dialog open={showAddAssetModal} onOpenChange={setShowAddAssetModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New Asset</DialogTitle>
+          </DialogHeader>
+          <SimpleAddAssetForm
+            onClose={() => setShowAddAssetModal(false)}
+            onAssetCreated={handleAssetCreated}
+          />
+        </DialogContent>
+      </Dialog>
 
       {/* QR Code Modal */}
       <QRCodeModal
