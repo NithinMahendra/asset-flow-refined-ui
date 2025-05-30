@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,7 +17,7 @@ const ScanAsset = () => {
   const [scanning, setScanning] = useState(false);
   const [scannedAsset, setScannedAsset] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [cameraError, setCameraError] = useState<string | null>(null);
 
   // Cleanup scanner on unmount
   useEffect(() => {
@@ -29,44 +30,44 @@ const ScanAsset = () => {
     };
   }, [qrScanner]);
 
-  // Check camera permissions
-  const checkCameraPermissions = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      stream.getTracks().forEach(track => track.stop());
-      setHasPermission(true);
-      return true;
-    } catch (error) {
-      console.error('Camera permission denied:', error);
-      setHasPermission(false);
-      toast.error('Camera access denied. Please enable camera permissions.');
-      return false;
+  const waitForVideoElement = async (maxWait = 3000): Promise<boolean> => {
+    const startTime = Date.now();
+    
+    while (Date.now() - startTime < maxWait) {
+      if (videoRef.current) {
+        console.log('Video element is available');
+        return true;
+      }
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
+    
+    console.error('Video element not available after waiting');
+    return false;
   };
 
   const startScanning = async () => {
-    if (!videoRef.current) {
-      console.error('Video element not available');
-      toast.error('Camera not available');
-      return;
-    }
-
-    // Check permissions first
-    const hasAccess = await checkCameraPermissions();
-    if (!hasAccess) return;
+    console.log('Starting scan process...');
+    setCameraError(null);
+    setScanning(true);
 
     try {
-      setScanning(true);
-      console.log('Initializing QR scanner...');
+      // Wait for video element to be available
+      const videoAvailable = await waitForVideoElement();
+      if (!videoAvailable) {
+        throw new Error('Video element not ready');
+      }
 
       // Ensure any existing scanner is cleaned up
       if (qrScanner) {
+        console.log('Cleaning up existing scanner');
         qrScanner.stop();
         qrScanner.destroy();
+        setQrScanner(null);
       }
 
+      console.log('Creating new QR scanner...');
       const scanner = new QrScanner(
-        videoRef.current,
+        videoRef.current!,
         (result) => {
           console.log('QR Code detected:', result.data);
           handleScanSuccess(result.data);
@@ -74,7 +75,7 @@ const ScanAsset = () => {
         {
           highlightScanRegion: true,
           highlightCodeOutline: true,
-          maxScansPerSecond: 2,
+          maxScansPerSecond: 5,
           preferredCamera: 'environment',
           returnDetailedScanResult: true
         }
@@ -82,29 +83,35 @@ const ScanAsset = () => {
 
       setQrScanner(scanner);
 
-      // Start the scanner
+      // Start the scanner with better error handling
+      console.log('Starting scanner...');
       await scanner.start();
-      console.log('QR scanner started successfully');
-      toast.success('Camera started - Point at a QR code to scan');
+      console.log('Scanner started successfully');
+      toast.success('Camera ready - Point at a QR code');
 
     } catch (error) {
       console.error('Error starting scanner:', error);
       setScanning(false);
       setQrScanner(null);
       
+      let errorMessage = 'Failed to start camera';
+      
       if (error instanceof Error) {
         if (error.name === 'NotAllowedError') {
-          toast.error('Camera permission denied. Please allow camera access.');
+          errorMessage = 'Camera permission denied. Please allow camera access and refresh the page.';
         } else if (error.name === 'NotFoundError') {
-          toast.error('No camera found on this device.');
+          errorMessage = 'No camera found on this device.';
         } else if (error.name === 'NotSupportedError') {
-          toast.error('Camera not supported on this device.');
+          errorMessage = 'Camera not supported on this device.';
+        } else if (error.name === 'NotReadableError') {
+          errorMessage = 'Camera is already in use by another application.';
         } else {
-          toast.error(`Failed to start camera: ${error.message}`);
+          errorMessage = `Camera error: ${error.message}`;
         }
-      } else {
-        toast.error('Failed to start camera. Please check permissions.');
       }
+      
+      setCameraError(errorMessage);
+      toast.error(errorMessage);
     }
   };
 
@@ -116,6 +123,7 @@ const ScanAsset = () => {
       setQrScanner(null);
     }
     setScanning(false);
+    setCameraError(null);
     toast.info('Camera stopped');
   };
 
@@ -172,7 +180,6 @@ const ScanAsset = () => {
       if (success) {
         toast.success('Asset added to your local assets!');
         console.log('Asset successfully added to local storage');
-        // Navigate to MyAssets page to show the newly added asset
         navigate('/employee/my-assets');
       } else {
         toast.error('Failed to add asset. Please check browser storage permissions.');
@@ -188,7 +195,16 @@ const ScanAsset = () => {
 
   const resetScan = () => {
     setScannedAsset(null);
-    setHasPermission(null);
+    setCameraError(null);
+  };
+
+  const retryScan = () => {
+    setCameraError(null);
+    setScanning(false);
+    // Wait a moment then try again
+    setTimeout(() => {
+      startScanning();
+    }, 500);
   };
 
   return (
@@ -221,7 +237,7 @@ const ScanAsset = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {!scanning ? (
+                  {!scanning && !cameraError ? (
                     <div className="text-center space-y-4">
                       <div className="w-32 h-32 mx-auto bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900 dark:to-emerald-900 rounded-2xl flex items-center justify-center">
                         <Camera className="h-16 w-16 text-green-600" />
@@ -233,21 +249,43 @@ const ScanAsset = () => {
                         <p className="text-gray-600 dark:text-gray-400">
                           Click the button below to start scanning QR codes on assets
                         </p>
-                        {hasPermission === false && (
-                          <p className="text-red-500 text-sm mt-2">
-                            Camera permission required. Please allow camera access and try again.
-                          </p>
-                        )}
                       </div>
                       <Button
                         onClick={startScanning}
                         className="bg-green-600 hover:bg-green-700"
                         size="lg"
-                        disabled={hasPermission === false}
                       >
                         <Camera className="h-4 w-4 mr-2" />
                         Start Scanning
                       </Button>
+                    </div>
+                  ) : cameraError ? (
+                    <div className="text-center space-y-4">
+                      <div className="w-32 h-32 mx-auto bg-gradient-to-r from-red-100 to-orange-100 dark:from-red-900 dark:to-orange-900 rounded-2xl flex items-center justify-center">
+                        <AlertTriangle className="h-16 w-16 text-red-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                          Camera Error
+                        </h3>
+                        <p className="text-red-600 dark:text-red-400 mb-4">
+                          {cameraError}
+                        </p>
+                      </div>
+                      <div className="flex space-x-3 justify-center">
+                        <Button
+                          onClick={retryScan}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          Try Again
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => window.location.reload()}
+                        >
+                          Refresh Page
+                        </Button>
+                      </div>
                     </div>
                   ) : (
                     <div className="space-y-4">
