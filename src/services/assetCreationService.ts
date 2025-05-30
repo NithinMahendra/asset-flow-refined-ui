@@ -1,13 +1,14 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { EmployeeService } from './employeeService';
+import { Database } from '@/integrations/supabase/types';
 
 export interface CreateAssetData {
-  device_type: string;
+  device_type: Database['public']['Enums']['device_type'];
   brand: string;
   model: string;
   serial_number: string;
-  status: string;
+  status: Database['public']['Enums']['asset_status'];
   location?: string;
   assigned_to?: string;
   purchase_price?: number;
