@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -21,14 +20,12 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   BarChart3,
   Package,
-  Users,
   QrCode,
   FileText,
   Settings,
   Bell,
   LogOut,
   Building,
-  UserCheck,
   Download,
   Plus
 } from 'lucide-react';
@@ -38,10 +35,8 @@ import { motion } from 'framer-motion';
 // Import content components
 import OverviewContent from '@/components/admin/OverviewContent';
 import AssetManagementContent from '@/components/admin/AssetManagementContent';
-import AssignmentsContent from '@/components/admin/AssignmentsContent';
 import QRCodesContent from '@/components/admin/QRCodesContent';
 import ReportsContent from '@/components/admin/ReportsContent';
-import UserManagementContent from '@/components/admin/UserManagementContent';
 import SettingsContent from '@/components/admin/SettingsContent';
 import NotificationsContent from '@/components/admin/NotificationsContent';
 
@@ -58,10 +53,8 @@ const AdminDashboard = () => {
   const menuItems = [
     { id: 'overview', label: 'Overview', icon: BarChart3, gradient: 'from-blue-500 to-indigo-600' },
     { id: 'assets', label: 'Asset Management', icon: Package, gradient: 'from-emerald-500 to-teal-600' },
-    { id: 'assignments', label: 'Assignments', icon: UserCheck, gradient: 'from-violet-500 to-purple-600' },
     { id: 'qr-codes', label: 'QR Codes', icon: QrCode, gradient: 'from-amber-500 to-orange-600' },
     { id: 'reports', label: 'Reports', icon: FileText, gradient: 'from-rose-500 to-red-600' },
-    { id: 'users', label: 'User Management', icon: Users, gradient: 'from-cyan-500 to-blue-600' },
     { id: 'notifications', label: 'Notifications', icon: Bell, gradient: 'from-pink-500 to-rose-600' },
     { id: 'settings', label: 'Settings', icon: Settings, gradient: 'from-slate-500 to-slate-600' },
   ];
@@ -72,14 +65,10 @@ const AdminDashboard = () => {
         return <OverviewContent />;
       case 'assets':
         return <AssetManagementContent />;
-      case 'assignments':
-        return <AssignmentsContent />;
       case 'qr-codes':
         return <QRCodesContent />;
       case 'reports':
         return <ReportsContent />;
-      case 'users':
-        return <UserManagementContent />;
       case 'notifications':
         return <NotificationsContent />;
       case 'settings':

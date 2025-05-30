@@ -15,6 +15,7 @@ import {
   DollarSign,
   Clock
 } from 'lucide-react';
+import AssetDistributionCharts from './charts/AssetDistributionCharts';
 
 const OverviewContent = () => {
   const { 
@@ -166,13 +167,22 @@ const OverviewContent = () => {
         ))}
       </div>
 
+      {/* Asset Distribution Charts */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.4 }}
+      >
+        <AssetDistributionCharts assets={assets} />
+      </motion.div>
+
       {/* Charts and Activity Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Activity */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
+          transition={{ duration: 0.5, delay: 0.6 }}
         >
           <Card className="card-enhanced">
             <CardHeader className="pb-3">
@@ -226,7 +236,7 @@ const OverviewContent = () => {
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
+          transition={{ duration: 0.5, delay: 0.7 }}
         >
           <Card className="card-enhanced">
             <CardHeader className="pb-3">
@@ -237,10 +247,6 @@ const OverviewContent = () => {
                 <Button className="w-full justify-start btn-gradient-primary">
                   <Plus className="h-4 w-4 mr-2" />
                   Add New Asset
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  <Users className="h-4 w-4 mr-2" />
-                  Manage Users
                 </Button>
                 <Button variant="outline" className="w-full justify-start">
                   <Download className="h-4 w-4 mr-2" />
@@ -261,7 +267,7 @@ const OverviewContent = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.6 }}
+          transition={{ duration: 0.5, delay: 0.8 }}
         >
           <Card className="card-enhanced">
             <CardHeader>

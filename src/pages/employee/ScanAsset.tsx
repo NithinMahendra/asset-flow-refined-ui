@@ -1,51 +1,97 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { ArrowLeft, QrCode, Camera, CheckCircle, AlertTriangle, Package } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, QrCode, Camera, CheckCircle, AlertTriangle } from 'lucide-react';
-import QRScanner from '@/components/QRScanner';
+import QrScanner from 'qr-scanner';
 import { EmployeeService } from '@/services/employeeService';
 import { toast } from 'sonner';
 
 const ScanAsset = () => {
   const navigate = useNavigate();
-  const [isScanning, setIsScanning] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [qrScanner, setQrScanner] = useState<QrScanner | null>(null);
+  const [scanning, setScanning] = useState(false);
   const [scannedAsset, setScannedAsset] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleStartScan = () => {
-    setIsScanning(true);
-    setScannedAsset(null);
+  useEffect(() => {
+    return () => {
+      if (qrScanner) {
+        qrScanner.destroy();
+      }
+    };
+  }, [qrScanner]);
+
+  const startScanning = async () => {
+    if (!videoRef.current) return;
+
+    try {
+      setScanning(true);
+      const scanner = new QrScanner(
+        videoRef.current,
+        (result) => handleScanSuccess(result.data),
+        {
+          highlightScanRegion: true,
+          highlightCodeOutline: true,
+        }
+      );
+
+      await scanner.start();
+      setQrScanner(scanner);
+      toast.success('Camera started - Point at a QR code to scan');
+    } catch (error) {
+      console.error('Error starting scanner:', error);
+      toast.error('Failed to start camera. Please check permissions.');
+      setScanning(false);
+    }
   };
 
-  const handleQRScan = async (data: string) => {
-    console.log('QR Code scanned:', data);
-    setIsScanning(false);
+  const stopScanning = () => {
+    if (qrScanner) {
+      qrScanner.stop();
+      qrScanner.destroy();
+      setQrScanner(null);
+    }
+    setScanning(false);
+  };
+
+  const handleScanSuccess = async (qrCodeData: string) => {
+    console.log('QR Code scanned:', qrCodeData);
+    stopScanning();
     setIsProcessing(true);
 
     try {
-      // Parse QR code data
-      let qrData;
-      try {
-        qrData = JSON.parse(data);
-      } catch {
-        // If it's not JSON, treat it as a simple string
-        qrData = { id: data };
-      }
-
-      // Look up asset by QR code
-      const asset = await EmployeeService.getAssetByQRCode(data);
+      // Try to fetch asset from database first
+      const asset = await EmployeeService.getAssetByQRCode(qrCodeData);
       
       if (asset) {
+        console.log('Asset found in database:', asset);
         setScannedAsset(asset);
         toast.success('Asset found!');
       } else {
-        toast.error('Asset not found in database');
+        // Create a placeholder asset for unknown QR codes
+        const placeholderAsset = {
+          id: `unknown_${Date.now()}`,
+          device_type: 'unknown',
+          brand: 'Unknown',
+          model: 'Scanned Device',
+          serial_number: qrCodeData,
+          status: 'active',
+          assigned_to: '',
+          qr_code: qrCodeData,
+          notes: 'Asset scanned via QR code - details to be updated'
+        };
+        
+        console.log('Asset not found in database, creating placeholder:', placeholderAsset);
+        setScannedAsset(placeholderAsset);
+        toast.info('QR code scanned - Asset details need to be verified');
       }
     } catch (error) {
-      console.error('Error processing QR scan:', error);
-      toast.error('Failed to process QR code');
+      console.error('Error processing scanned QR code:', error);
+      toast.error('Error processing QR code');
     } finally {
       setIsProcessing(false);
     }
@@ -55,174 +101,169 @@ const ScanAsset = () => {
     if (!scannedAsset) return;
 
     setIsProcessing(true);
+    console.log('Attempting to add asset to local storage:', scannedAsset);
+
     try {
-      // Add to local storage instead of database
       const success = await EmployeeService.addAssetToMyLocalAssets(scannedAsset);
       
       if (success) {
         toast.success('Asset added to your local assets!');
-        navigate('/employee/assets');
+        console.log('Asset successfully added to local storage');
+        // Navigate to MyAssets page to show the newly added asset
+        navigate('/employee/my-assets');
       } else {
-        toast.error('Failed to add asset locally');
+        toast.error('Failed to add asset. Please check browser storage permissions.');
+        console.error('Failed to add asset to local storage');
       }
     } catch (error) {
-      console.error('Error adding asset locally:', error);
-      toast.error('Failed to add asset');
+      console.error('Error adding asset:', error);
+      toast.error('An error occurred while adding the asset.');
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const getAssetStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'text-green-600 bg-green-100';
-      case 'maintenance': return 'text-yellow-600 bg-yellow-100';
-      case 'retired': return 'text-red-600 bg-red-100';
-      default: return 'text-gray-600 bg-gray-100';
-    }
+  const resetScan = () => {
+    setScannedAsset(null);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 dark:from-gray-900 dark:via-green-900 dark:to-emerald-900">
-      {/* Header */}
-      <header className="sticky top-0 z-40 glass-effect border-b border-green-200/20 dark:border-green-700/20">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/employee/dashboard')}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                Scan Asset
-              </h1>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Scan QR codes to view and add assets
-              </p>
-            </div>
-          </div>
+      <div className="container mx-auto px-6 py-8">
+        <div className="flex items-center mb-8">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/employee/dashboard')}
+            className="mr-4"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Dashboard
+          </Button>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Scan Asset QR Code</h1>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-6 py-8">
         <div className="max-w-2xl mx-auto space-y-6">
-          {/* Scan Button */}
-          {!isScanning && !scannedAsset && (
+          {!scannedAsset ? (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-            >
-              <Card className="glass-effect text-center">
-                <CardContent className="p-8">
-                  <div className="w-24 h-24 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <QrCode className="h-12 w-12 text-green-600 dark:text-green-400" />
-                  </div>
-                  <h2 className="text-xl font-semibold mb-2">Ready to Scan</h2>
-                  <p className="text-gray-600 dark:text-gray-400 mb-6">
-                    Point your camera at an asset QR code to get started
-                  </p>
-                  <Button onClick={handleStartScan} className="bg-green-600 hover:bg-green-700">
-                    <Camera className="h-4 w-4 mr-2" />
-                    Start Scanning
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-
-          {/* QR Scanner */}
-          <QRScanner
-            isOpen={isScanning}
-            onScan={handleQRScan}
-            onClose={() => setIsScanning(false)}
-          />
-
-          {/* Processing State */}
-          {isProcessing && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-            >
-              <Card className="glass-effect text-center">
-                <CardContent className="p-8">
-                  <div className="w-12 h-12 border-4 border-green-200 border-t-green-600 rounded-full animate-spin mx-auto mb-4"></div>
-                  <p className="text-gray-600 dark:text-gray-400">Processing QR code...</p>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-
-          {/* Scanned Asset Display */}
-          {scannedAsset && !isProcessing && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
+              transition={{ duration: 0.4 }}
             >
               <Card className="glass-effect">
-                <CardContent className="p-6">
-                  <div className="text-center mb-6">
-                    <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <CheckCircle className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <QrCode className="h-6 w-6 mr-2 text-green-600" />
+                    QR Code Scanner
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {!scanning ? (
+                    <div className="text-center space-y-4">
+                      <div className="w-32 h-32 mx-auto bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900 dark:to-emerald-900 rounded-2xl flex items-center justify-center">
+                        <Camera className="h-16 w-16 text-green-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                          Ready to Scan
+                        </h3>
+                        <p className="text-gray-600 dark:text-gray-400">
+                          Click the button below to start scanning QR codes on assets
+                        </p>
+                      </div>
+                      <Button
+                        onClick={startScanning}
+                        className="bg-green-600 hover:bg-green-700"
+                        size="lg"
+                      >
+                        <Camera className="h-4 w-4 mr-2" />
+                        Start Scanning
+                      </Button>
                     </div>
-                    <h2 className="text-xl font-semibold mb-2">Asset Found!</h2>
-                  </div>
-
-                  {/* Asset Details */}
-                  <div className="space-y-4 mb-6">
-                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                      <h3 className="font-semibold text-lg mb-2">
-                        {scannedAsset.brand} {scannedAsset.model}
-                      </h3>
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="text-gray-500 dark:text-gray-400">Type:</span>
-                          <p className="font-medium capitalize">{scannedAsset.device_type?.replace('_', ' ')}</p>
-                        </div>
-                        <div>
-                          <span className="text-gray-500 dark:text-gray-400">Serial:</span>
-                          <p className="font-mono">{scannedAsset.serial_number}</p>
-                        </div>
-                        <div>
-                          <span className="text-gray-500 dark:text-gray-400">Location:</span>
-                          <p className="font-medium">{scannedAsset.location || 'Not specified'}</p>
-                        </div>
-                        <div>
-                          <span className="text-gray-500 dark:text-gray-400">Status:</span>
-                          <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getAssetStatusColor(scannedAsset.status)}`}>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="relative">
+                        <video
+                          ref={videoRef}
+                          className="w-full h-64 object-cover rounded-lg bg-black"
+                          autoPlay
+                          playsInline
+                        />
+                        {isProcessing && (
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
+                            <div className="text-white text-center">
+                              <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                              <p>Processing QR code...</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-center">
+                        <p className="text-gray-600 dark:text-gray-400 mb-4">
+                          Position the QR code within the camera view
+                        </p>
+                        <Button
+                          variant="outline"
+                          onClick={stopScanning}
+                          disabled={isProcessing}
+                        >
+                          Stop Scanning
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4 }}
+            >
+              <Card className="glass-effect">
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <CheckCircle className="h-6 w-6 mr-2 text-green-600" />
+                    Asset Scanned Successfully
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-6">
+                    <div className="flex items-start space-x-4">
+                      <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white font-semibold text-xl">
+                        {scannedAsset.brand.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                          {scannedAsset.brand} {scannedAsset.model}
+                        </h3>
+                        <p className="text-gray-600 dark:text-gray-400 capitalize">
+                          {scannedAsset.device_type?.replace('_', ' ')}
+                        </p>
+                        <div className="flex items-center space-x-4 mt-2">
+                          <Badge className="bg-green-100 text-green-800 border-green-200">
                             {scannedAsset.status}
+                          </Badge>
+                          <span className="text-sm text-gray-500 font-mono">
+                            {scannedAsset.serial_number}
                           </span>
                         </div>
                       </div>
                     </div>
-
-                    {/* Assignment Status */}
-                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <CheckCircle className="h-5 w-5 text-green-600" />
-                        <span className="font-medium">Ready to Add</span>
+                    
+                    {scannedAsset.notes && (
+                      <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                        <div className="flex items-start space-x-2">
+                          <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5" />
+                          <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                            {scannedAsset.notes}
+                          </p>
+                        </div>
                       </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        This asset can be added to your assets list
-                      </p>
-                    </div>
+                    )}
                   </div>
 
-                  {/* Action Buttons */}
                   <div className="flex space-x-3">
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setScannedAsset(null);
-                        setIsScanning(false);
-                      }}
-                      className="flex-1"
-                    >
-                      Scan Another
-                    </Button>
-                    
                     <Button
                       onClick={handleAddToMyAssets}
                       disabled={isProcessing}
@@ -230,12 +271,22 @@ const ScanAsset = () => {
                     >
                       {isProcessing ? (
                         <>
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                          Processing...
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                          Adding...
                         </>
                       ) : (
-                        'Add to My Assets'
+                        <>
+                          <Package className="h-4 w-4 mr-2" />
+                          Add to My Assets
+                        </>
                       )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={resetScan}
+                      disabled={isProcessing}
+                    >
+                      Scan Another
                     </Button>
                   </div>
                 </CardContent>
@@ -243,7 +294,7 @@ const ScanAsset = () => {
             </motion.div>
           )}
         </div>
-      </main>
+      </div>
     </div>
   );
 };

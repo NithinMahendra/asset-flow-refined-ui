@@ -34,6 +34,7 @@ export interface MyAsset {
   purchase_date?: string;
   warranty_expiry?: string;
   notes?: string;
+  qr_code?: string;
 }
 
 export class EmployeeService {
@@ -268,18 +269,43 @@ export class EmployeeService {
     }
   }
 
-  static addAssetToMyLocalAssets(asset: MyAsset): Promise<boolean> {
-    return new Promise((resolve) => {
-      supabase.auth.getUser().then(({ data: { user } }) => {
-        if (!user) {
-          resolve(false);
-          return;
-        }
-        
-        const success = LocalAssetService.addLocalAsset(user.id, asset);
-        resolve(success);
-      });
-    });
+  static async addAssetToMyLocalAssets(asset: MyAsset): Promise<boolean> {
+    try {
+      // Check if localStorage is available
+      if (typeof Storage === 'undefined') {
+        console.error('localStorage is not available');
+        return false;
+      }
+
+      // Test localStorage availability (handles private browsing mode)
+      try {
+        localStorage.setItem('test', 'test');
+        localStorage.removeItem('test');
+      } catch (storageError) {
+        console.error('localStorage access denied:', storageError);
+        return false;
+      }
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error('User not authenticated');
+        return false;
+      }
+
+      console.log('Adding asset to local storage:', asset);
+      const success = LocalAssetService.addLocalAsset(user.id, asset);
+      
+      if (success) {
+        console.log('Asset successfully added to local storage');
+      } else {
+        console.error('Failed to add asset to local storage');
+      }
+      
+      return success;
+    } catch (error) {
+      console.error('Error in addAssetToMyLocalAssets:', error);
+      return false;
+    }
   }
 
   static async removeLocalAsset(localId: string): Promise<boolean> {
