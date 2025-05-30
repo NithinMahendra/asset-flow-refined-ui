@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -5,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ArrowLeft, Package, QrCode, Calendar, MapPin, RefreshCw, Smartphone, Trash2, Plus } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { EmployeeService } from '@/services/employeeService';
 import { LocalAsset } from '@/services/localAssetService';
 import { AssetCreationService } from '@/services/assetCreationService';
@@ -30,6 +31,7 @@ interface MyAsset {
 
 const MyAssets = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [assets, setAssets] = useState<(MyAsset | LocalAsset)[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAsset, setSelectedAsset] = useState<MyAsset | null>(null);
@@ -39,6 +41,18 @@ const MyAssets = () => {
   useEffect(() => {
     loadMyAssets();
   }, []);
+
+  // Check for action=add in URL parameters to auto-open modal
+  useEffect(() => {
+    const action = searchParams.get('action');
+    if (action === 'add') {
+      setShowAddAssetModal(true);
+      // Remove the action parameter from URL without triggering navigation
+      const newSearchParams = new URLSearchParams(searchParams);
+      newSearchParams.delete('action');
+      setSearchParams(newSearchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // Reload assets when the component receives focus (e.g., when navigating back from scan)
   useEffect(() => {
