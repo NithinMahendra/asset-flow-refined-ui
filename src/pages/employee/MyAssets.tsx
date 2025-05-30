@@ -4,14 +4,11 @@ import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ArrowLeft, Package, QrCode, Calendar, MapPin, RefreshCw, Smartphone, Trash2, Plus } from 'lucide-react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, Package, QrCode, Calendar, MapPin, RefreshCw, Smartphone, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { EmployeeService } from '@/services/employeeService';
 import { LocalAsset } from '@/services/localAssetService';
-import { AssetCreationService } from '@/services/assetCreationService';
 import QRCodeModal from '@/components/admin/QRCodeModal';
-import SimpleAddAssetForm from '@/components/SimpleAddAssetForm';
 import { toast } from 'sonner';
 
 interface MyAsset {
@@ -31,28 +28,14 @@ interface MyAsset {
 
 const MyAssets = () => {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
   const [assets, setAssets] = useState<(MyAsset | LocalAsset)[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAsset, setSelectedAsset] = useState<MyAsset | null>(null);
   const [showQRCode, setShowQRCode] = useState(false);
-  const [showAddAssetModal, setShowAddAssetModal] = useState(false);
 
   useEffect(() => {
     loadMyAssets();
   }, []);
-
-  // Check for action=add in URL parameters to auto-open modal
-  useEffect(() => {
-    const action = searchParams.get('action');
-    if (action === 'add') {
-      setShowAddAssetModal(true);
-      // Remove the action parameter from URL without triggering navigation
-      const newSearchParams = new URLSearchParams(searchParams);
-      newSearchParams.delete('action');
-      setSearchParams(newSearchParams, { replace: true });
-    }
-  }, [searchParams, setSearchParams]);
 
   // Reload assets when the component receives focus (e.g., when navigating back from scan)
   useEffect(() => {
@@ -123,26 +106,6 @@ const MyAssets = () => {
     return new Date(dateString).toLocaleDateString();
   };
 
-  const handleAssetCreated = async (assetData: any) => {
-    try {
-      console.log('Creating asset with data:', assetData);
-      
-      const result = await AssetCreationService.createAndStoreAsset(assetData);
-      
-      if (result.success) {
-        toast.success('Asset created successfully!');
-        setShowAddAssetModal(false);
-        // Refresh the assets list to show the new asset
-        await loadMyAssets();
-      } else {
-        toast.error(`Failed to create asset: ${result.error}`);
-      }
-    } catch (error) {
-      console.error('Error creating asset:', error);
-      toast.error('Failed to create asset');
-    }
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 dark:from-gray-900 dark:via-green-900 dark:to-emerald-900">
@@ -198,13 +161,6 @@ const MyAssets = () => {
           
           <div className="flex items-center space-x-3">
             <Button
-              onClick={() => setShowAddAssetModal(true)}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Asset
-            </Button>
-            <Button
               variant="outline"
               onClick={loadMyAssets}
               className="flex items-center space-x-2"
@@ -228,16 +184,9 @@ const MyAssets = () => {
                   No Assets Assigned
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400 mb-6">
-                  You don't have any assets assigned to you yet. Add an asset or scan QR codes.
+                  You don't have any assets assigned to you yet. Scan QR codes to add assets.
                 </p>
                 <div className="flex justify-center space-x-4">
-                  <Button
-                    onClick={() => setShowAddAssetModal(true)}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Asset
-                  </Button>
                   <Button
                     variant="outline"
                     onClick={() => navigate('/employee/scan')}
@@ -381,19 +330,6 @@ const MyAssets = () => {
           </div>
         )}
       </div>
-
-      {/* Add Asset Modal */}
-      <Dialog open={showAddAssetModal} onOpenChange={setShowAddAssetModal}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Add New Asset</DialogTitle>
-          </DialogHeader>
-          <SimpleAddAssetForm
-            onClose={() => setShowAddAssetModal(false)}
-            onAssetCreated={handleAssetCreated}
-          />
-        </DialogContent>
-      </Dialog>
 
       {/* QR Code Modal */}
       <QRCodeModal

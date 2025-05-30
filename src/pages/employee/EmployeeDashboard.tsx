@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Package, Plus, User, Clock, Bell, LogOut, Smartphone, Laptop, QrCode } from 'lucide-react';
+import { Package, User, Clock, Bell, LogOut, Smartphone, Laptop, QrCode } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -65,7 +64,7 @@ const EmployeeDashboard = () => {
     },
     { 
       title: 'Request New Asset', 
-      icon: Plus, 
+      icon: Package, 
       color: 'bg-blue-500', 
       action: () => setShowRequestModal(true)
     },
@@ -223,24 +222,6 @@ const EmployeeDashboard = () => {
                     </Button>
                   </motion.div>
                 ))}
-                
-                {/* Add Asset Quick Action */}
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.4, delay: 0.5 + quickActions.length * 0.1 }}
-                >
-                  <Button
-                    onClick={() => navigate('/employee/assets?action=add')}
-                    variant="ghost"
-                    className="w-full justify-start h-12 hover:bg-gray-50 dark:hover:bg-gray-800"
-                  >
-                    <div className="p-2 rounded-lg bg-emerald-500 text-white mr-3">
-                      <Plus className="h-4 w-4" />
-                    </div>
-                    Add Asset
-                  </Button>
-                </motion.div>
               </CardContent>
             </Card>
 
@@ -284,20 +265,9 @@ const EmployeeDashboard = () => {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>My Assets</CardTitle>
-                  <div className="flex items-center space-x-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => navigate('/employee/assets?action=add')}
-                      className="mr-2"
-                    >
-                      <Plus className="h-4 w-4 mr-1" />
-                      Add Asset
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => navigate('/employee/assets')}>
-                      View All
-                    </Button>
-                  </div>
+                  <Button variant="outline" size="sm" onClick={() => navigate('/employee/assets')}>
+                    View All
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent>
@@ -330,13 +300,6 @@ const EmployeeDashboard = () => {
                     <div className="text-center py-8">
                       <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                       <p className="text-gray-500">No assets assigned yet</p>
-                      <Button 
-                        onClick={() => navigate('/employee/assets?action=add')} 
-                        className="mt-4 bg-green-600 hover:bg-green-700"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Your First Asset
-                      </Button>
                     </div>
                   )}
                 </div>
