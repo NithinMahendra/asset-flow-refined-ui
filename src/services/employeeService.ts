@@ -131,23 +131,33 @@ export class EmployeeService {
 
   static async getMyAssets(): Promise<(MyAsset | LocalAsset)[]> {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return [];
-
+    
     try {
-      // Get database assets
-      const { data: dbAssets, error } = await supabase
-        .from('assets')
-        .select('*')
-        .eq('assigned_to', user.id);
+      // Get database assets (only if user is authenticated)
+      let dbAssets: MyAsset[] = [];
+      if (user) {
+        const { data, error } = await supabase
+          .from('assets')
+          .select('*')
+          .eq('assigned_to', user.id);
 
-      if (error) throw error;
+        if (!error && data) {
+          dbAssets = data;
+        }
+      }
       
-      // Get local assets
-      const localAssets = LocalAssetService.getLocalAssets(user.id);
+      // Get local assets using session ID
+      let userId = localStorage.getItem('session_user_id');
+      if (!userId) {
+        userId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('session_user_id', userId);
+      }
       
-      // Merge both lists, with local assets marked as such
+      const localAssets = LocalAssetService.getLocalAssets(userId);
+      
+      // Merge both lists
       const allAssets = [
-        ...(dbAssets || []),
+        ...dbAssets,
         ...localAssets
       ];
 
@@ -155,7 +165,12 @@ export class EmployeeService {
     } catch (error) {
       console.error('Error fetching my assets:', error);
       // Return at least local assets if database fails
-      return LocalAssetService.getLocalAssets(user.id);
+      let userId = localStorage.getItem('session_user_id');
+      if (!userId) {
+        userId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('session_user_id', userId);
+      }
+      return LocalAssetService.getLocalAssets(userId);
     }
   }
 
@@ -286,14 +301,16 @@ export class EmployeeService {
         return false;
       }
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.error('User not authenticated');
-        return false;
+      // Use a simple session-based ID instead of requiring authentication
+      let userId = localStorage.getItem('session_user_id');
+      if (!userId) {
+        // Create a simple session ID for this browser session
+        userId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('session_user_id', userId);
       }
 
       console.log('Adding asset to local storage:', asset);
-      const success = LocalAssetService.addLocalAsset(user.id, asset);
+      const success = LocalAssetService.addLocalAsset(userId, asset);
       
       if (success) {
         console.log('Asset successfully added to local storage');
@@ -309,10 +326,14 @@ export class EmployeeService {
   }
 
   static async removeLocalAsset(localId: string): Promise<boolean> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return false;
+    // Use the same session-based approach for consistency
+    let userId = localStorage.getItem('session_user_id');
+    if (!userId) {
+      userId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      localStorage.setItem('session_user_id', userId);
+    }
 
-    return LocalAssetService.removeLocalAsset(user.id, localId);
+    return LocalAssetService.removeLocalAsset(userId, localId);
   }
 
   static async getAssetByQRCode(qrCode: string): Promise<MyAsset | null> {

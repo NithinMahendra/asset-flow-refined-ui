@@ -30,19 +30,22 @@ const ScanAsset = () => {
     };
   }, [qrScanner]);
 
-  const waitForVideoElement = async (maxWait = 3000): Promise<boolean> => {
-    const startTime = Date.now();
-    
-    while (Date.now() - startTime < maxWait) {
-      if (videoRef.current) {
-        console.log('Video element is available');
-        return true;
-      }
-      await new Promise(resolve => setTimeout(resolve, 100));
+  const stopScanning = () => {
+    console.log('Stopping QR scanner...');
+    if (qrScanner) {
+      qrScanner.stop();
+      qrScanner.destroy();
+      setQrScanner(null);
     }
+    setScanning(false);
+    setCameraError(null);
     
-    console.error('Video element not available after waiting');
-    return false;
+    // Stop the video stream completely
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
   };
 
   const startScanning = async () => {
@@ -52,9 +55,14 @@ const ScanAsset = () => {
 
     try {
       // Wait for video element to be available
-      const videoAvailable = await waitForVideoElement();
-      if (!videoAvailable) {
-        throw new Error('Video element not ready');
+      let attempts = 0;
+      while (!videoRef.current && attempts < 30) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+      }
+      
+      if (!videoRef.current) {
+        throw new Error('Video element not available');
       }
 
       // Ensure any existing scanner is cleaned up
@@ -83,7 +91,7 @@ const ScanAsset = () => {
 
       setQrScanner(scanner);
 
-      // Start the scanner with better error handling
+      // Start the scanner
       console.log('Starting scanner...');
       await scanner.start();
       console.log('Scanner started successfully');
@@ -98,7 +106,7 @@ const ScanAsset = () => {
       
       if (error instanceof Error) {
         if (error.name === 'NotAllowedError') {
-          errorMessage = 'Camera permission denied. Please allow camera access and refresh the page.';
+          errorMessage = 'Camera access denied. Please allow camera access and try again.';
         } else if (error.name === 'NotFoundError') {
           errorMessage = 'No camera found on this device.';
         } else if (error.name === 'NotSupportedError') {
@@ -115,22 +123,10 @@ const ScanAsset = () => {
     }
   };
 
-  const stopScanning = () => {
-    console.log('Stopping QR scanner...');
-    if (qrScanner) {
-      qrScanner.stop();
-      qrScanner.destroy();
-      setQrScanner(null);
-    }
-    setScanning(false);
-    setCameraError(null);
-    toast.info('Camera stopped');
-  };
-
   const handleScanSuccess = async (qrCodeData: string) => {
     console.log('QR Code scanned:', qrCodeData);
     
-    // Stop scanning immediately
+    // Stop scanning immediately and clean up camera
     stopScanning();
     setIsProcessing(true);
 
@@ -182,7 +178,7 @@ const ScanAsset = () => {
         console.log('Asset successfully added to local storage');
         navigate('/employee/my-assets');
       } else {
-        toast.error('Failed to add asset. Please check browser storage permissions.');
+        toast.error('Failed to add asset. Please try again.');
         console.error('Failed to add asset to local storage');
       }
     } catch (error) {
