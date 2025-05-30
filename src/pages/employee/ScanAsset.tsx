@@ -16,50 +16,113 @@ const ScanAsset = () => {
   const [scanning, setScanning] = useState(false);
   const [scannedAsset, setScannedAsset] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
 
+  // Cleanup scanner on unmount
   useEffect(() => {
     return () => {
       if (qrScanner) {
+        console.log('Cleaning up QR scanner on unmount');
+        qrScanner.stop();
         qrScanner.destroy();
       }
     };
   }, [qrScanner]);
 
+  // Check camera permissions
+  const checkCameraPermissions = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      stream.getTracks().forEach(track => track.stop());
+      setHasPermission(true);
+      return true;
+    } catch (error) {
+      console.error('Camera permission denied:', error);
+      setHasPermission(false);
+      toast.error('Camera access denied. Please enable camera permissions.');
+      return false;
+    }
+  };
+
   const startScanning = async () => {
-    if (!videoRef.current) return;
+    if (!videoRef.current) {
+      console.error('Video element not available');
+      toast.error('Camera not available');
+      return;
+    }
+
+    // Check permissions first
+    const hasAccess = await checkCameraPermissions();
+    if (!hasAccess) return;
 
     try {
       setScanning(true);
+      console.log('Initializing QR scanner...');
+
+      // Ensure any existing scanner is cleaned up
+      if (qrScanner) {
+        qrScanner.stop();
+        qrScanner.destroy();
+      }
+
       const scanner = new QrScanner(
         videoRef.current,
-        (result) => handleScanSuccess(result.data),
+        (result) => {
+          console.log('QR Code detected:', result.data);
+          handleScanSuccess(result.data);
+        },
         {
           highlightScanRegion: true,
           highlightCodeOutline: true,
+          maxScansPerSecond: 2,
+          preferredCamera: 'environment',
+          returnDetailedScanResult: true
         }
       );
 
-      await scanner.start();
       setQrScanner(scanner);
+
+      // Start the scanner
+      await scanner.start();
+      console.log('QR scanner started successfully');
       toast.success('Camera started - Point at a QR code to scan');
+
     } catch (error) {
       console.error('Error starting scanner:', error);
-      toast.error('Failed to start camera. Please check permissions.');
       setScanning(false);
+      setQrScanner(null);
+      
+      if (error instanceof Error) {
+        if (error.name === 'NotAllowedError') {
+          toast.error('Camera permission denied. Please allow camera access.');
+        } else if (error.name === 'NotFoundError') {
+          toast.error('No camera found on this device.');
+        } else if (error.name === 'NotSupportedError') {
+          toast.error('Camera not supported on this device.');
+        } else {
+          toast.error(`Failed to start camera: ${error.message}`);
+        }
+      } else {
+        toast.error('Failed to start camera. Please check permissions.');
+      }
     }
   };
 
   const stopScanning = () => {
+    console.log('Stopping QR scanner...');
     if (qrScanner) {
       qrScanner.stop();
       qrScanner.destroy();
       setQrScanner(null);
     }
     setScanning(false);
+    toast.info('Camera stopped');
   };
 
   const handleScanSuccess = async (qrCodeData: string) => {
     console.log('QR Code scanned:', qrCodeData);
+    
+    // Stop scanning immediately
     stopScanning();
     setIsProcessing(true);
 
@@ -125,6 +188,7 @@ const ScanAsset = () => {
 
   const resetScan = () => {
     setScannedAsset(null);
+    setHasPermission(null);
   };
 
   return (
@@ -169,11 +233,17 @@ const ScanAsset = () => {
                         <p className="text-gray-600 dark:text-gray-400">
                           Click the button below to start scanning QR codes on assets
                         </p>
+                        {hasPermission === false && (
+                          <p className="text-red-500 text-sm mt-2">
+                            Camera permission required. Please allow camera access and try again.
+                          </p>
+                        )}
                       </div>
                       <Button
                         onClick={startScanning}
                         className="bg-green-600 hover:bg-green-700"
                         size="lg"
+                        disabled={hasPermission === false}
                       >
                         <Camera className="h-4 w-4 mr-2" />
                         Start Scanning
@@ -187,6 +257,7 @@ const ScanAsset = () => {
                           className="w-full h-64 object-cover rounded-lg bg-black"
                           autoPlay
                           playsInline
+                          muted
                         />
                         {isProcessing && (
                           <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
