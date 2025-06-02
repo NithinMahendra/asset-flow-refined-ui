@@ -9,223 +9,313 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      activity_log: {
+      asset_history: {
         Row: {
           action: string
-          asset_id: string | null
-          details: Json | null
+          asset_id: string
+          created_at: string
+          date: string
+          details: string | null
           id: string
-          timestamp: string | null
           user_id: string | null
+          user_name: string
         }
         Insert: {
           action: string
-          asset_id?: string | null
-          details?: Json | null
+          asset_id: string
+          created_at?: string
+          date?: string
+          details?: string | null
           id?: string
-          timestamp?: string | null
           user_id?: string | null
+          user_name: string
         }
         Update: {
           action?: string
-          asset_id?: string | null
-          details?: Json | null
-          id?: string
-          timestamp?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "activity_log_asset_id_fkey"
-            columns: ["asset_id"]
-            isOneToOne: false
-            referencedRelation: "assets"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      asset_assignments: {
-        Row: {
-          asset_id: string
-          assigned_at: string | null
-          assigned_by: string
-          id: string
-          returned_at: string | null
-          status: Database["public"]["Enums"]["assignment_status"]
-          user_id: string
-        }
-        Insert: {
-          asset_id: string
-          assigned_at?: string | null
-          assigned_by: string
-          id?: string
-          returned_at?: string | null
-          status?: Database["public"]["Enums"]["assignment_status"]
-          user_id: string
-        }
-        Update: {
           asset_id?: string
-          assigned_at?: string | null
-          assigned_by?: string
+          created_at?: string
+          date?: string
+          details?: string | null
           id?: string
-          returned_at?: string | null
-          status?: Database["public"]["Enums"]["assignment_status"]
-          user_id?: string
+          user_id?: string | null
+          user_name?: string
         }
         Relationships: [
           {
-            foreignKeyName: "asset_assignments_asset_id_fkey"
+            foreignKeyName: "asset_history_asset_id_fkey"
             columns: ["asset_id"]
             isOneToOne: false
             referencedRelation: "assets"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "asset_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
         ]
       }
-      asset_requests: {
+      asset_lifecycle_stats: {
         Row: {
-          asset_id: string | null
-          description: string
+          avg_age_years: number
+          created_at: string
           id: string
-          processed_at: string | null
-          processed_by: string | null
-          request_type: Database["public"]["Enums"]["request_type"]
-          requested_at: string | null
-          status: Database["public"]["Enums"]["request_status"]
-          user_id: string
+          lifecycle_stage: string
+          total_count: number
+          total_value: number
+          updated_at: string
         }
         Insert: {
-          asset_id?: string | null
-          description: string
+          avg_age_years?: number
+          created_at?: string
           id?: string
-          processed_at?: string | null
-          processed_by?: string | null
-          request_type: Database["public"]["Enums"]["request_type"]
-          requested_at?: string | null
-          status?: Database["public"]["Enums"]["request_status"]
-          user_id: string
+          lifecycle_stage: string
+          total_count?: number
+          total_value?: number
+          updated_at?: string
         }
         Update: {
-          asset_id?: string | null
-          description?: string
+          avg_age_years?: number
+          created_at?: string
           id?: string
-          processed_at?: string | null
-          processed_by?: string | null
-          request_type?: Database["public"]["Enums"]["request_type"]
-          requested_at?: string | null
-          status?: Database["public"]["Enums"]["request_status"]
-          user_id?: string
+          lifecycle_stage?: string
+          total_count?: number
+          total_value?: number
+          updated_at?: string
         }
         Relationships: []
       }
       assets: {
         Row: {
+          assigned_date: string | null
           assigned_to: string | null
-          brand: string
-          created_at: string | null
-          device_type: Database["public"]["Enums"]["device_type"]
+          category: string
+          created_at: string
+          description: string | null
           id: string
           location: string | null
-          model: string
-          notes: string | null
-          purchase_date: string | null
-          purchase_price: number | null
-          qr_code: string | null
-          serial_number: string
-          status: Database["public"]["Enums"]["asset_status"]
-          updated_at: string | null
+          model: string | null
+          name: string
+          purchase_date: string
+          serial_number: string | null
+          status: string
+          value: number | null
           warranty_expiry: string | null
         }
         Insert: {
+          assigned_date?: string | null
           assigned_to?: string | null
-          brand: string
-          created_at?: string | null
-          device_type: Database["public"]["Enums"]["device_type"]
+          category: string
+          created_at?: string
+          description?: string | null
           id?: string
           location?: string | null
-          model: string
-          notes?: string | null
-          purchase_date?: string | null
-          purchase_price?: number | null
-          qr_code?: string | null
-          serial_number: string
-          status?: Database["public"]["Enums"]["asset_status"]
-          updated_at?: string | null
+          model?: string | null
+          name: string
+          purchase_date: string
+          serial_number?: string | null
+          status: string
+          value?: number | null
           warranty_expiry?: string | null
         }
         Update: {
+          assigned_date?: string | null
           assigned_to?: string | null
-          brand?: string
-          created_at?: string | null
-          device_type?: Database["public"]["Enums"]["device_type"]
+          category?: string
+          created_at?: string
+          description?: string | null
           id?: string
           location?: string | null
-          model?: string
-          notes?: string | null
-          purchase_date?: string | null
-          purchase_price?: number | null
-          qr_code?: string | null
-          serial_number?: string
-          status?: Database["public"]["Enums"]["asset_status"]
-          updated_at?: string | null
+          model?: string | null
+          name?: string
+          purchase_date?: string
+          serial_number?: string | null
+          status?: string
+          value?: number | null
           warranty_expiry?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_logs: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          id: string
+          new_data: Json | null
+          old_data: Json | null
+          operation: string
+          record_id: string
+          table_name: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          operation: string
+          record_id: string
+          table_name: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          operation?: string
+          record_id?: string
+          table_name?: string
         }
         Relationships: []
       }
-      employee_profiles: {
+      maintenance_schedule: {
+        Row: {
+          asset_id: string
+          assigned_to: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          maintenance_type: string
+          schedule_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          asset_id: string
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          maintenance_type: string
+          schedule_date: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          asset_id?: string
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          maintenance_type?: string
+          schedule_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_schedule_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
         Row: {
           created_at: string | null
-          email: string
-          employee_id: string
-          first_name: string
           id: string
+          role: Database["public"]["Enums"]["user_role"]
           user_id: string
         }
         Insert: {
           created_at?: string | null
-          email: string
-          employee_id: string
-          first_name: string
           id?: string
+          role?: Database["public"]["Enums"]["user_role"]
           user_id: string
         }
         Update: {
           created_at?: string | null
-          email?: string
-          employee_id?: string
-          first_name?: string
           id?: string
+          role?: Database["public"]["Enums"]["user_role"]
           user_id?: string
         }
         Relationships: []
       }
-      notifications: {
+      users: {
         Row: {
-          created_at: string | null
+          created_at: string
+          department: string | null
+          email: string
           id: string
-          is_read: boolean | null
-          message: string
-          title: string
-          type: string
-          user_id: string | null
+          name: string
+          phone: string | null
+          profile_image_url: string | null
+          role: string
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
+          department?: string | null
+          email: string
           id?: string
-          is_read?: boolean | null
-          message: string
-          title: string
-          type: string
-          user_id?: string | null
+          name: string
+          phone?: string | null
+          profile_image_url?: string | null
+          role: string
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
+          department?: string | null
+          email?: string
           id?: string
-          is_read?: boolean | null
-          message?: string
-          title?: string
-          type?: string
-          user_id?: string | null
+          name?: string
+          phone?: string | null
+          profile_image_url?: string | null
+          role?: string
+        }
+        Relationships: []
+      }
+      vendors: {
+        Row: {
+          address: string | null
+          contact_name: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          website?: string | null
         }
         Relationships: []
       }
@@ -234,39 +324,117 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_maintenance_task: {
+        Args: {
+          p_asset_id: string
+          p_schedule_date: string
+          p_maintenance_type: string
+          p_description: string
+          p_status: string
+          p_assigned_to: string
+          p_created_by: string
+        }
+        Returns: {
+          id: string
+          asset_id: string
+          schedule_date: string
+          maintenance_type: string
+          description: string
+          status: string
+          created_by: string
+          created_at: string
+          updated_at: string
+        }[]
+      }
+      get_asset_lifecycle_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          lifecycle_stage: string
+          total_count: number
+          avg_age_years: number
+          total_value: number
+          created_at: string
+          updated_at: string
+        }[]
+      }
+      get_audit_logs: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          table_name: string
+          record_id: string
+          operation: string
+          old_data: Json
+          new_data: Json
+          changed_by: string
+          changed_at: string
+        }[]
+      }
+      get_maintenance_due_soon: {
+        Args: { days_threshold: number }
+        Returns: {
+          maintenance_id: string
+          asset_id: string
+          asset_name: string
+          schedule_date: string
+          maintenance_type: string
+          status: string
+        }[]
+      }
+      get_maintenance_schedules: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          asset_id: string
+          asset_name: string
+          schedule_date: string
+          maintenance_type: string
+          description: string
+          status: string
+          assigned_to: Json
+          created_by: string
+          created_at: string
+          updated_at: string
+        }[]
+      }
+      get_vendor_by_id: {
+        Args: { vendor_id: string }
+        Returns: {
+          id: string
+          name: string
+          contact_name: string
+          email: string
+          phone: string
+          address: string
+          website: string
+          notes: string
+          created_at: string
+          updated_at: string
+        }[]
+      }
+      get_vendors: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          name: string
+          contact_name: string
+          email: string
+          phone: string
+          address: string
+          website: string
+          notes: string
+          created_at: string
+          updated_at: string
+        }[]
+      }
+      is_admin: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      asset_status:
-        | "active"
-        | "inactive"
-        | "maintenance"
-        | "retired"
-        | "missing"
-        | "damaged"
-      assignment_status: "active" | "returned" | "pending"
-      device_status:
-        | "active"
-        | "inactive"
-        | "maintenance"
-        | "retired"
-        | "missing"
-        | "damaged"
-      device_type:
-        | "laptop"
-        | "desktop"
-        | "server"
-        | "monitor"
-        | "tablet"
-        | "smartphone"
-        | "network_switch"
-        | "router"
-        | "printer"
-        | "scanner"
-        | "projector"
-        | "other"
-      request_status: "pending" | "approved" | "denied" | "completed"
-      request_type: "assignment" | "maintenance" | "replacement" | "return"
+      user_role: "admin" | "employee"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -382,39 +550,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      asset_status: [
-        "active",
-        "inactive",
-        "maintenance",
-        "retired",
-        "missing",
-        "damaged",
-      ],
-      assignment_status: ["active", "returned", "pending"],
-      device_status: [
-        "active",
-        "inactive",
-        "maintenance",
-        "retired",
-        "missing",
-        "damaged",
-      ],
-      device_type: [
-        "laptop",
-        "desktop",
-        "server",
-        "monitor",
-        "tablet",
-        "smartphone",
-        "network_switch",
-        "router",
-        "printer",
-        "scanner",
-        "projector",
-        "other",
-      ],
-      request_status: ["pending", "approved", "denied", "completed"],
-      request_type: ["assignment", "maintenance", "replacement", "return"],
+      user_role: ["admin", "employee"],
     },
   },
 } as const
