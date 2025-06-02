@@ -26,6 +26,7 @@ const SimpleAddAssetForm = ({ onClose, onAssetCreated }: SimpleAddAssetFormProps
     serial_number: '',
     status: 'active',
     location: '',
+    assigned_to: '',
     purchase_price: '',
     purchase_date: '',
     warranty_expiry: '',
@@ -119,6 +120,7 @@ const SimpleAddAssetForm = ({ onClose, onAssetCreated }: SimpleAddAssetFormProps
         serial_number: formData.serial_number.trim(),
         status: formData.status,
         location: formData.location.trim() || null,
+        assigned_to: formData.assigned_to.trim() || null,
         purchase_price: formData.purchase_price ? parseFloat(formData.purchase_price) : null,
         purchase_date: formData.purchase_date || null,
         warranty_expiry: formData.warranty_expiry || null,
@@ -140,6 +142,7 @@ const SimpleAddAssetForm = ({ onClose, onAssetCreated }: SimpleAddAssetFormProps
         serial_number: '',
         status: 'active',
         location: '',
+        assigned_to: '',
         purchase_price: '',
         purchase_date: '',
         warranty_expiry: '',
@@ -275,6 +278,15 @@ const SimpleAddAssetForm = ({ onClose, onAssetCreated }: SimpleAddAssetFormProps
           {/* Additional Fields */}
           <div className="grid grid-cols-2 gap-4">
             <div>
+              <Label htmlFor="assigned_to">Assigned To</Label>
+              <Input
+                id="assigned_to"
+                value={formData.assigned_to}
+                onChange={(e) => handleInputChange('assigned_to', e.target.value)}
+                placeholder="Employee name"
+              />
+            </div>
+            <div>
               <Label htmlFor="purchase_price">Purchase Price</Label>
               <Input
                 id="purchase_price"
@@ -285,6 +297,9 @@ const SimpleAddAssetForm = ({ onClose, onAssetCreated }: SimpleAddAssetFormProps
                 placeholder="0.00"
               />
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="purchase_date">Purchase Date</Label>
               <Input
@@ -294,16 +309,15 @@ const SimpleAddAssetForm = ({ onClose, onAssetCreated }: SimpleAddAssetFormProps
                 onChange={(e) => handleInputChange('purchase_date', e.target.value)}
               />
             </div>
-          </div>
-
-          <div>
-            <Label htmlFor="warranty_expiry">Warranty Expiry</Label>
-            <Input
-              id="warranty_expiry"
-              type="date"
-              value={formData.warranty_expiry}
-              onChange={(e) => handleInputChange('warranty_expiry', e.target.value)}
-            />
+            <div>
+              <Label htmlFor="warranty_expiry">Warranty Expiry</Label>
+              <Input
+                id="warranty_expiry"
+                type="date"
+                value={formData.warranty_expiry}
+                onChange={(e) => handleInputChange('warranty_expiry', e.target.value)}
+              />
+            </div>
           </div>
 
           <div>

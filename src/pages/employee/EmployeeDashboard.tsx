@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -102,32 +101,6 @@ const EmployeeDashboard = () => {
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
-  };
-
-  // Create a dummy asset for the request modal
-  const dummyAsset = {
-    id: 'new-request',
-    brand: 'New',
-    model: 'Asset Request',
-    serial_number: 'N/A',
-    device_type: 'general'
-  };
-
-  const handleAssetRequest = async (requestData: {
-    asset_id: string;
-    request_type: string;
-    description: string;
-  }) => {
-    const success = await EmployeeService.createAssetRequest({
-      request_type: requestData.request_type,
-      description: requestData.description
-    });
-    
-    if (success) {
-      loadData(); // Refresh data
-    }
-    
-    return success;
   };
 
   if (loading) {
@@ -268,8 +241,8 @@ const EmployeeDashboard = () => {
                       className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                     >
                       <div>
-                        <p className="font-medium text-sm">{request.request_type}</p>
-                        <p className="text-xs text-gray-500">{new Date(request.requested_at).toLocaleDateString()}</p>
+                        <p className="font-medium text-sm">{request.asset_type}</p>
+                        <p className="text-xs text-gray-500">{new Date(request.requested_date).toLocaleDateString()}</p>
                       </div>
                       {getStatusBadge(request.status)}
                     </motion.div>
@@ -338,10 +311,9 @@ const EmployeeDashboard = () => {
 
       {/* Modals */}
       <AssetRequestModal
-        open={showRequestModal}
-        onOpenChange={setShowRequestModal}
-        asset={dummyAsset}
-        onRequestSubmit={handleAssetRequest}
+        isOpen={showRequestModal}
+        onClose={() => setShowRequestModal(false)}
+        onSuccess={loadData}
       />
       
       <ProfileUpdateModal

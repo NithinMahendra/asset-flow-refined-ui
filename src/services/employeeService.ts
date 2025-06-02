@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { LocalAssetService, LocalAsset } from './localAssetService';
 
@@ -54,7 +53,7 @@ export class EmployeeService {
       return null;
     }
 
-    return data as EmployeeProfile;
+    return data;
   }
 
   static async updateEmployeeProfile(updates: Partial<EmployeeProfile>): Promise<boolean> {
@@ -143,7 +142,7 @@ export class EmployeeService {
           .eq('assigned_to', user.id);
 
         if (!error && data) {
-          dbAssets = data as MyAsset[];
+          dbAssets = data;
         }
       }
       
@@ -187,7 +186,7 @@ export class EmployeeService {
         .order('requested_at', { ascending: false });
 
       if (error) throw error;
-      return (data || []) as AssetRequest[];
+      return data || [];
     } catch (error) {
       console.error('Error fetching my requests:', error);
       return [];
@@ -207,26 +206,12 @@ export class EmployeeService {
         .from('asset_requests')
         .insert({
           user_id: user.id,
-          request_type: requestData.request_type,
+          request_type: requestData.request_type as any,
           description: requestData.description,
           asset_id: requestData.asset_id
         });
 
       if (error) throw error;
-
-      // Log activity
-      await supabase
-        .from('activity_log')
-        .insert({
-          asset_id: requestData.asset_id,
-          user_id: user.id,
-          action: 'Asset Request Created',
-          details: {
-            request_type: requestData.request_type,
-            description: requestData.description
-          }
-        });
-
       return true;
     } catch (error) {
       console.error('Error creating asset request:', error);
@@ -360,7 +345,7 @@ export class EmployeeService {
         .single();
 
       if (error) throw error;
-      return data as MyAsset;
+      return data;
     } catch (error) {
       console.error('Error fetching asset by QR code:', error);
       return null;

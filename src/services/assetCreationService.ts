@@ -1,13 +1,14 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { EmployeeService } from './employeeService';
+import { Database } from '@/integrations/supabase/types';
 
 export interface CreateAssetData {
-  device_type: string;
+  device_type: Database['public']['Enums']['device_type'];
   brand: string;
   model: string;
   serial_number: string;
-  status: string;
+  status: Database['public']['Enums']['asset_status'];
   location?: string;
   assigned_to?: string;
   purchase_price?: number;
@@ -22,29 +23,10 @@ export class AssetCreationService {
     try {
       console.log('Creating asset in database:', assetData);
       
-      // Transform data to match the database schema
-      const dbAssetData = {
-        name: `${assetData.brand} ${assetData.model}`,
-        category: assetData.device_type || 'Other',
-        device_type: assetData.device_type,
-        brand: assetData.brand,
-        model: assetData.model,
-        serial_number: assetData.serial_number,
-        status: assetData.status,
-        location: assetData.location,
-        // Only include assigned_to if it's a valid UUID, otherwise leave it null
-        assigned_to: null, // Set to null for now to avoid UUID validation errors
-        value: assetData.purchase_price,
-        purchase_date: assetData.purchase_date || new Date().toISOString().split('T')[0],
-        warranty_expiry: assetData.warranty_expiry,
-        description: assetData.notes,
-        qr_code: assetData.qr_code
-      };
-
       // Step 1: Create asset in database
       const { data: createdAsset, error: createError } = await supabase
         .from('assets')
-        .insert(dbAssetData)
+        .insert(assetData)
         .select()
         .single();
 

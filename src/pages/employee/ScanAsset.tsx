@@ -1,13 +1,13 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, QrCode, Camera, CheckCircle, AlertTriangle, Package, Send } from 'lucide-react';
+import { ArrowLeft, QrCode, Camera, CheckCircle, AlertTriangle, Package } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import QrScanner from 'qr-scanner';
 import { EmployeeService } from '@/services/employeeService';
-import AssetRequestModal from '@/components/employee/AssetRequestModal';
 import { toast } from 'sonner';
 
 const ScanAsset = () => {
@@ -18,7 +18,6 @@ const ScanAsset = () => {
   const [scannedAsset, setScannedAsset] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
-  const [showRequestModal, setShowRequestModal] = useState(false);
 
   // Cleanup scanner on unmount
   useEffect(() => {
@@ -191,20 +190,6 @@ const ScanAsset = () => {
     }
   };
 
-  const handleRequestAsset = async (requestData: {
-    asset_id: string;
-    request_type: string;
-    description: string;
-  }) => {
-    try {
-      const success = await EmployeeService.createAssetRequest(requestData);
-      return success;
-    } catch (error) {
-      console.error('Error creating asset request:', error);
-      return false;
-    }
-  };
-
   const resetScan = () => {
     setScannedAsset(null);
     setCameraError(null);
@@ -217,10 +202,6 @@ const ScanAsset = () => {
     setTimeout(() => {
       startScanning();
     }, 500);
-  };
-
-  const isAssetAvailable = () => {
-    return scannedAsset && !scannedAsset.assigned_to && scannedAsset.status === 'active';
   };
 
   return (
@@ -366,8 +347,8 @@ const ScanAsset = () => {
                           {scannedAsset.device_type?.replace('_', ' ')}
                         </p>
                         <div className="flex items-center space-x-4 mt-2">
-                          <Badge className={scannedAsset.assigned_to ? "bg-yellow-100 text-yellow-800 border-yellow-200" : "bg-green-100 text-green-800 border-green-200"}>
-                            {scannedAsset.assigned_to ? 'Assigned' : 'Available'}
+                          <Badge className="bg-green-100 text-green-800 border-green-200">
+                            {scannedAsset.status}
                           </Badge>
                           <span className="text-sm text-gray-500 font-mono">
                             {scannedAsset.serial_number}
@@ -389,45 +370,23 @@ const ScanAsset = () => {
                   </div>
 
                   <div className="flex space-x-3">
-                    {isAssetAvailable() ? (
-                      <>
-                        <Button
-                          onClick={() => setShowRequestModal(true)}
-                          disabled={isProcessing}
-                          className="flex-1 bg-blue-600 hover:bg-blue-700"
-                        >
-                          <Send className="h-4 w-4 mr-2" />
-                          Request Asset
-                        </Button>
-                        <Button
-                          onClick={handleAddToMyAssets}
-                          disabled={isProcessing}
-                          variant="outline"
-                          className="flex-1"
-                        >
-                          {isProcessing ? (
-                            <>
-                              <div className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin mr-2"></div>
-                              Adding...
-                            </>
-                          ) : (
-                            <>
-                              <Package className="h-4 w-4 mr-2" />
-                              Add to My Assets
-                            </>
-                          )}
-                        </Button>
-                      </>
-                    ) : (
-                      <Button
-                        onClick={() => setShowRequestModal(true)}
-                        disabled={isProcessing}
-                        className="flex-1 bg-blue-600 hover:bg-blue-700"
-                      >
-                        <Send className="h-4 w-4 mr-2" />
-                        Request Asset
-                      </Button>
-                    )}
+                    <Button
+                      onClick={handleAddToMyAssets}
+                      disabled={isProcessing}
+                      className="flex-1 bg-green-600 hover:bg-green-700"
+                    >
+                      {isProcessing ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                          Adding...
+                        </>
+                      ) : (
+                        <>
+                          <Package className="h-4 w-4 mr-2" />
+                          Add to My Assets
+                        </>
+                      )}
+                    </Button>
                     <Button
                       variant="outline"
                       onClick={resetScan}
@@ -442,14 +401,6 @@ const ScanAsset = () => {
           )}
         </div>
       </div>
-
-      {/* Asset Request Modal */}
-      <AssetRequestModal
-        open={showRequestModal}
-        onOpenChange={setShowRequestModal}
-        asset={scannedAsset}
-        onRequestSubmit={handleRequestAsset}
-      />
     </div>
   );
 };

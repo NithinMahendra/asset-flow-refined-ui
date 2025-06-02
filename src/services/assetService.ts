@@ -1,4 +1,10 @@
+
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
+
+type Asset = Database['public']['Tables']['assets']['Row'];
+type AssetInsert = Database['public']['Tables']['assets']['Insert'];
+type AssetUpdate = Database['public']['Tables']['assets']['Update'];
 
 export interface CreateAssetData {
   device_type: string;
@@ -15,46 +21,38 @@ export interface CreateAssetData {
 }
 
 export class AssetService {
-  static async createAsset(assetData: CreateAssetData): Promise<{ success: boolean; asset?: any; error?: string }> {
+  static async createAsset(assetData: CreateAssetData): Promise<Asset | undefined> {
     console.log('🎯 AssetService: Creating asset with data:', assetData);
     
     try {
-      // Transform data to match database schema
-      const dbData = {
-        name: `${assetData.brand} ${assetData.model}`,
-        category: assetData.device_type || 'Other',
-        device_type: assetData.device_type,
-        brand: assetData.brand,
-        model: assetData.model,
-        serial_number: assetData.serial_number,
-        status: assetData.status || 'active',
-        location: assetData.location,
-        assigned_to: null, // Set to null to avoid UUID validation issues
-        value: assetData.purchase_price,
-        purchase_date: assetData.purchase_date || new Date().toISOString().split('T')[0],
-        warranty_expiry: assetData.warranty_expiry,
-        description: assetData.notes
-      };
-
       const { data, error } = await supabase
         .from('assets')
-        .insert(dbData)
+        .insert({
+          device_type: assetData.device_type as any,
+          brand: assetData.brand,
+          model: assetData.model,
+          serial_number: assetData.serial_number,
+          status: (assetData.status as any) || 'active',
+          location: assetData.location,
+          assigned_to: assetData.assigned_to,
+          purchase_price: assetData.purchase_price,
+          purchase_date: assetData.purchase_date,
+          warranty_expiry: assetData.warranty_expiry,
+          notes: assetData.notes
+        })
         .select()
         .single();
 
       if (error) {
-        console.error('❌ AssetService: Database error:', error);
-        return { success: false, error: error.message };
+        console.error('❌ AssetService: Error creating asset:', error);
+        throw error;
       }
 
       console.log('✅ AssetService: Asset created successfully:', data);
-      return { success: true, asset: data };
+      return data;
     } catch (error) {
-      console.error('❌ AssetService: Unexpected error:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error occurred' 
-      };
+      console.error('❌ AssetService: Exception during asset creation:', error);
+      throw error;
     }
   }
 
