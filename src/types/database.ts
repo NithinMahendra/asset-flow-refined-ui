@@ -1,5 +1,4 @@
 
-
 // Updated type definitions for asset management tables
 // These match the actual database schema that was just created
 
@@ -80,4 +79,3 @@ export interface EmployeeProfile {
   email: string;
   created_at?: string;
 }
-

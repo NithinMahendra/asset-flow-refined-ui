@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { LocalAssetService, LocalAsset } from './localAssetService';
 
@@ -43,7 +44,7 @@ export class EmployeeService {
     if (!user) return null;
 
     const { data, error } = await supabase
-      .from('employee_profiles')
+      .from('employee_profiles' as any)
       .select('*')
       .eq('user_id', user.id)
       .single();
@@ -61,7 +62,7 @@ export class EmployeeService {
     if (!user) return false;
 
     const { error } = await supabase
-      .from('employee_profiles')
+      .from('employee_profiles' as any)
       .update(updates)
       .eq('user_id', user.id);
 
@@ -92,20 +93,20 @@ export class EmployeeService {
 
       // Count pending requests
       const { count: pendingRequests } = await supabase
-        .from('asset_requests')
+        .from('asset_requests' as any)
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id)
         .eq('status', 'pending');
 
       // Count total requests
       const { count: totalRequests } = await supabase
-        .from('asset_requests')
+        .from('asset_requests' as any)
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id);
 
       // Count unread notifications
       const { count: unreadNotifications } = await supabase
-        .from('notifications')
+        .from('notifications' as any)
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id)
         .eq('is_read', false);
@@ -180,7 +181,7 @@ export class EmployeeService {
 
     try {
       const { data, error } = await supabase
-        .from('asset_requests')
+        .from('asset_requests' as any)
         .select('*')
         .eq('user_id', user.id)
         .order('requested_at', { ascending: false });
@@ -203,15 +204,29 @@ export class EmployeeService {
 
     try {
       const { error } = await supabase
-        .from('asset_requests')
+        .from('asset_requests' as any)
         .insert({
           user_id: user.id,
-          request_type: requestData.request_type as any,
+          request_type: requestData.request_type,
           description: requestData.description,
           asset_id: requestData.asset_id
         });
 
       if (error) throw error;
+
+      // Log activity
+      await supabase
+        .from('activity_log' as any)
+        .insert({
+          asset_id: requestData.asset_id,
+          user_id: user.id,
+          action: 'Asset Request Created',
+          details: {
+            request_type: requestData.request_type,
+            description: requestData.description
+          }
+        });
+
       return true;
     } catch (error) {
       console.error('Error creating asset request:', error);
@@ -226,7 +241,7 @@ export class EmployeeService {
     try {
       // Use "assignment" instead of "transfer" as it's a valid enum value
       const { error } = await supabase
-        .from('asset_requests')
+        .from('asset_requests' as any)
         .insert({
           user_id: user.id,
           request_type: 'assignment',
@@ -260,7 +275,7 @@ export class EmployeeService {
 
       // Log the assignment activity with simplified details
       const { error: logError } = await supabase
-        .from('activity_log')
+        .from('activity_log' as any)
         .insert({
           asset_id: assetId,
           user_id: user.id,

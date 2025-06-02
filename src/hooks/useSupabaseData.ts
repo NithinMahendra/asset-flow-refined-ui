@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { 
@@ -69,11 +70,11 @@ export const useSupabaseData = () => {
       // Load data with error handling for missing tables
       const results = await Promise.allSettled([
         supabase.from('assets').select('*').order('created_at', { ascending: false }),
-        supabase.from('asset_requests').select('*').order('requested_at', { ascending: false }),
-        supabase.from('asset_assignments').select('*').order('assigned_at', { ascending: false }),
-        supabase.from('activity_log').select('*').order('timestamp', { ascending: false }),
-        supabase.from('notifications').select('*').order('created_at', { ascending: false }),
-        supabase.from('employee_profiles').select('*').order('created_at', { ascending: false })
+        supabase.from('asset_requests' as any).select('*').order('requested_at', { ascending: false }),
+        supabase.from('asset_assignments' as any).select('*').order('assigned_at', { ascending: false }),
+        supabase.from('activity_log' as any).select('*').order('timestamp', { ascending: false }),
+        supabase.from('notifications' as any).select('*').order('created_at', { ascending: false }),
+        supabase.from('employee_profiles' as any).select('*').order('created_at', { ascending: false })
       ]);
 
       // Handle assets
@@ -221,7 +222,7 @@ export const useSupabaseData = () => {
         
         // Log activity
         await supabase
-          .from('activity_log')
+          .from('activity_log' as any)
           .insert({
             asset_id: data.id,
             action: 'Asset Created',
@@ -302,6 +303,138 @@ export const useSupabaseData = () => {
     }
   };
 
+  const createAssetRequest = async (requestData: {
+    asset_id?: string;
+    request_type: string;
+    description: string;
+  }): Promise<boolean> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const { error } = await supabase
+        .from('asset_requests' as any)
+        .insert({
+          user_id: user.id,
+          asset_id: requestData.asset_id,
+          request_type: requestData.request_type,
+          description: requestData.description
+        });
+
+      if (error) throw error;
+      
+      await loadData(); // Refresh data
+      return true;
+    } catch (error) {
+      console.error('Error creating asset request:', error);
+      return false;
+    }
+  };
+
+  const approveAssetRequest = async (requestId: string): Promise<boolean> => {
+    try {
+      // Get the request details
+      const { data: request, error: requestError } = await supabase
+        .from('asset_requests' as any)
+        .select('*')
+        .eq('id', requestId)
+        .single();
+
+      if (requestError || !request) throw new Error('Request not found');
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      // Update request status
+      const { error: updateError } = await supabase
+        .from('asset_requests' as any)
+        .update({
+          status: 'approved',
+          processed_at: new Date().toISOString(),
+          processed_by: user.id
+        })
+        .eq('id', requestId);
+
+      if (updateError) throw updateError;
+
+      // If this is an assignment request, assign the asset
+      if (request.request_type === 'assignment' && request.asset_id) {
+        // Update asset assignment
+        const { error: assetError } = await supabase
+          .from('assets')
+          .update({
+            assigned_to: request.user_id,
+            status: 'active'
+          })
+          .eq('id', request.asset_id);
+
+        if (assetError) throw assetError;
+
+        // Create assignment record
+        await supabase
+          .from('asset_assignments' as any)
+          .insert({
+            asset_id: request.asset_id,
+            user_id: request.user_id,
+            assigned_by: user.id
+          });
+
+        // Log activity
+        await supabase
+          .from('activity_log' as any)
+          .insert({
+            asset_id: request.asset_id,
+            user_id: request.user_id,
+            action: 'Asset Assigned',
+            details: { 
+              request_id: requestId,
+              approved_by: user.id
+            }
+          });
+
+        // Create notification for employee
+        await supabase
+          .from('notifications' as any)
+          .insert({
+            user_id: request.user_id,
+            title: 'Asset Request Approved',
+            message: 'Your asset request has been approved and the asset has been assigned to you.',
+            type: 'success'
+          });
+      }
+
+      await loadData(); // Refresh data
+      return true;
+    } catch (error) {
+      console.error('Error approving asset request:', error);
+      return false;
+    }
+  };
+
+  const rejectAssetRequest = async (requestId: string): Promise<boolean> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const { error } = await supabase
+        .from('asset_requests' as any)
+        .update({
+          status: 'rejected',
+          processed_at: new Date().toISOString(),
+          processed_by: user.id
+        })
+        .eq('id', requestId);
+
+      if (error) throw error;
+
+      await loadData(); // Refresh data
+      return true;
+    } catch (error) {
+      console.error('Error rejecting asset request:', error);
+      return false;
+    }
+  };
+
   const addUser = async (user: Omit<User, 'id'>): Promise<void> => {
     console.log('Adding user:', user);
   };
@@ -313,7 +446,7 @@ export const useSupabaseData = () => {
   const addNotification = async (notification: Omit<Notification, 'id' | 'created_at' | 'is_read'>): Promise<void> => {
     try {
       const { error } = await supabase
-        .from('notifications')
+        .from('notifications' as any)
         .insert(notification);
 
       if (error) throw error;
@@ -327,7 +460,7 @@ export const useSupabaseData = () => {
   const markNotificationAsRead = async (id: string): Promise<void> => {
     try {
       const { error } = await supabase
-        .from('notifications')
+        .from('notifications' as any)
         .update({ is_read: true })
         .eq('id', id);
 
@@ -337,6 +470,15 @@ export const useSupabaseData = () => {
       console.error('Error marking notification as read:', error);
       throw error;
     }
+  };
+
+  // Legacy functions for compatibility
+  const approveAssignmentRequest = async (id: string): Promise<void> => {
+    await approveAssetRequest(id);
+  };
+
+  const declineAssignmentRequest = async (id: string): Promise<void> => {
+    await rejectAssetRequest(id);
   };
 
   // Statistics functions with error handling
@@ -423,6 +565,15 @@ export const useSupabaseData = () => {
     addAssignment,
     addNotification,
     markNotificationAsRead,
+    
+    // New request operations
+    createAssetRequest,
+    approveAssetRequest,
+    rejectAssetRequest,
+    
+    // Legacy operations for compatibility
+    approveAssignmentRequest,
+    declineAssignmentRequest,
     
     // Statistics
     getAssetStats,

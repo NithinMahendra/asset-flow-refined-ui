@@ -27,7 +27,8 @@ import {
   Trash2,
   Eye
 } from 'lucide-react';
-import { useAdminData } from '@/contexts/AdminDataContext';
+import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { toast } from 'sonner';
 
 const AssignmentsContent = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -36,13 +37,14 @@ const AssignmentsContent = () => {
 
   const { 
     assignments, 
-    assignmentRequests, 
+    assetRequests,
     assets, 
     users,
     addAssignment,
-    approveAssignmentRequest,
-    declineAssignmentRequest 
-  } = useAdminData();
+    approveAssetRequest,
+    rejectAssetRequest,
+    loading
+  } = useSupabaseData();
 
   // Filter assignments based on search and status
   const filteredAssignments = assignments.filter(assignment => {
@@ -56,12 +58,14 @@ const AssignmentsContent = () => {
     return matchesSearch && matchesStatus;
   });
 
-  // Filter assignment requests
-  const filteredRequests = assignmentRequests.filter(request => 
-    request.employee_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    request.requested_asset.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    request.department.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter asset requests
+  const filteredRequests = assetRequests.filter(request => {
+    if (!searchQuery) return true;
+    
+    // For now, just filter by description since we don't have employee names in the basic structure
+    return request.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           request.request_type.toLowerCase().includes(searchQuery.toLowerCase());
+  });
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -77,7 +81,7 @@ const AssignmentsContent = () => {
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300';
       case 'approved':
         return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
-      case 'declined':
+      case 'rejected':
         return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
       default:
         return 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300';
@@ -110,11 +114,53 @@ const AssignmentsContent = () => {
     }
   };
 
+  const handleApproveRequest = async (requestId: string) => {
+    try {
+      const success = await approveAssetRequest(requestId);
+      if (success) {
+        toast.success('Request approved and asset assigned successfully!');
+      } else {
+        toast.error('Failed to approve request. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error approving request:', error);
+      toast.error('An error occurred while approving the request.');
+    }
+  };
+
+  const handleRejectRequest = async (requestId: string) => {
+    try {
+      const success = await rejectAssetRequest(requestId);
+      if (success) {
+        toast.success('Request rejected successfully.');
+      } else {
+        toast.error('Failed to reject request. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error rejecting request:', error);
+      toast.error('An error occurred while rejecting the request.');
+    }
+  };
+
+  const getAssetName = (assetId?: string) => {
+    if (!assetId) return 'No specific asset';
+    const asset = assets.find(a => a.id === assetId);
+    return asset ? `${asset.brand || 'Unknown'} ${asset.model || 'Asset'}` : 'Unknown Asset';
+  };
+
   // Statistics
   const activeAssignments = assignments.filter(a => a.status === 'Active').length;
   const pendingReturns = assignments.filter(a => a.status === 'Pending Return').length;
   const overdueAssignments = assignments.filter(a => a.status === 'Overdue').length;
-  const pendingRequests = assignmentRequests.filter(r => r.status === 'Pending').length;
+  const pendingRequests = assetRequests.filter(r => r.status === 'pending').length;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -217,15 +263,103 @@ const AssignmentsContent = () => {
         </Select>
       </div>
 
-      <Tabs defaultValue="assignments" className="space-y-4">
+      <Tabs defaultValue="requests" className="space-y-4">
         <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="requests">
+            Asset Requests ({filteredRequests.length})
+          </TabsTrigger>
           <TabsTrigger value="assignments">
             Current Assignments ({filteredAssignments.length})
           </TabsTrigger>
-          <TabsTrigger value="requests">
-            Assignment Requests ({filteredRequests.length})
-          </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="requests" className="space-y-4">
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-slate-50 dark:bg-slate-800">
+                    <TableHead className="font-semibold">Request Type</TableHead>
+                    <TableHead className="font-semibold">Asset</TableHead>
+                    <TableHead className="font-semibold">Description</TableHead>
+                    <TableHead className="font-semibold">Request Date</TableHead>
+                    <TableHead className="font-semibold">Status</TableHead>
+                    <TableHead className="font-semibold">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredRequests.map((request) => (
+                    <TableRow key={request.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                      <TableCell>
+                        <Badge className="capitalize">
+                          {request.request_type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{getAssetName(request.asset_id)}</p>
+                          {request.asset_id && (
+                            <p className="text-sm text-slate-500">ID: {request.asset_id}</p>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="max-w-xs">
+                        <p className="text-sm text-slate-600 dark:text-slate-400 truncate">
+                          {request.description}
+                        </p>
+                      </TableCell>
+                      <TableCell className="text-slate-600 dark:text-slate-400">
+                        {new Date(request.requested_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getStatusColor(request.status)}>
+                          {request.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {request.status === 'pending' ? (
+                          <div className="flex items-center space-x-1">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="text-green-600 border-green-600 hover:bg-green-50"
+                              onClick={() => handleApproveRequest(request.id)}
+                            >
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              Approve
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="text-red-600 border-red-600 hover:bg-red-50"
+                              onClick={() => handleRejectRequest(request.id)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Reject
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-1">
+                            <Button variant="ghost" size="sm">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {filteredRequests.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8 text-slate-500">
+                        No asset requests found
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="assignments" className="space-y-4">
           <Card>
@@ -293,94 +427,13 @@ const AssignmentsContent = () => {
                       </TableCell>
                     </TableRow>
                   ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="requests" className="space-y-4">
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-slate-50 dark:bg-slate-800">
-                    <TableHead className="font-semibold">Employee</TableHead>
-                    <TableHead className="font-semibold">Requested Asset</TableHead>
-                    <TableHead className="font-semibold">Department</TableHead>
-                    <TableHead className="font-semibold">Request Date</TableHead>
-                    <TableHead className="font-semibold">Priority</TableHead>
-                    <TableHead className="font-semibold">Manager</TableHead>
-                    <TableHead className="font-semibold">Status</TableHead>
-                    <TableHead className="font-semibold">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredRequests.map((request) => (
-                    <TableRow key={request.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{request.employee_name}</p>
-                          <p className="text-sm text-slate-500">{request.employee_email}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{request.requested_asset}</p>
-                          <p className="text-sm text-slate-500">{request.justification}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-slate-600 dark:text-slate-400">
-                        {request.department}
-                      </TableCell>
-                      <TableCell className="text-slate-600 dark:text-slate-400">
-                        {new Date(request.request_date).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getPriorityColor(request.priority)}>
-                          {request.priority}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-slate-600 dark:text-slate-400">
-                        {request.manager_name}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getStatusColor(request.status)}>
-                          {request.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {request.status === 'Pending' ? (
-                          <div className="flex items-center space-x-1">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              className="text-green-600 border-green-600 hover:bg-green-50"
-                              onClick={() => approveAssignmentRequest(request.id)}
-                            >
-                              <CheckCircle className="h-4 w-4 mr-1" />
-                              Approve
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              className="text-red-600 border-red-600 hover:bg-red-50"
-                              onClick={() => declineAssignmentRequest(request.id)}
-                            >
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              Decline
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center space-x-1">
-                            <Button variant="ghost" size="sm">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        )}
+                  {filteredAssignments.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8 text-slate-500">
+                        No assignments found
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
@@ -417,7 +470,7 @@ const AssignmentsContent = () => {
                   <SelectValue placeholder="Select asset" />
                 </SelectTrigger>
                 <SelectContent>
-                  {assets.filter(asset => asset.assignee === '-').map((asset) => (
+                  {assets.filter(asset => !asset.assigned_to).map((asset) => (
                     <SelectItem key={asset.id} value={asset.id}>
                       {asset.name} - {asset.serial_number}
                     </SelectItem>
