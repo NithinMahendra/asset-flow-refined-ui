@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { 
@@ -67,103 +66,152 @@ export const useSupabaseData = () => {
       setLoading(true);
       setError(null);
 
-      // Load data with error handling for missing tables
-      const results = await Promise.allSettled([
-        supabase.from('assets').select('*').order('created_at', { ascending: false }),
-        supabase.from('asset_requests' as any).select('*').order('requested_at', { ascending: false }),
-        supabase.from('asset_assignments' as any).select('*').order('assigned_at', { ascending: false }),
-        supabase.from('activity_log' as any).select('*').order('timestamp', { ascending: false }),
-        supabase.from('notifications' as any).select('*').order('created_at', { ascending: false }),
-        supabase.from('employee_profiles' as any).select('*').order('created_at', { ascending: false })
-      ]);
+      // Load assets with error handling
+      try {
+        const { data: assetsData, error: assetsError } = await supabase
+          .from('assets')
+          .select('*')
+          .order('created_at', { ascending: false });
 
-      // Handle assets
-      if (results[0].status === 'fulfilled' && !results[0].value.error) {
-        const assetsData = results[0].value.data || [];
-        // Transform data to include legacy fields
-        const transformedAssets = assetsData.map((asset: any) => ({
-          ...asset,
-          name: `${asset.brand || 'Unknown'} ${asset.model || 'Asset'}`,
-          category: asset.device_type || 'Unknown',
-          assignee: asset.assigned_to || 'Unassigned',
-          value: asset.purchase_price || 0,
-          last_updated: asset.updated_at || asset.created_at
-        }));
-        setAssets(transformedAssets);
-        console.log('✅ Assets loaded successfully:', transformedAssets.length);
-      } else {
-        console.error('Error loading assets:', results[0].status === 'fulfilled' ? results[0].value.error : results[0].reason);
+        if (assetsError) {
+          console.error('Error loading assets:', assetsError);
+          setAssets([]);
+        } else {
+          // Transform data to include legacy fields and handle missing properties
+          const transformedAssets = (assetsData || []).map((asset: any) => ({
+            ...asset,
+            // Legacy fields
+            name: asset.name || `${asset.brand || 'Unknown'} ${asset.model || 'Asset'}`,
+            category: asset.category || asset.device_type || 'Unknown',
+            assignee: asset.assigned_to || 'Unassigned',
+            value: asset.value || 0,
+            last_updated: asset.created_at, // Use created_at as fallback
+            // Ensure required fields exist
+            purchase_price: asset.value || 0,
+            updated_at: asset.created_at // Use created_at as fallback
+          }));
+          setAssets(transformedAssets);
+          console.log('✅ Assets loaded successfully:', transformedAssets.length);
+        }
+      } catch (err) {
+        console.error('Error in assets query:', err);
         setAssets([]);
       }
 
-      // Handle asset requests
-      if (results[1].status === 'fulfilled' && !results[1].value.error) {
-        setAssetRequests(results[1].value.data || []);
-        console.log('✅ Asset requests loaded successfully:', results[1].value.data?.length || 0);
-      } else {
-        console.error('Error loading asset requests:', results[1].status === 'fulfilled' ? results[1].value.error : results[1].reason);
+      // Load asset requests with error handling
+      try {
+        const { data: requestsData, error: requestsError } = await supabase
+          .from('asset_requests')
+          .select('*')
+          .order('requested_at', { ascending: false });
+
+        if (requestsError) {
+          console.error('Error loading asset requests:', requestsError);
+          setAssetRequests([]);
+        } else {
+          setAssetRequests(requestsData || []);
+          console.log('✅ Asset requests loaded successfully:', requestsData?.length || 0);
+        }
+      } catch (err) {
+        console.error('Error in asset requests query:', err);
         setAssetRequests([]);
       }
 
-      // Handle asset assignments
-      if (results[2].status === 'fulfilled' && !results[2].value.error) {
-        setAssetAssignments(results[2].value.data || []);
-        console.log('✅ Asset assignments loaded successfully:', results[2].value.data?.length || 0);
-      } else {
-        console.error('Error loading asset assignments:', results[2].status === 'fulfilled' ? results[2].value.error : results[2].reason);
+      // Load asset assignments with error handling
+      try {
+        const { data: assignmentsData, error: assignmentsError } = await supabase
+          .from('asset_assignments')
+          .select('*')
+          .order('assigned_at', { ascending: false });
+
+        if (assignmentsError) {
+          console.error('Error loading asset assignments:', assignmentsError);
+          setAssetAssignments([]);
+        } else {
+          setAssetAssignments(assignmentsData || []);
+          console.log('✅ Asset assignments loaded successfully:', assignmentsData?.length || 0);
+        }
+      } catch (err) {
+        console.error('Error in asset assignments query:', err);
         setAssetAssignments([]);
       }
 
-      // Handle activity log with better error handling and data sanitization
-      if (results[3].status === 'fulfilled' && !results[3].value.error) {
-        const activityData = results[3].value.data || [];
-        // Transform data to include legacy fields and safely handle details
-        const transformedActivity = activityData.map((activity: any) => {
-          // Ensure details is safe for React rendering
-          let safeDetails = activity.details;
-          if (safeDetails && typeof safeDetails === 'object') {
-            // Keep the object structure but ensure it's properly handled later
-            safeDetails = { ...safeDetails };
-          }
-          
-          return {
-            ...activity,
-            type: activity.action?.toLowerCase().includes('assignment') ? 'assignment' :
-                  activity.action?.toLowerCase().includes('maintenance') ? 'maintenance' :
-                  activity.action?.toLowerCase().includes('addition') ? 'addition' : 'general',
-            details: safeDetails,
-            action: activity.action || 'Unknown Action',
-            timestamp: activity.timestamp || new Date().toISOString()
-          };
-        });
-        setActivityLog(transformedActivity);
-        console.log('✅ Activity log loaded successfully:', transformedActivity.length);
-      } else {
-        console.error('Error loading activity log:', results[3].status === 'fulfilled' ? results[3].value.error : results[3].reason);
+      // Load activity log with error handling
+      try {
+        const { data: activityData, error: activityError } = await supabase
+          .from('activity_log')
+          .select('*')
+          .order('timestamp', { ascending: false });
+
+        if (activityError) {
+          console.error('Error loading activity log:', activityError);
+          setActivityLog([]);
+        } else {
+          // Transform data to include legacy fields and safely handle details
+          const transformedActivity = (activityData || []).map((activity: any) => {
+            let safeDetails = activity.details;
+            if (safeDetails && typeof safeDetails === 'object') {
+              safeDetails = { ...safeDetails };
+            }
+            
+            return {
+              ...activity,
+              type: activity.action?.toLowerCase().includes('assignment') ? 'assignment' :
+                    activity.action?.toLowerCase().includes('maintenance') ? 'maintenance' :
+                    activity.action?.toLowerCase().includes('addition') ? 'addition' : 'general',
+              details: safeDetails,
+              action: activity.action || 'Unknown Action',
+              timestamp: activity.timestamp || new Date().toISOString()
+            };
+          });
+          setActivityLog(transformedActivity);
+          console.log('✅ Activity log loaded successfully:', transformedActivity.length);
+        }
+      } catch (err) {
+        console.error('Error in activity log query:', err);
         setActivityLog([]);
       }
 
-      // Handle notifications
-      if (results[4].status === 'fulfilled' && !results[4].value.error) {
-        const notificationsData = results[4].value.data || [];
-        // Transform data to include legacy fields
-        const transformedNotifications = notificationsData.map((notification: any) => ({
-          ...notification,
-          timestamp: notification.created_at
-        }));
-        setNotifications(transformedNotifications);
-        console.log('✅ Notifications loaded successfully:', transformedNotifications.length);
-      } else {
-        console.error('Error loading notifications:', results[4].status === 'fulfilled' ? results[4].value.error : results[4].reason);
+      // Load notifications with error handling
+      try {
+        const { data: notificationsData, error: notificationsError } = await supabase
+          .from('notifications')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (notificationsError) {
+          console.error('Error loading notifications:', notificationsError);
+          setNotifications([]);
+        } else {
+          // Transform data to include legacy fields
+          const transformedNotifications = (notificationsData || []).map((notification: any) => ({
+            ...notification,
+            timestamp: notification.created_at
+          }));
+          setNotifications(transformedNotifications);
+          console.log('✅ Notifications loaded successfully:', transformedNotifications.length);
+        }
+      } catch (err) {
+        console.error('Error in notifications query:', err);
         setNotifications([]);
       }
 
-      // Handle employee profiles
-      if (results[5].status === 'fulfilled' && !results[5].value.error) {
-        setProfiles(results[5].value.data || []);
-        console.log('✅ Employee profiles loaded successfully:', results[5].value.data?.length || 0);
-      } else {
-        console.error('Error loading employee profiles:', results[5].status === 'fulfilled' ? results[5].value.error : results[5].reason);
+      // Load employee profiles with error handling
+      try {
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('employee_profiles')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (profilesError) {
+          console.error('Error loading employee profiles:', profilesError);
+          setProfiles([]);
+        } else {
+          setProfiles(profilesData || []);
+          console.log('✅ Employee profiles loaded successfully:', profilesData?.length || 0);
+        }
+      } catch (err) {
+        console.error('Error in employee profiles query:', err);
         setProfiles([]);
       }
 
@@ -181,6 +229,8 @@ export const useSupabaseData = () => {
       
       // Transform the data to match the database schema
       const dbAssetData = {
+        name: assetData.name || `${assetData.brand} ${assetData.model}`,
+        category: assetData.category || assetData.device_type || 'Unknown',
         device_type: assetData.device_type,
         brand: assetData.brand,
         model: assetData.model,
@@ -188,10 +238,10 @@ export const useSupabaseData = () => {
         status: assetData.status || 'active',
         location: assetData.location,
         assigned_to: assetData.assigned_to,
-        purchase_price: assetData.purchase_price,
+        value: assetData.purchase_price || assetData.value,
         purchase_date: assetData.purchase_date,
         warranty_expiry: assetData.warranty_expiry,
-        notes: assetData.notes
+        description: assetData.notes
       };
 
       const { data, error } = await supabase
@@ -211,23 +261,25 @@ export const useSupabaseData = () => {
         // Transform data to include legacy fields
         const transformedAsset = {
           ...data,
-          name: `${data.brand} ${data.model}`,
-          category: data.device_type,
+          name: data.name || `${data.brand} ${data.model}`,
+          category: data.category || data.device_type,
           assignee: data.assigned_to || 'Unassigned',
-          value: data.purchase_price,
-          last_updated: data.updated_at
+          value: data.value,
+          last_updated: data.created_at,
+          purchase_price: data.value || 0,
+          updated_at: data.created_at
         };
         
         setAssets(prev => [transformedAsset, ...prev]);
         
         // Log activity
         await supabase
-          .from('activity_log' as any)
+          .from('activity_log')
           .insert({
             asset_id: data.id,
             action: 'Asset Created',
             details: { 
-              asset_name: `${data.brand} ${data.model}`,
+              asset_name: data.name,
               serial_number: data.serial_number
             }
           });
@@ -255,10 +307,12 @@ export const useSupabaseData = () => {
       if (updates.status !== undefined) dbUpdates.status = updates.status;
       if (updates.location !== undefined) dbUpdates.location = updates.location;
       if (updates.assigned_to !== undefined) dbUpdates.assigned_to = updates.assigned_to;
-      if (updates.purchase_price !== undefined) dbUpdates.purchase_price = updates.purchase_price;
+      if (updates.purchase_price !== undefined) dbUpdates.value = updates.purchase_price;
       if (updates.purchase_date !== undefined) dbUpdates.purchase_date = updates.purchase_date;
       if (updates.warranty_expiry !== undefined) dbUpdates.warranty_expiry = updates.warranty_expiry;
-      if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
+      if (updates.notes !== undefined) dbUpdates.description = updates.notes;
+      if (updates.name !== undefined) dbUpdates.name = updates.name;
+      if (updates.category !== undefined) dbUpdates.category = updates.category;
 
       const { error } = await supabase
         .from('assets')
@@ -313,7 +367,7 @@ export const useSupabaseData = () => {
       if (!user) throw new Error('User not authenticated');
 
       const { error } = await supabase
-        .from('asset_requests' as any)
+        .from('asset_requests')
         .insert({
           user_id: user.id,
           asset_id: requestData.asset_id,
@@ -335,7 +389,7 @@ export const useSupabaseData = () => {
     try {
       // Get the request details
       const { data: request, error: requestError } = await supabase
-        .from('asset_requests' as any)
+        .from('asset_requests')
         .select('*')
         .eq('id', requestId)
         .single();
@@ -347,7 +401,7 @@ export const useSupabaseData = () => {
 
       // Update request status
       const { error: updateError } = await supabase
-        .from('asset_requests' as any)
+        .from('asset_requests')
         .update({
           status: 'approved',
           processed_at: new Date().toISOString(),
@@ -364,7 +418,8 @@ export const useSupabaseData = () => {
           .from('assets')
           .update({
             assigned_to: request.user_id,
-            status: 'active'
+            status: 'active',
+            assigned_date: new Date().toISOString()
           })
           .eq('id', request.asset_id);
 
@@ -372,7 +427,7 @@ export const useSupabaseData = () => {
 
         // Create assignment record
         await supabase
-          .from('asset_assignments' as any)
+          .from('asset_assignments')
           .insert({
             asset_id: request.asset_id,
             user_id: request.user_id,
@@ -381,7 +436,7 @@ export const useSupabaseData = () => {
 
         // Log activity
         await supabase
-          .from('activity_log' as any)
+          .from('activity_log')
           .insert({
             asset_id: request.asset_id,
             user_id: request.user_id,
@@ -394,7 +449,7 @@ export const useSupabaseData = () => {
 
         // Create notification for employee
         await supabase
-          .from('notifications' as any)
+          .from('notifications')
           .insert({
             user_id: request.user_id,
             title: 'Asset Request Approved',
@@ -417,7 +472,7 @@ export const useSupabaseData = () => {
       if (!user) throw new Error('User not authenticated');
 
       const { error } = await supabase
-        .from('asset_requests' as any)
+        .from('asset_requests')
         .update({
           status: 'rejected',
           processed_at: new Date().toISOString(),
@@ -446,7 +501,7 @@ export const useSupabaseData = () => {
   const addNotification = async (notification: Omit<Notification, 'id' | 'created_at' | 'is_read'>): Promise<void> => {
     try {
       const { error } = await supabase
-        .from('notifications' as any)
+        .from('notifications')
         .insert(notification);
 
       if (error) throw error;
@@ -460,7 +515,7 @@ export const useSupabaseData = () => {
   const markNotificationAsRead = async (id: string): Promise<void> => {
     try {
       const { error } = await supabase
-        .from('notifications' as any)
+        .from('notifications')
         .update({ is_read: true })
         .eq('id', id);
 
@@ -489,7 +544,7 @@ export const useSupabaseData = () => {
       const assigned = assets.filter(a => a.assigned_to).length;
       const inRepair = assets.filter(a => a.status === 'maintenance').length;
       const retired = assets.filter(a => a.status === 'retired').length;
-      const totalValue = assets.reduce((sum, asset) => sum + (Number(asset.purchase_price) || 0), 0);
+      const totalValue = assets.reduce((sum, asset) => sum + (Number(asset.purchase_price || asset.value) || 0), 0);
 
       return { total, available, assigned, inRepair, retired, totalValue };
     } catch (error) {
@@ -503,12 +558,12 @@ export const useSupabaseData = () => {
       const categories: { [key: string]: { count: number; value: number } } = {};
       
       assets.forEach(asset => {
-        const category = asset.device_type || 'Other';
+        const category = asset.device_type || asset.category || 'Other';
         if (!categories[category]) {
           categories[category] = { count: 0, value: 0 };
         }
         categories[category].count++;
-        categories[category].value += Number(asset.purchase_price) || 0;
+        categories[category].value += Number(asset.purchase_price || asset.value) || 0;
       });
 
       return Object.entries(categories).map(([name, stats]) => ({
