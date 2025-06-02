@@ -25,21 +25,26 @@ export class AssetService {
     console.log('🎯 AssetService: Creating asset with data:', assetData);
     
     try {
+      // Transform data to match database schema
+      const dbData = {
+        name: `${assetData.brand} ${assetData.model}`,
+        category: assetData.device_type || 'Other',
+        device_type: assetData.device_type,
+        brand: assetData.brand,
+        model: assetData.model,
+        serial_number: assetData.serial_number,
+        status: assetData.status || 'active',
+        location: assetData.location,
+        assigned_to: assetData.assigned_to,
+        value: assetData.purchase_price,
+        purchase_date: assetData.purchase_date || new Date().toISOString().split('T')[0],
+        warranty_expiry: assetData.warranty_expiry,
+        description: assetData.notes
+      };
+
       const { data, error } = await supabase
         .from('assets')
-        .insert({
-          device_type: assetData.device_type as any,
-          brand: assetData.brand,
-          model: assetData.model,
-          serial_number: assetData.serial_number,
-          status: (assetData.status as any) || 'active',
-          location: assetData.location,
-          assigned_to: assetData.assigned_to,
-          purchase_price: assetData.purchase_price,
-          purchase_date: assetData.purchase_date,
-          warranty_expiry: assetData.warranty_expiry,
-          notes: assetData.notes
-        })
+        .insert(dbData)
         .select()
         .single();
 

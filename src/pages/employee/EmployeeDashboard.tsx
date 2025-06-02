@@ -104,6 +104,32 @@ const EmployeeDashboard = () => {
     }
   };
 
+  // Create a dummy asset for the request modal
+  const dummyAsset = {
+    id: 'new-request',
+    brand: 'New',
+    model: 'Asset Request',
+    serial_number: 'N/A',
+    device_type: 'general'
+  };
+
+  const handleAssetRequest = async (requestData: {
+    asset_id: string;
+    request_type: string;
+    description: string;
+  }) => {
+    const success = await EmployeeService.createAssetRequest({
+      request_type: requestData.request_type,
+      description: requestData.description
+    });
+    
+    if (success) {
+      loadData(); // Refresh data
+    }
+    
+    return success;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 dark:from-gray-900 dark:via-green-900 dark:to-emerald-900 flex items-center justify-center">
@@ -313,12 +339,13 @@ const EmployeeDashboard = () => {
       {/* Modals */}
       <AssetRequestModal
         open={showRequestModal}
-        onClose={() => setShowRequestModal(false)}
-        onSuccess={loadData}
+        onOpenChange={setShowRequestModal}
+        asset={dummyAsset}
+        onRequestSubmit={handleAssetRequest}
       />
       
       <ProfileUpdateModal
-        open={showProfileModal}
+        isOpen={showProfileModal}
         onClose={() => setShowProfileModal(false)}
         onSuccess={loadData}
       />
