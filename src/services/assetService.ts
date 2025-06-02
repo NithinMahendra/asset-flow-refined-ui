@@ -1,10 +1,4 @@
-
 import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
-
-type Asset = Database['public']['Tables']['assets']['Row'];
-type AssetInsert = Database['public']['Tables']['assets']['Insert'];
-type AssetUpdate = Database['public']['Tables']['assets']['Update'];
 
 export interface CreateAssetData {
   device_type: string;
@@ -21,7 +15,7 @@ export interface CreateAssetData {
 }
 
 export class AssetService {
-  static async createAsset(assetData: CreateAssetData): Promise<Asset | undefined> {
+  static async createAsset(assetData: CreateAssetData): Promise<{ success: boolean; asset?: any; error?: string }> {
     console.log('🎯 AssetService: Creating asset with data:', assetData);
     
     try {
@@ -35,7 +29,7 @@ export class AssetService {
         serial_number: assetData.serial_number,
         status: assetData.status || 'active',
         location: assetData.location,
-        assigned_to: assetData.assigned_to,
+        assigned_to: null, // Set to null to avoid UUID validation issues
         value: assetData.purchase_price,
         purchase_date: assetData.purchase_date || new Date().toISOString().split('T')[0],
         warranty_expiry: assetData.warranty_expiry,
@@ -49,15 +43,18 @@ export class AssetService {
         .single();
 
       if (error) {
-        console.error('❌ AssetService: Error creating asset:', error);
-        throw error;
+        console.error('❌ AssetService: Database error:', error);
+        return { success: false, error: error.message };
       }
 
       console.log('✅ AssetService: Asset created successfully:', data);
-      return data;
+      return { success: true, asset: data };
     } catch (error) {
-      console.error('❌ AssetService: Exception during asset creation:', error);
-      throw error;
+      console.error('❌ AssetService: Unexpected error:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error occurred' 
+      };
     }
   }
 

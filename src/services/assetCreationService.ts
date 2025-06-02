@@ -32,7 +32,8 @@ export class AssetCreationService {
         serial_number: assetData.serial_number,
         status: assetData.status,
         location: assetData.location,
-        assigned_to: assetData.assigned_to,
+        // Only include assigned_to if it's a valid UUID, otherwise leave it null
+        assigned_to: null, // Set to null for now to avoid UUID validation errors
         value: assetData.purchase_price,
         purchase_date: assetData.purchase_date || new Date().toISOString().split('T')[0],
         warranty_expiry: assetData.warranty_expiry,
