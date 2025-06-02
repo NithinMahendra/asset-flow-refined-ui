@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -241,8 +242,8 @@ const EmployeeDashboard = () => {
                       className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                     >
                       <div>
-                        <p className="font-medium text-sm">{request.asset_type}</p>
-                        <p className="text-xs text-gray-500">{new Date(request.requested_date).toLocaleDateString()}</p>
+                        <p className="font-medium text-sm">{request.request_type}</p>
+                        <p className="text-xs text-gray-500">{new Date(request.requested_at).toLocaleDateString()}</p>
                       </div>
                       {getStatusBadge(request.status)}
                     </motion.div>
@@ -311,13 +312,13 @@ const EmployeeDashboard = () => {
 
       {/* Modals */}
       <AssetRequestModal
-        isOpen={showRequestModal}
+        open={showRequestModal}
         onClose={() => setShowRequestModal(false)}
         onSuccess={loadData}
       />
       
       <ProfileUpdateModal
-        isOpen={showProfileModal}
+        open={showProfileModal}
         onClose={() => setShowProfileModal(false)}
         onSuccess={loadData}
       />

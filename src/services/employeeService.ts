@@ -44,7 +44,7 @@ export class EmployeeService {
     if (!user) return null;
 
     const { data, error } = await supabase
-      .from('employee_profiles' as any)
+      .from('employee_profiles')
       .select('*')
       .eq('user_id', user.id)
       .single();
@@ -54,7 +54,7 @@ export class EmployeeService {
       return null;
     }
 
-    return data;
+    return data as EmployeeProfile;
   }
 
   static async updateEmployeeProfile(updates: Partial<EmployeeProfile>): Promise<boolean> {
@@ -62,7 +62,7 @@ export class EmployeeService {
     if (!user) return false;
 
     const { error } = await supabase
-      .from('employee_profiles' as any)
+      .from('employee_profiles')
       .update(updates)
       .eq('user_id', user.id);
 
@@ -93,20 +93,20 @@ export class EmployeeService {
 
       // Count pending requests
       const { count: pendingRequests } = await supabase
-        .from('asset_requests' as any)
+        .from('asset_requests')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id)
         .eq('status', 'pending');
 
       // Count total requests
       const { count: totalRequests } = await supabase
-        .from('asset_requests' as any)
+        .from('asset_requests')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id);
 
       // Count unread notifications
       const { count: unreadNotifications } = await supabase
-        .from('notifications' as any)
+        .from('notifications')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id)
         .eq('is_read', false);
@@ -143,7 +143,7 @@ export class EmployeeService {
           .eq('assigned_to', user.id);
 
         if (!error && data) {
-          dbAssets = data;
+          dbAssets = data as MyAsset[];
         }
       }
       
@@ -181,13 +181,13 @@ export class EmployeeService {
 
     try {
       const { data, error } = await supabase
-        .from('asset_requests' as any)
+        .from('asset_requests')
         .select('*')
         .eq('user_id', user.id)
         .order('requested_at', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      return (data || []) as AssetRequest[];
     } catch (error) {
       console.error('Error fetching my requests:', error);
       return [];
@@ -204,7 +204,7 @@ export class EmployeeService {
 
     try {
       const { error } = await supabase
-        .from('asset_requests' as any)
+        .from('asset_requests')
         .insert({
           user_id: user.id,
           request_type: requestData.request_type,
@@ -216,7 +216,7 @@ export class EmployeeService {
 
       // Log activity
       await supabase
-        .from('activity_log' as any)
+        .from('activity_log')
         .insert({
           asset_id: requestData.asset_id,
           user_id: user.id,
@@ -241,7 +241,7 @@ export class EmployeeService {
     try {
       // Use "assignment" instead of "transfer" as it's a valid enum value
       const { error } = await supabase
-        .from('asset_requests' as any)
+        .from('asset_requests')
         .insert({
           user_id: user.id,
           request_type: 'assignment',
@@ -275,7 +275,7 @@ export class EmployeeService {
 
       // Log the assignment activity with simplified details
       const { error: logError } = await supabase
-        .from('activity_log' as any)
+        .from('activity_log')
         .insert({
           asset_id: assetId,
           user_id: user.id,
@@ -360,7 +360,7 @@ export class EmployeeService {
         .single();
 
       if (error) throw error;
-      return data;
+      return data as MyAsset;
     } catch (error) {
       console.error('Error fetching asset by QR code:', error);
       return null;
