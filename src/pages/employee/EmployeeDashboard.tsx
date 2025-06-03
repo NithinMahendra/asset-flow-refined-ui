@@ -60,7 +60,7 @@ const EmployeeDashboard = () => {
       title: 'Scan Asset', 
       icon: QrCode, 
       color: 'bg-green-500', 
-      action: () => navigate('/employee/scan')
+      action: () => navigate('/employee/scan-asset')
     },
     { 
       title: 'Request New Asset', 
@@ -72,7 +72,7 @@ const EmployeeDashboard = () => {
       title: 'View My Assets', 
       icon: Package, 
       color: 'bg-purple-500', 
-      action: () => navigate('/employee/assets')
+      action: () => navigate('/employee/my-assets')
     },
     { 
       title: 'Update Profile', 
@@ -84,7 +84,7 @@ const EmployeeDashboard = () => {
       title: 'Request History', 
       icon: Clock, 
       color: 'bg-indigo-500', 
-      action: () => navigate('/employee/requests')
+      action: () => navigate('/employee/request-history')
     },
   ];
 
@@ -265,7 +265,7 @@ const EmployeeDashboard = () => {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>My Assets</CardTitle>
-                  <Button variant="outline" size="sm" onClick={() => navigate('/employee/assets')}>
+                  <Button variant="outline" size="sm" onClick={() => navigate('/employee/my-assets')}>
                     View All
                   </Button>
                 </div>

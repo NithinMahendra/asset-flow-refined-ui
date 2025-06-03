@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "./contexts/AuthContext";
 import { AdminDataProvider } from "./contexts/AdminDataContext";
@@ -61,6 +61,7 @@ const App: React.FC = () => {
                     <Route path="/employee/dashboard" element={<EmployeeDashboard />} />
                     <Route path="/employee/my-assets" element={<MyAssets />} />
                     <Route path="/employee/scan-asset" element={<ScanAsset />} />
+                    <Route path="/employee/scan" element={<Navigate to="/employee/scan-asset" replace />} />
                     <Route path="/employee/request-history" element={<RequestHistory />} />
                     
                     {/* Legacy Routes */}
