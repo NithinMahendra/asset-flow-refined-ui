@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -57,6 +56,11 @@ interface EnhancedAssignmentRequest extends AssetRequest {
   justification: string;
 }
 
+// Enhanced notification type with legacy fields
+interface EnhancedNotification extends Notification {
+  timestamp: string;
+}
+
 interface AdminDataContextType {
   // Assets
   assets: EnhancedAsset[];
@@ -71,7 +75,7 @@ interface AdminDataContextType {
   users: EmployeeProfile[];
   
   // Notifications
-  notifications: Notification[];
+  notifications: EnhancedNotification[];
   
   // Activity logs
   activityLogs: ActivityLog[];
@@ -89,6 +93,10 @@ interface AdminDataContextType {
   declineAssignmentRequest: (requestId: string) => Promise<void>;
   
   markNotificationAsRead: (notificationId: string) => Promise<void>;
+  
+  // New methods for Dashboard compatibility
+  getAssetStats: () => { total: number; assigned: number; available: number; inRepair: number };
+  getRecentActivity: () => ActivityLog[];
   
   refreshData: () => Promise<void>;
 }
@@ -113,7 +121,7 @@ export const AdminDataProvider: React.FC<AdminDataProviderProps> = ({ children }
   const [assignments, setAssignments] = useState<EnhancedAssignment[]>([]);
   const [assignmentRequests, setAssignmentRequests] = useState<EnhancedAssignmentRequest[]>([]);
   const [employees, setEmployees] = useState<EmployeeProfile[]>([]);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<EnhancedNotification[]>([]);
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -253,7 +261,14 @@ export const AdminDataProvider: React.FC<AdminDataProviderProps> = ({ children }
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      setNotifications(data || []);
+      
+      // Transform notifications to include legacy timestamp field
+      const enhancedNotifications: EnhancedNotification[] = (data || []).map(notification => ({
+        ...notification,
+        timestamp: notification.created_at
+      }));
+      
+      setNotifications(enhancedNotifications);
     } catch (error) {
       console.error('Error loading notifications:', error);
     }
@@ -285,9 +300,24 @@ export const AdminDataProvider: React.FC<AdminDataProviderProps> = ({ children }
     try {
       console.log('🚀 AdminDataContext: Adding asset:', assetData);
       
+      // Ensure required fields are present
+      const requiredAssetData = {
+        brand: assetData.brand || '',
+        model: assetData.model || '',
+        device_type: assetData.device_type || 'other',
+        serial_number: assetData.serial_number || '',
+        status: assetData.status || 'active',
+        location: assetData.location,
+        assigned_to: assetData.assigned_to,
+        purchase_price: assetData.purchase_price,
+        purchase_date: assetData.purchase_date,
+        warranty_expiry: assetData.warranty_expiry,
+        notes: assetData.notes
+      };
+
       const { data, error } = await supabase
         .from('assets')
-        .insert([assetData])
+        .insert(requiredAssetData)
         .select()
         .single();
 
@@ -391,9 +421,19 @@ export const AdminDataProvider: React.FC<AdminDataProviderProps> = ({ children }
 
   const addAssignment = async (assignmentData: Partial<AssetAssignment>) => {
     try {
+      // Ensure required fields are present
+      const requiredAssignmentData = {
+        asset_id: assignmentData.asset_id || '',
+        user_id: assignmentData.user_id || '',
+        assigned_by: assignmentData.assigned_by || '',
+        status: assignmentData.status || 'active',
+        assigned_at: assignmentData.assigned_at,
+        returned_at: assignmentData.returned_at
+      };
+
       const { data, error } = await supabase
         .from('asset_assignments')
-        .insert([assignmentData])
+        .insert(requiredAssignmentData)
         .select()
         .single();
 
@@ -494,6 +534,19 @@ export const AdminDataProvider: React.FC<AdminDataProviderProps> = ({ children }
     }
   };
 
+  const getAssetStats = () => {
+    const total = assets.length;
+    const assigned = assets.filter(a => a.assigned_to).length;
+    const available = assets.filter(a => a.status === 'active' && !a.assigned_to).length;
+    const inRepair = assets.filter(a => a.status === 'maintenance').length;
+    
+    return { total, assigned, available, inRepair };
+  };
+
+  const getRecentActivity = () => {
+    return activityLogs.slice(0, 10); // Return the 10 most recent activities
+  };
+
   const value: AdminDataContextType = {
     assets,
     assetRequests,
@@ -511,6 +564,8 @@ export const AdminDataProvider: React.FC<AdminDataProviderProps> = ({ children }
     approveAssignmentRequest,
     declineAssignmentRequest,
     markNotificationAsRead,
+    getAssetStats,
+    getRecentActivity,
     refreshData
   };
 
