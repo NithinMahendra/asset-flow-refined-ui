@@ -27,6 +27,39 @@ const Dashboard = () => {
     { title: 'In Repair', value: assetStats.inRepair, color: 'bg-gray-500', icon: '⚠️' },
   ];
 
+  // Helper function to safely convert activity details to string
+  const formatActivityDetails = (activity: any) => {
+    if (!activity.details) return 'No details available';
+    
+    if (typeof activity.details === 'string') return activity.details;
+    
+    if (typeof activity.details === 'object' && activity.details !== null) {
+      const { asset_name, serial_number } = activity.details;
+      if (asset_name && serial_number) {
+        return `${asset_name} (${serial_number})`;
+      }
+      if (asset_name) {
+        return asset_name;
+      }
+      if (serial_number) {
+        return `Serial: ${serial_number}`;
+      }
+      // Fallback for other object structures
+      return JSON.stringify(activity.details);
+    }
+    
+    return 'No details available';
+  };
+
+  // Helper function to determine activity type from action
+  const getActivityType = (action: string) => {
+    const actionLower = action.toLowerCase();
+    if (actionLower.includes('assignment') || actionLower.includes('assign')) return 'assignment';
+    if (actionLower.includes('maintenance') || actionLower.includes('repair')) return 'maintenance';
+    if (actionLower.includes('addition') || actionLower.includes('add') || actionLower.includes('create')) return 'addition';
+    return 'general';
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900 flex items-center justify-center">
@@ -183,32 +216,37 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {recentActivity.length > 0 ? recentActivity.map((activity, index) => (
-                  <motion.div
-                    key={activity.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.4, delay: 0.6 + index * 0.1 }}
-                    className="flex items-center space-x-4 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-                  >
-                    <div className={`w-2 h-2 rounded-full ${
-                      activity.type === 'assignment' ? 'bg-gray-500' :
-                      activity.type === 'maintenance' ? 'bg-gray-500' :
-                      activity.type === 'addition' ? 'bg-gray-500' : 'bg-gray-500'
-                    }`} />
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900 dark:text-white">
-                        {activity.action}
+                {recentActivity.length > 0 ? recentActivity.map((activity, index) => {
+                  const activityType = getActivityType(activity.action);
+                  const details = formatActivityDetails(activity);
+                  
+                  return (
+                    <motion.div
+                      key={activity.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.4, delay: 0.6 + index * 0.1 }}
+                      className="flex items-center space-x-4 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                    >
+                      <div className={`w-2 h-2 rounded-full ${
+                        activityType === 'assignment' ? 'bg-gray-500' :
+                        activityType === 'maintenance' ? 'bg-gray-500' :
+                        activityType === 'addition' ? 'bg-gray-500' : 'bg-gray-500'
+                      }`} />
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {activity.action}
+                        </p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          {details}
+                        </p>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {new Date(activity.timestamp).toLocaleString()}
                       </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {activity.details}
-                      </p>
-                    </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {new Date(activity.timestamp).toLocaleString()}
-                    </p>
-                  </motion.div>
-                )) : (
+                    </motion.div>
+                  );
+                }) : (
                   <div className="text-center py-8">
                     <p className="text-gray-500 dark:text-gray-400">No recent activity</p>
                   </div>

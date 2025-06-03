@@ -247,8 +247,8 @@ const AssetManagementContent = () => {
                         </code>
                       </td>
                       <td className="p-4">
-                        <Badge className={`bg-gradient-to-r ${getStatusGradient(asset.status)} text-white border-0 shadow-lg flex items-center gap-1 w-fit`}>
-                          {getStatusIcon(asset.status)}
+                        <Badge className={`bg-gradient-to-r from-emerald-500 to-green-600 text-white border-0 shadow-lg flex items-center gap-1 w-fit`}>
+                          <CheckCircle className="h-4 w-4" />
                           {asset.status}
                         </Badge>
                       </td>
