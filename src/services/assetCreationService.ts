@@ -23,10 +23,26 @@ export class AssetCreationService {
     try {
       console.log('Creating asset in database:', assetData);
       
+      // Prepare data for database insertion
+      const dbAssetData = {
+        device_type: assetData.device_type,
+        brand: assetData.brand,
+        model: assetData.model,
+        serial_number: assetData.serial_number,
+        status: assetData.status,
+        location: assetData.location || null,
+        assigned_to: assetData.assigned_to || null,
+        purchase_price: assetData.purchase_price || null,
+        purchase_date: assetData.purchase_date || null,
+        warranty_expiry: assetData.warranty_expiry || null,
+        notes: assetData.notes || null,
+        qr_code: assetData.qr_code || null
+      };
+
       // Step 1: Create asset in database
       const { data: createdAsset, error: createError } = await supabase
         .from('assets')
-        .insert(assetData)
+        .insert(dbAssetData)
         .select()
         .single();
 
@@ -37,11 +53,24 @@ export class AssetCreationService {
 
       console.log('Asset created in database:', createdAsset);
 
-      // Step 2: Store in local storage
-      const localStorageSuccess = await EmployeeService.addAssetToMyLocalAssets(createdAsset);
-      
-      if (!localStorageSuccess) {
-        console.warn('Failed to store asset in local storage, but database creation succeeded');
+      // Step 2: Log the activity
+      await supabase
+        .from('activity_log')
+        .insert({
+          asset_id: createdAsset.id,
+          action: 'Asset Created',
+          details: {
+            asset_name: `${createdAsset.brand} ${createdAsset.model}`,
+            serial_number: createdAsset.serial_number,
+            device_type: createdAsset.device_type
+          }
+        });
+
+      // Step 3: Store in local storage (optional, for offline support)
+      try {
+        await EmployeeService.addAssetToMyLocalAssets(createdAsset);
+      } catch (localError) {
+        console.warn('Failed to store asset in local storage:', localError);
         // Don't fail the entire operation if local storage fails
       }
 

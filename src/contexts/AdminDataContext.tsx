@@ -1,7 +1,7 @@
-
-import React, { createContext, useContext, ReactNode } from 'react';
-import { useSupabaseData } from '@/hooks/useSupabaseData';
-import type { Asset, AssetRequest, AssetAssignment, Notification, ActivityLog } from '@/types/database';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { AssetCreationService, CreateAssetData } from '@/services/assetCreationService';
 
 // Legacy types for compatibility
 export type User = {
@@ -40,178 +40,339 @@ export type AssignmentRequest = {
   justification: string;
 };
 
+export type EmployeeProfile = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  department: string;
+  status: string;
+  lastActivity: string;
+};
+
+interface AssetStats {
+  total: number;
+  available: number;
+  assigned: number;
+  inRepair: number;
+  retired: number;
+  totalValue: number;
+}
+
+interface CategoryStat {
+  name: string;
+  count: number;
+  value: number;
+}
+
+interface AssignmentStats {
+  active: number;
+  pending: number;
+  overdue: number;
+  completed: number;
+}
+
 interface AdminDataContextType {
+  // Data
   assets: Asset[];
-  users: User[];
-  assignments: Assignment[];
-  assignmentRequests: AssignmentRequest[];
-  notifications: Notification[];
+  assetRequests: AssetRequest[];
+  assetAssignments: AssetAssignment[];
   activityLog: ActivityLog[];
+  notifications: Notification[];
+  profiles: EmployeeProfile[];
+  
+  // Loading states
   loading: boolean;
-  addAsset: (asset: any) => Promise<Asset | undefined>;
+  error: string | null;
+  
+  // CRUD operations
+  addAsset: (assetData: CreateAssetData) => Promise<void>;
   updateAsset: (id: string, updates: Partial<Asset>) => Promise<void>;
   deleteAsset: (id: string) => Promise<void>;
-  addUser: (user: Omit<User, 'id'>) => Promise<void>;
-  addAssignment: (assignment: Omit<Assignment, 'id'>) => Promise<void>;
-  addNotification: (notification: Omit<Notification, 'id' | 'created_at' | 'is_read'>) => Promise<void>;
-  markNotificationAsRead: (id: string) => Promise<void>;
-  approveAssignmentRequest: (id: string) => Promise<void>;
-  declineAssignmentRequest: (id: string) => Promise<void>;
-  generateQRCode: (assetId: string) => string;
-  refetch: () => Promise<void>;
-  getAssetStats: () => {
-    total: number;
-    available: number;
-    assigned: number;
-    inRepair: number;
-    retired: number;
-    totalValue: number;
-  };
-  getCategoryStats: () => Array<{
-    name: string;
-    count: number;
-    value: number;
-  }>;
-  getAssignmentStats: () => {
-    active: number;
-    pending: number;
-    overdue: number;
-    completed: number;
-  };
-  getUtilizationRate: () => number;
-  getMaintenanceRate: () => number;
-  getAverageAssetAge: () => number;
-  getUpcomingWarrantyExpiries: () => Asset[];
-  getOverdueMaintenanceAssets: () => Asset[];
+  
+  // Statistics
+  getAssetStats: () => AssetStats;
+  getCategoryStats: () => CategoryStat[];
+  getAssignmentStats: () => AssignmentStats;
   getRecentActivity: () => ActivityLog[];
-  getUpcomingTasks: () => Array<{
-    task: string;
-    due: string;
-    priority: 'high' | 'medium' | 'low';
-    count?: number;
-  }>;
+  
+  // Utility
+  refetch: () => Promise<void>;
 }
 
 const AdminDataContext = createContext<AdminDataContextType | undefined>(undefined);
 
-export const useAdminData = () => {
-  const context = useContext(AdminDataContext);
-  if (!context) {
-    throw new Error('useAdminData must be used within an AdminDataProvider');
-  }
-  return context;
-};
-
 export const AdminDataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const supabaseData = useSupabaseData();
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [assetRequests, setAssetRequests] = useState<AssetRequest[]>([]);
+  const [assetAssignments, setAssetAssignments] = useState<AssetAssignment[]>([]);
+  const [activityLog, setActivityLog] = useState<ActivityLog[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [profiles, setProfiles] = useState<EmployeeProfile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
-  const generateQRCode = (assetId: string) => {
-    const timestamp = Date.now();
-    return `QR${timestamp}-${assetId}-${new Date().getFullYear()}`;
-  };
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-  const approveAssignmentRequest = async (id: string) => {
-    console.log('Approving request:', id);
-  };
+      console.log('Loading data from Supabase...');
 
-  const declineAssignmentRequest = async (id: string) => {
-    console.log('Declining request:', id);
-  };
+      // Load all data in parallel
+      const [
+        assetsResult,
+        requestsResult,
+        assignmentsResult,
+        activityResult,
+        notificationsResult,
+        profilesResult
+      ] = await Promise.allSettled([
+        supabase.from('assets').select('*').order('created_at', { ascending: false }),
+        supabase.from('asset_requests').select('*').order('requested_at', { ascending: false }),
+        supabase.from('asset_assignments').select('*').order('assigned_at', { ascending: false }),
+        supabase.from('activity_log').select('*').order('timestamp', { ascending: false }),
+        supabase.from('notifications').select('*').order('created_at', { ascending: false }),
+        supabase.from('employee_profiles').select('*').order('created_at', { ascending: false })
+      ]);
 
-  const getUtilizationRate = () => {
-    const total = supabaseData.assets.length;
-    const inUse = supabaseData.assets.filter(a => a.assigned_to !== null && a.assigned_to !== '').length;
-    return total > 0 ? (inUse / total) * 100 : 0;
-  };
+      // Process assets
+      if (assetsResult.status === 'fulfilled' && !assetsResult.value.error) {
+        const assetsData = assetsResult.value.data || [];
+        const transformedAssets = assetsData.map((asset: any) => ({
+          ...asset,
+          // Add legacy fields for compatibility
+          name: `${asset.brand || 'Unknown'} ${asset.model || 'Asset'}`,
+          category: asset.device_type || 'Unknown',
+          assignee: asset.assigned_to || 'Unassigned',
+          value: asset.purchase_price || 0,
+          last_updated: asset.updated_at || asset.created_at
+        }));
+        setAssets(transformedAssets);
+        console.log('✅ Assets loaded:', transformedAssets.length);
+      } else {
+        console.error('❌ Error loading assets:', assetsResult.status === 'fulfilled' ? assetsResult.value.error : assetsResult.reason);
+        setAssets([]);
+      }
 
-  const getMaintenanceRate = () => {
-    const total = supabaseData.assets.length;
-    const inRepair = supabaseData.assets.filter(a => a.status === 'maintenance').length;
-    return total > 0 ? (inRepair / total) * 100 : 0;
-  };
+      // Process other data
+      if (requestsResult.status === 'fulfilled' && !requestsResult.value.error) {
+        setAssetRequests(requestsResult.value.data || []);
+      }
 
-  const getAverageAssetAge = () => {
-    if (supabaseData.assets.length === 0) return 0;
-    
-    const currentDate = new Date();
-    const totalAge = supabaseData.assets.reduce((sum, asset) => {
-      if (!asset.purchase_date) return sum;
-      const purchaseDate = new Date(asset.purchase_date);
-      const ageInYears = (currentDate.getTime() - purchaseDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
-      return sum + ageInYears;
-    }, 0);
+      if (assignmentsResult.status === 'fulfilled' && !assignmentsResult.value.error) {
+        setAssetAssignments(assignmentsResult.value.data || []);
+      }
 
-    return totalAge / supabaseData.assets.length;
-  };
+      if (activityResult.status === 'fulfilled' && !activityResult.value.error) {
+        const activityData = activityResult.value.data || [];
+        const transformedActivity = activityData.map((activity: any) => ({
+          ...activity,
+          type: activity.action?.toLowerCase().includes('assignment') ? 'assignment' :
+                activity.action?.toLowerCase().includes('maintenance') ? 'maintenance' :
+                activity.action?.toLowerCase().includes('addition') ? 'addition' : 'general'
+        }));
+        setActivityLog(transformedActivity);
+      }
 
-  const getUpcomingWarrantyExpiries = () => {
-    const thirtyDaysFromNow = new Date();
-    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+      if (notificationsResult.status === 'fulfilled' && !notificationsResult.value.error) {
+        const notificationsData = notificationsResult.value.data || [];
+        const transformedNotifications = notificationsData.map((notification: any) => ({
+          ...notification,
+          timestamp: notification.created_at
+        }));
+        setNotifications(transformedNotifications);
+      }
 
-    return supabaseData.assets.filter(asset => {
-      if (!asset.warranty_expiry) return false;
-      const warrantyDate = new Date(asset.warranty_expiry);
-      const today = new Date();
-      return warrantyDate > today && warrantyDate <= thirtyDaysFromNow;
-    });
-  };
+      if (profilesResult.status === 'fulfilled' && !profilesResult.value.error) {
+        setProfiles(profilesResult.value.data || []);
+      }
 
-  const getOverdueMaintenanceAssets = () => {
-    return supabaseData.assets.filter(asset => asset.status === 'maintenance');
-  };
-
-  const getRecentActivity = () => {
-    return supabaseData.activityLog.slice(0, 10);
-  };
-
-  const getUpcomingTasks = () => {
-    const tasks = [];
-    
-    const upcomingWarranties = getUpcomingWarrantyExpiries();
-    if (upcomingWarranties.length > 0) {
-      tasks.push({
-        task: 'Warranty Renewals Due',
-        due: `${upcomingWarranties.length} assets expiring soon`,
-        priority: 'high' as const,
-        count: upcomingWarranties.length
-      });
+    } catch (err) {
+      console.error('❌ Error loading data:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred while loading data');
+    } finally {
+      setLoading(false);
     }
-
-    const overdueAssets = getOverdueMaintenanceAssets();
-    if (overdueAssets.length > 0) {
-      tasks.push({
-        task: 'Maintenance Required',
-        due: `${overdueAssets.length} assets need attention`,
-        priority: 'high' as const,
-        count: overdueAssets.length
-      });
-    }
-
-    const pendingRequests = supabaseData.assetRequests.filter(r => r.status === 'pending');
-    if (pendingRequests.length > 0) {
-      tasks.push({
-        task: 'Pending Assignment Requests',
-        due: `${pendingRequests.length} requests awaiting approval`,
-        priority: 'medium' as const,
-        count: pendingRequests.length
-      });
-    }
-
-    return tasks.slice(0, 6);
   };
+
+  const addAsset = async (assetData: CreateAssetData): Promise<void> => {
+    try {
+      console.log('🚀 AdminDataContext: Adding asset...', assetData);
+      
+      const result = await AssetCreationService.createAndStoreAsset(assetData);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create asset');
+      }
+      
+      if (result.asset) {
+        // Transform the asset to include legacy fields
+        const transformedAsset = {
+          ...result.asset,
+          name: `${result.asset.brand} ${result.asset.model}`,
+          category: result.asset.device_type,
+          assignee: result.asset.assigned_to || 'Unassigned',
+          value: result.asset.purchase_price || 0,
+          last_updated: result.asset.updated_at || result.asset.created_at
+        };
+        
+        setAssets(prev => [transformedAsset, ...prev]);
+        
+        toast({
+          title: 'Success!',
+          description: 'Asset created successfully',
+        });
+      }
+      
+    } catch (error) {
+      console.error('❌ AdminDataContext: Error adding asset:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create asset';
+      
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive'
+      });
+      
+      throw error;
+    }
+  };
+
+  const updateAsset = async (id: string, updates: Partial<Asset>): Promise<void> => {
+    try {
+      const { error } = await supabase
+        .from('assets')
+        .update(updates)
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      setAssets(prev => prev.map(asset => 
+        asset.id === id ? { ...asset, ...updates } : asset
+      ));
+      
+      toast({
+        title: 'Success',
+        description: 'Asset updated successfully'
+      });
+    } catch (error) {
+      console.error('Error updating asset:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update asset',
+        variant: 'destructive'
+      });
+      throw error;
+    }
+  };
+
+  const deleteAsset = async (id: string): Promise<void> => {
+    try {
+      const { error } = await supabase
+        .from('assets')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      setAssets(prev => prev.filter(asset => asset.id !== id));
+      
+      toast({
+        title: 'Success',
+        description: 'Asset deleted successfully'
+      });
+    } catch (error) {
+      console.error('Error deleting asset:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete asset',
+        variant: 'destructive'
+      });
+      throw error;
+    }
+  };
+
+  const getAssetStats = (): AssetStats => {
+    try {
+      const total = assets.length;
+      const available = assets.filter(a => a.status === 'active' && !a.assigned_to).length;
+      const assigned = assets.filter(a => a.assigned_to && a.assigned_to !== 'Unassigned').length;
+      const inRepair = assets.filter(a => a.status === 'maintenance').length;
+      const retired = assets.filter(a => a.status === 'retired').length;
+      const totalValue = assets.reduce((sum, asset) => sum + (Number(asset.purchase_price) || 0), 0);
+
+      return { total, available, assigned, inRepair, retired, totalValue };
+    } catch (error) {
+      console.error('Error calculating asset stats:', error);
+      return { total: 0, available: 0, assigned: 0, inRepair: 0, retired: 0, totalValue: 0 };
+    }
+  };
+
+  const getCategoryStats = (): CategoryStat[] => {
+    try {
+      const categories: { [key: string]: { count: number; value: number } } = {};
+      
+      assets.forEach(asset => {
+        const category = asset.device_type || 'Other';
+        if (!categories[category]) {
+          categories[category] = { count: 0, value: 0 };
+        }
+        categories[category].count++;
+        categories[category].value += Number(asset.purchase_price) || 0;
+      });
+
+      return Object.entries(categories).map(([name, stats]) => ({
+        name,
+        count: stats.count,
+        value: stats.value
+      }));
+    } catch (error) {
+      console.error('Error calculating category stats:', error);
+      return [];
+    }
+  };
+
+  const getAssignmentStats = (): AssignmentStats => {
+    try {
+      return {
+        active: assetAssignments.filter(a => a.status === 'active').length,
+        pending: assetRequests.filter(r => r.status === 'pending').length,
+        overdue: 0,
+        completed: assetAssignments.filter(a => a.status === 'returned').length
+      };
+    } catch (error) {
+      console.error('Error calculating assignment stats:', error);
+      return { active: 0, pending: 0, overdue: 0, completed: 0 };
+    }
+  };
+
+  const getRecentActivity = (): ActivityLog[] => {
+    return activityLog.slice(0, 10);
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const value: AdminDataContextType = {
-    ...supabaseData,
-    approveAssignmentRequest,
-    declineAssignmentRequest,
-    generateQRCode,
-    getUtilizationRate,
-    getMaintenanceRate,
-    getAverageAssetAge,
-    getUpcomingWarrantyExpiries,
-    getOverdueMaintenanceAssets,
+    assets,
+    assetRequests,
+    assetAssignments,
+    activityLog,
+    notifications,
+    profiles,
+    loading,
+    error,
+    addAsset,
+    updateAsset,
+    deleteAsset,
+    getAssetStats,
+    getCategoryStats,
+    getAssignmentStats,
     getRecentActivity,
-    getUpcomingTasks
+    refetch: loadData
   };
 
   return (
@@ -219,4 +380,12 @@ export const AdminDataProvider: React.FC<{ children: ReactNode }> = ({ children 
       {children}
     </AdminDataContext.Provider>
   );
+};
+
+export const useAdminData = (): AdminDataContextType => {
+  const context = useContext(AdminDataContext);
+  if (context === undefined) {
+    throw new Error('useAdminData must be used within an AdminDataProvider');
+  }
+  return context;
 };

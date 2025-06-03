@@ -7,11 +7,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Save, X } from 'lucide-react';
-import QRCode from 'qrcode';
+import { CreateAssetData } from '@/services/assetCreationService';
 
 interface SimpleAddAssetFormProps {
   onClose?: () => void;
-  onAssetCreated?: (asset: any) => Promise<void>;
+  onAssetCreated?: (asset: CreateAssetData) => Promise<void>;
 }
 
 const SimpleAddAssetForm = ({ onClose, onAssetCreated }: SimpleAddAssetFormProps) => {
@@ -26,27 +26,11 @@ const SimpleAddAssetForm = ({ onClose, onAssetCreated }: SimpleAddAssetFormProps
     serial_number: '',
     status: 'active',
     location: '',
-    assigned_to: '',
     purchase_price: '',
     purchase_date: '',
     warranty_expiry: '',
     notes: ''
   });
-
-  // Generate unique QR code for asset
-  const generateQRCode = async (assetData: any) => {
-    const qrData = {
-      id: `ASSET-${Date.now()}`,
-      type: 'asset',
-      device_type: assetData.device_type,
-      brand: assetData.brand,
-      model: assetData.model,
-      serial_number: assetData.serial_number
-    };
-    
-    const qrString = JSON.stringify(qrData);
-    return qrString;
-  };
 
   // Use exact enum values from database
   const deviceTypes = [
@@ -110,25 +94,25 @@ const SimpleAddAssetForm = ({ onClose, onAssetCreated }: SimpleAddAssetFormProps
     
     try {
       // Generate QR code for the asset
-      const qrCode = await generateQRCode(formData);
+      const qrCode = `ASSET-${Date.now()}-${formData.serial_number}`;
       
       // Prepare data in exact format expected by database
-      const assetData = {
-        device_type: formData.device_type,
+      const assetData: CreateAssetData = {
+        device_type: formData.device_type as any,
         brand: formData.brand.trim(),
         model: formData.model.trim(),
         serial_number: formData.serial_number.trim(),
-        status: formData.status,
-        location: formData.location.trim() || null,
-        assigned_to: formData.assigned_to.trim() || null,
-        purchase_price: formData.purchase_price ? parseFloat(formData.purchase_price) : null,
-        purchase_date: formData.purchase_date || null,
-        warranty_expiry: formData.warranty_expiry || null,
-        notes: formData.notes.trim() || null,
+        status: formData.status as any,
+        location: formData.location.trim() || undefined,
+        assigned_to: undefined, // Don't assign during creation
+        purchase_price: formData.purchase_price ? parseFloat(formData.purchase_price) : undefined,
+        purchase_date: formData.purchase_date || undefined,
+        warranty_expiry: formData.warranty_expiry || undefined,
+        notes: formData.notes.trim() || undefined,
         qr_code: qrCode
       };
 
-      console.log('📤 SimpleAddAssetForm: Sending asset data with QR code:', assetData);
+      console.log('📤 SimpleAddAssetForm: Sending asset data:', assetData);
 
       if (onAssetCreated) {
         await onAssetCreated(assetData);
@@ -142,29 +126,17 @@ const SimpleAddAssetForm = ({ onClose, onAssetCreated }: SimpleAddAssetFormProps
         serial_number: '',
         status: 'active',
         location: '',
-        assigned_to: '',
         purchase_price: '',
         purchase_date: '',
         warranty_expiry: '',
         notes: ''
       });
 
-      toast({
-        title: 'Success!',
-        description: 'Asset created successfully with QR code',
-      });
-
       onClose?.();
 
     } catch (error) {
       console.error('❌ SimpleAddAssetForm: Form submission error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create asset';
-      
-      toast({
-        title: 'Error',
-        description: errorMessage,
-        variant: 'destructive'
-      });
+      // Error toast is handled by the context
     } finally {
       setIsSubmitting(false);
     }
@@ -191,7 +163,7 @@ const SimpleAddAssetForm = ({ onClose, onAssetCreated }: SimpleAddAssetFormProps
               value={formData.device_type} 
               onValueChange={(value) => handleInputChange('device_type', value)}
             >
-              <SelectTrigger className={errors.device_type ? 'border-gray-500' : ''}>
+              <SelectTrigger className={errors.device_type ? 'border-red-500' : ''}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -202,7 +174,7 @@ const SimpleAddAssetForm = ({ onClose, onAssetCreated }: SimpleAddAssetFormProps
                 ))}
               </SelectContent>
             </Select>
-            {errors.device_type && <p className="text-sm text-gray-500 mt-1">{errors.device_type}</p>}
+            {errors.device_type && <p className="text-sm text-red-500 mt-1">{errors.device_type}</p>}
           </div>
 
           {/* Brand and Model */}
@@ -214,9 +186,9 @@ const SimpleAddAssetForm = ({ onClose, onAssetCreated }: SimpleAddAssetFormProps
                 value={formData.brand}
                 onChange={(e) => handleInputChange('brand', e.target.value)}
                 placeholder="e.g., Apple, Dell"
-                className={errors.brand ? 'border-gray-500' : ''}
+                className={errors.brand ? 'border-red-500' : ''}
               />
-              {errors.brand && <p className="text-sm text-gray-500 mt-1">{errors.brand}</p>}
+              {errors.brand && <p className="text-sm text-red-500 mt-1">{errors.brand}</p>}
             </div>
             <div>
               <Label htmlFor="model">Model *</Label>
@@ -225,9 +197,9 @@ const SimpleAddAssetForm = ({ onClose, onAssetCreated }: SimpleAddAssetFormProps
                 value={formData.model}
                 onChange={(e) => handleInputChange('model', e.target.value)}
                 placeholder="e.g., MacBook Pro"
-                className={errors.model ? 'border-gray-500' : ''}
+                className={errors.model ? 'border-red-500' : ''}
               />
-              {errors.model && <p className="text-sm text-gray-500 mt-1">{errors.model}</p>}
+              {errors.model && <p className="text-sm text-red-500 mt-1">{errors.model}</p>}
             </div>
           </div>
 
@@ -238,10 +210,10 @@ const SimpleAddAssetForm = ({ onClose, onAssetCreated }: SimpleAddAssetFormProps
               id="serial_number"
               value={formData.serial_number}
               onChange={(e) => handleInputChange('serial_number', e.target.value)}
-              placeholder="e.g., MP-2024-001"
-              className={errors.serial_number ? 'border-gray-500' : ''}
+              placeholder="e.g., SN-2024-001"
+              className={errors.serial_number ? 'border-red-500' : ''}
             />
-            {errors.serial_number && <p className="text-sm text-gray-500 mt-1">{errors.serial_number}</p>}
+            {errors.serial_number && <p className="text-sm text-red-500 mt-1">{errors.serial_number}</p>}
           </div>
 
           {/* Status and Location */}
@@ -275,17 +247,8 @@ const SimpleAddAssetForm = ({ onClose, onAssetCreated }: SimpleAddAssetFormProps
             </div>
           </div>
 
-          {/* Additional Fields */}
+          {/* Purchase Details */}
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="assigned_to">Assigned To</Label>
-              <Input
-                id="assigned_to"
-                value={formData.assigned_to}
-                onChange={(e) => handleInputChange('assigned_to', e.target.value)}
-                placeholder="Employee name"
-              />
-            </div>
             <div>
               <Label htmlFor="purchase_price">Purchase Price</Label>
               <Input
@@ -297,9 +260,6 @@ const SimpleAddAssetForm = ({ onClose, onAssetCreated }: SimpleAddAssetFormProps
                 placeholder="0.00"
               />
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="purchase_date">Purchase Date</Label>
               <Input
@@ -309,15 +269,16 @@ const SimpleAddAssetForm = ({ onClose, onAssetCreated }: SimpleAddAssetFormProps
                 onChange={(e) => handleInputChange('purchase_date', e.target.value)}
               />
             </div>
-            <div>
-              <Label htmlFor="warranty_expiry">Warranty Expiry</Label>
-              <Input
-                id="warranty_expiry"
-                type="date"
-                value={formData.warranty_expiry}
-                onChange={(e) => handleInputChange('warranty_expiry', e.target.value)}
-              />
-            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="warranty_expiry">Warranty Expiry</Label>
+            <Input
+              id="warranty_expiry"
+              type="date"
+              value={formData.warranty_expiry}
+              onChange={(e) => handleInputChange('warranty_expiry', e.target.value)}
+            />
           </div>
 
           <div>
@@ -346,7 +307,7 @@ const SimpleAddAssetForm = ({ onClose, onAssetCreated }: SimpleAddAssetFormProps
               ) : (
                 <>
                   <Save className="h-4 w-4 mr-2" />
-                  Create Asset with QR Code
+                  Create Asset
                 </>
               )}
             </Button>
