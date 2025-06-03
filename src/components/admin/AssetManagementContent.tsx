@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,16 +36,9 @@ const AssetManagementContent = () => {
     return matchesSearch && matchesStatus && matchesCategory;
   });
 
-  const handleAssetCreated = async (assetData: any) => {
-    console.log('🎯 AssetManagementContent: Handling asset creation...');
-    try {
-      await addAsset(assetData);
-      setShowAddForm(false);
-      console.log('✅ AssetManagementContent: Asset creation handled successfully');
-    } catch (error) {
-      console.error('❌ AssetManagementContent: Error handling asset creation:', error);
-      throw error;
-    }
+  const handleAssetCreated = () => {
+    console.log('✅ AssetManagementContent: Asset creation completed, closing form');
+    setShowAddForm(false);
   };
 
   const handleDeleteAsset = async (assetId: string) => {
