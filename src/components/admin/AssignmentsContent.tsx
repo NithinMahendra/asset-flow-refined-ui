@@ -67,18 +67,16 @@ const AssignmentsContent = () => {
     switch (status.toLowerCase()) {
       case 'active':
         return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
-      case 'pending return':
+      case 'pending':
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300';
       case 'returned':
         return 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300';
-      case 'overdue':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
-      case 'pending':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300';
       case 'approved':
         return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
-      case 'declined':
+      case 'denied':
         return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
+      case 'completed':
+        return 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300';
       default:
         return 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300';
     }
@@ -101,7 +99,7 @@ const AssignmentsContent = () => {
     switch (status.toLowerCase()) {
       case 'active':
         return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case 'pending return':
+      case 'pending':
         return <Clock className="h-4 w-4 text-blue-600" />;
       case 'overdue':
         return <AlertTriangle className="h-4 w-4 text-red-600" />;
@@ -111,10 +109,10 @@ const AssignmentsContent = () => {
   };
 
   // Statistics
-  const activeAssignments = assignments.filter(a => a.status === 'Active').length;
-  const pendingReturns = assignments.filter(a => a.status === 'Pending Return').length;
-  const overdueAssignments = assignments.filter(a => a.status === 'Overdue').length;
-  const pendingRequests = assignmentRequests.filter(r => r.status === 'Pending').length;
+  const activeAssignments = assignments.filter(a => a.status === 'active').length;
+  const pendingReturns = assignments.filter(a => a.status === 'pending').length;
+  const overdueAssignments = 0; // No overdue status in current schema
+  const pendingRequests = assignmentRequests.filter(r => r.status === 'pending').length;
 
   return (
     <div className="space-y-6">
@@ -210,9 +208,8 @@ const AssignmentsContent = () => {
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
             <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="pending return">Pending Return</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
             <SelectItem value="returned">Returned</SelectItem>
-            <SelectItem value="overdue">Overdue</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -262,7 +259,7 @@ const AssignmentsContent = () => {
                         {assignment.department}
                       </TableCell>
                       <TableCell className="text-slate-600 dark:text-slate-400">
-                        {new Date(assignment.assigned_date).toLocaleDateString()}
+                        {new Date(assignment.assigned_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="text-slate-600 dark:text-slate-400">
                         {new Date(assignment.due_date).toLocaleDateString()}
@@ -350,7 +347,7 @@ const AssignmentsContent = () => {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {request.status === 'Pending' ? (
+                        {request.status === 'pending' ? (
                           <div className="flex items-center space-x-1">
                             <Button 
                               variant="outline" 
@@ -417,7 +414,7 @@ const AssignmentsContent = () => {
                   <SelectValue placeholder="Select asset" />
                 </SelectTrigger>
                 <SelectContent>
-                  {assets.filter(asset => asset.assignee === '-').map((asset) => (
+                  {assets.filter(asset => asset.assignee === 'Unassigned').map((asset) => (
                     <SelectItem key={asset.id} value={asset.id}>
                       {asset.name} - {asset.serial_number}
                     </SelectItem>

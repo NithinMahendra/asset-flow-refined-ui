@@ -25,14 +25,46 @@ interface EmployeeProfile {
   lastActivity?: string;
 }
 
+// Enhanced asset type with legacy fields
+interface EnhancedAsset extends Asset {
+  name: string;
+  category: string;
+  assignee: string;
+  value: number;
+  last_updated: string;
+}
+
+// Enhanced assignment type with legacy fields
+interface EnhancedAssignment extends AssetAssignment {
+  employee_name: string;
+  employee_email: string;
+  asset_name: string;
+  department: string;
+  assigned_date: string;
+  due_date: string;
+  condition: string;
+}
+
+// Enhanced assignment request type with legacy fields
+interface EnhancedAssignmentRequest extends AssetRequest {
+  employee_name: string;
+  employee_email: string;
+  requested_asset: string;
+  department: string;
+  request_date: string;
+  priority: string;
+  manager_name: string;
+  justification: string;
+}
+
 interface AdminDataContextType {
   // Assets
-  assets: Asset[];
+  assets: EnhancedAsset[];
   assetRequests: AssetRequest[];
   
   // Assignments
-  assignments: AssetAssignment[];
-  assignmentRequests: AssetRequest[];
+  assignments: EnhancedAssignment[];
+  assignmentRequests: EnhancedAssignmentRequest[];
   
   // Users and Profiles
   employees: EmployeeProfile[];
@@ -76,10 +108,10 @@ interface AdminDataProviderProps {
 }
 
 export const AdminDataProvider: React.FC<AdminDataProviderProps> = ({ children }) => {
-  const [assets, setAssets] = useState<Asset[]>([]);
+  const [assets, setAssets] = useState<EnhancedAsset[]>([]);
   const [assetRequests, setAssetRequests] = useState<AssetRequest[]>([]);
-  const [assignments, setAssignments] = useState<AssetAssignment[]>([]);
-  const [assignmentRequests, setAssignmentRequests] = useState<AssetRequest[]>([]);
+  const [assignments, setAssignments] = useState<EnhancedAssignment[]>([]);
+  const [assignmentRequests, setAssignmentRequests] = useState<EnhancedAssignmentRequest[]>([]);
   const [employees, setEmployees] = useState<EmployeeProfile[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
@@ -95,7 +127,18 @@ export const AdminDataProvider: React.FC<AdminDataProviderProps> = ({ children }
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      setAssets(data || []);
+      
+      // Transform assets to include legacy fields
+      const enhancedAssets: EnhancedAsset[] = (data || []).map(asset => ({
+        ...asset,
+        name: `${asset.brand || 'Unknown'} ${asset.model || 'Asset'}`,
+        category: asset.device_type || 'other',
+        assignee: asset.assigned_to || 'Unassigned',
+        value: Number(asset.purchase_price) || 0,
+        last_updated: asset.updated_at || asset.created_at
+      }));
+      
+      setAssets(enhancedAssets);
     } catch (error) {
       console.error('Error loading assets:', error);
       toast({
@@ -111,7 +154,7 @@ export const AdminDataProvider: React.FC<AdminDataProviderProps> = ({ children }
       const { data, error } = await supabase
         .from('activity_log')
         .select('*')
-        .order('created_at', { ascending: false })
+        .order('timestamp', { ascending: false })
         .limit(100);
       
       if (error) throw error;
@@ -151,11 +194,25 @@ export const AdminDataProvider: React.FC<AdminDataProviderProps> = ({ children }
       const { data, error } = await supabase
         .from('asset_requests')
         .select('*')
-        .order('requested_date', { ascending: false });
+        .order('requested_at', { ascending: false });
       
       if (error) throw error;
       setAssetRequests(data || []);
-      setAssignmentRequests(data || []);
+      
+      // Transform assignment requests to include legacy fields
+      const enhancedRequests: EnhancedAssignmentRequest[] = (data || []).map(request => ({
+        ...request,
+        employee_name: 'Unknown Employee',
+        employee_email: 'unknown@example.com',
+        requested_asset: request.description || 'Asset Request',
+        department: 'General',
+        request_date: request.requested_at || new Date().toISOString(),
+        priority: 'medium',
+        manager_name: 'System',
+        justification: request.description || 'No justification provided'
+      }));
+      
+      setAssignmentRequests(enhancedRequests);
     } catch (error) {
       console.error('Error loading requests:', error);
     }
@@ -166,10 +223,23 @@ export const AdminDataProvider: React.FC<AdminDataProviderProps> = ({ children }
       const { data, error } = await supabase
         .from('asset_assignments')
         .select('*')
-        .order('assigned_date', { ascending: false });
+        .order('assigned_at', { ascending: false });
       
       if (error) throw error;
-      setAssignments(data || []);
+      
+      // Transform assignments to include legacy fields
+      const enhancedAssignments: EnhancedAssignment[] = (data || []).map(assignment => ({
+        ...assignment,
+        employee_name: 'Unknown Employee',
+        employee_email: 'unknown@example.com',
+        asset_name: 'Unknown Asset',
+        department: 'General',
+        assigned_date: assignment.assigned_at || new Date().toISOString(),
+        due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+        condition: 'good'
+      }));
+      
+      setAssignments(enhancedAssignments);
     } catch (error) {
       console.error('Error loading assignments:', error);
     }
@@ -228,7 +298,17 @@ export const AdminDataProvider: React.FC<AdminDataProviderProps> = ({ children }
 
       console.log('✅ AdminDataContext: Asset added successfully:', data);
       
-      setAssets(prev => [data, ...prev]);
+      // Transform the new asset and add to state
+      const enhancedAsset: EnhancedAsset = {
+        ...data,
+        name: `${data.brand || 'Unknown'} ${data.model || 'Asset'}`,
+        category: data.device_type || 'other',
+        assignee: data.assigned_to || 'Unassigned',
+        value: Number(data.purchase_price) || 0,
+        last_updated: data.updated_at || data.created_at
+      };
+      
+      setAssets(prev => [enhancedAsset, ...prev]);
       
       toast({
         title: 'Success',
@@ -258,7 +338,17 @@ export const AdminDataProvider: React.FC<AdminDataProviderProps> = ({ children }
 
       if (error) throw error;
 
-      setAssets(prev => prev.map(asset => asset.id === id ? data : asset));
+      // Transform the updated asset
+      const enhancedAsset: EnhancedAsset = {
+        ...data,
+        name: `${data.brand || 'Unknown'} ${data.model || 'Asset'}`,
+        category: data.device_type || 'other',
+        assignee: data.assigned_to || 'Unassigned',
+        value: Number(data.purchase_price) || 0,
+        last_updated: data.updated_at || data.created_at
+      };
+
+      setAssets(prev => prev.map(asset => asset.id === id ? enhancedAsset : asset));
       
       toast({
         title: 'Success',
@@ -309,7 +399,19 @@ export const AdminDataProvider: React.FC<AdminDataProviderProps> = ({ children }
 
       if (error) throw error;
 
-      setAssignments(prev => [data, ...prev]);
+      // Transform the new assignment
+      const enhancedAssignment: EnhancedAssignment = {
+        ...data,
+        employee_name: 'Unknown Employee',
+        employee_email: 'unknown@example.com',
+        asset_name: 'Unknown Asset',
+        department: 'General',
+        assigned_date: data.assigned_at || new Date().toISOString(),
+        due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        condition: 'good'
+      };
+
+      setAssignments(prev => [enhancedAssignment, ...prev]);
       
       toast({
         title: 'Success',
@@ -377,14 +479,14 @@ export const AdminDataProvider: React.FC<AdminDataProviderProps> = ({ children }
     try {
       const { error } = await supabase
         .from('notifications')
-        .update({ read: true })
+        .update({ is_read: true })
         .eq('id', notificationId);
 
       if (error) throw error;
 
       setNotifications(prev => 
         prev.map(notif => 
-          notif.id === notificationId ? { ...notif, read: true } : notif
+          notif.id === notificationId ? { ...notif, is_read: true } : notif
         )
       );
     } catch (error: any) {
