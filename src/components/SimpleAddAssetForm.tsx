@@ -7,17 +7,18 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Save, X } from 'lucide-react';
-import { CreateAssetData } from '@/services/assetCreationService';
+import { useAdminData } from '@/contexts/AdminDataContext';
 
 interface SimpleAddAssetFormProps {
   onClose?: () => void;
-  onAssetCreated?: (asset: CreateAssetData) => Promise<void>;
+  onAssetCreated?: () => void;
 }
 
 const SimpleAddAssetForm = ({ onClose, onAssetCreated }: SimpleAddAssetFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { toast } = useToast();
+  const { addAsset } = useAdminData();
 
   const [formData, setFormData] = useState({
     device_type: 'laptop',
@@ -96,27 +97,26 @@ const SimpleAddAssetForm = ({ onClose, onAssetCreated }: SimpleAddAssetFormProps
       // Generate QR code for the asset
       const qrCode = `ASSET-${Date.now()}-${formData.serial_number}`;
       
-      // Prepare data in exact format expected by database
-      const assetData: CreateAssetData = {
+      // Prepare data for database
+      const assetData = {
         device_type: formData.device_type as any,
         brand: formData.brand.trim(),
         model: formData.model.trim(),
         serial_number: formData.serial_number.trim(),
         status: formData.status as any,
-        location: formData.location.trim() || undefined,
-        assigned_to: undefined, // Don't assign during creation
-        purchase_price: formData.purchase_price ? parseFloat(formData.purchase_price) : undefined,
-        purchase_date: formData.purchase_date || undefined,
-        warranty_expiry: formData.warranty_expiry || undefined,
-        notes: formData.notes.trim() || undefined,
-        qr_code: qrCode
+        location: formData.location.trim() || null,
+        purchase_price: formData.purchase_price ? parseFloat(formData.purchase_price) : null,
+        purchase_date: formData.purchase_date || null,
+        warranty_expiry: formData.warranty_expiry || null,
+        notes: formData.notes.trim() || null,
+        qr_code: qrCode,
+        name: `${formData.brand} ${formData.model}`.trim(),
+        category: formData.device_type
       };
 
       console.log('📤 SimpleAddAssetForm: Sending asset data:', assetData);
 
-      if (onAssetCreated) {
-        await onAssetCreated(assetData);
-      }
+      await addAsset(assetData);
 
       // Reset form on success
       setFormData({
@@ -132,6 +132,7 @@ const SimpleAddAssetForm = ({ onClose, onAssetCreated }: SimpleAddAssetFormProps
         notes: ''
       });
 
+      onAssetCreated?.();
       onClose?.();
 
     } catch (error) {
