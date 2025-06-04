@@ -8,27 +8,22 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
-  const { user, profile, isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-lg text-gray-600">Loading...</p>
-        </div>
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
-  if (!user || !profile) {
+  if (!user) {
     return <Navigate to="/" replace />;
   }
 
-  if (requiredRole && profile.role !== requiredRole) {
-    // Redirect to appropriate dashboard based on user's actual role
-    const redirectPath = profile.role === 'admin' ? '/admin/dashboard' : '/employee/dashboard';
-    return <Navigate to={redirectPath} replace />;
+  if (requiredRole && user.role !== requiredRole) {
+    return <Navigate to={user.role === 'admin' ? '/admin/dashboard' : '/employee/dashboard'} replace />;
   }
 
   return <>{children}</>;
