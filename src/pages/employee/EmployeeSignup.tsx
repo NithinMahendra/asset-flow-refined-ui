@@ -5,46 +5,42 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Users, Eye, EyeOff, ArrowLeft, User } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 const EmployeeSignup = () => {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
-  });
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [fullName, setFullName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { signup, isLoading } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
+    if (!email || !password || !confirmPassword || !fullName) {
       toast.error('Please fill in all fields');
       return;
     }
 
-    if (formData.password !== formData.confirmPassword) {
+    if (password !== confirmPassword) {
       toast.error('Passwords do not match');
       return;
     }
 
-    if (formData.password.length < 6) {
-      toast.error('Password must be at least 6 characters');
+    if (password.length < 6) {
+      toast.error('Password must be at least 6 characters long');
       return;
     }
 
-    const success = await signup(formData.email, formData.password, formData.name, 'employee');
+    const success = await signup(email, password, fullName, 'employee');
     if (success) {
-      toast.success('Employee account created successfully!');
       navigate('/employee/dashboard');
-    } else {
-      toast.error('Failed to create account');
     }
   };
 
@@ -56,9 +52,10 @@ const EmployeeSignup = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <Link to="/employee/login" className="inline-flex items-center text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 mb-8 transition-colors">
+          {/* Back to role selection */}
+          <Link to="/" className="inline-flex items-center text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 mb-8 transition-colors">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to login
+            Back to login selection
           </Link>
 
           <Card className="glass-effect border-2 border-green-100 dark:border-green-800">
@@ -77,16 +74,19 @@ const EmployeeSignup = () => {
             <CardContent className="space-y-6">
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="Jane Smith"
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="h-12"
-                    required
-                  />
+                  <Label htmlFor="fullName">Full Name</Label>
+                  <div className="relative">
+                    <Input
+                      id="fullName"
+                      type="text"
+                      placeholder="Enter your full name"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      className="h-12 pl-12"
+                      required
+                    />
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -95,8 +95,8 @@ const EmployeeSignup = () => {
                     id="email"
                     type="email"
                     placeholder="employee@company.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     className="h-12"
                     required
                   />
@@ -109,8 +109,8 @@ const EmployeeSignup = () => {
                       id="password"
                       type={showPassword ? 'text' : 'password'}
                       placeholder="Create a password"
-                      value={formData.password}
-                      onChange={(e) => setFormData({...formData, password: e.target.value})}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
                       className="h-12 pr-12"
                       required
                     />
@@ -128,15 +128,26 @@ const EmployeeSignup = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword">Confirm Password</Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    placeholder="Confirm your password"
-                    value={formData.confirmPassword}
-                    onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
-                    className="h-12"
-                    required
-                  />
+                  <div className="relative">
+                    <Input
+                      id="confirmPassword"
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      placeholder="Confirm your password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="h-12 pr-12"
+                      required
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    >
+                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
                 </div>
 
                 <Button 
@@ -156,19 +167,27 @@ const EmployeeSignup = () => {
               </form>
 
               <div className="text-center space-y-4">
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Already have an employee account?{' '}
-                  <Link 
-                    to="/employee/login"
-                    className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 font-medium transition-colors"
-                  >
-                    Sign in
-                  </Link>
-                </p>
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-300 dark:border-gray-600" />
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-white dark:bg-gray-900 text-gray-500">
+                      Already have an account?
+                    </span>
+                  </div>
+                </div>
+                
+                <Link 
+                  to="/employee/login"
+                  className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 font-medium transition-colors"
+                >
+                  Sign in to employee account
+                </Link>
                 
                 <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Need admin access?{' '}
+                    System administrator?{' '}
                     <Link 
                       to="/admin/signup"
                       className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium transition-colors"
