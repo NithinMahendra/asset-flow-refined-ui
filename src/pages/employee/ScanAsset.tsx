@@ -176,8 +176,8 @@ const ScanAsset = () => {
       if (success) {
         toast.success('Asset added to your local assets!');
         console.log('Asset successfully added to local storage');
-        // Redirect to My Assets page instead of the add asset flow
-        navigate('/employee/assets');
+        // Redirect to My Assets page
+        navigate('/employee/my-assets');
       } else {
         toast.error('Failed to add asset. Please try again.');
         console.error('Failed to add asset to local storage');
