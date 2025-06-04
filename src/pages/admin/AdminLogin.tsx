@@ -44,7 +44,7 @@ const AdminLogin = () => {
           {/* Back to role selection */}
           <Link to="/" className="inline-flex items-center text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 mb-8 transition-colors">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to role selection
+            Back to login selection
           </Link>
 
           <Card className="glass-effect border-2 border-blue-100 dark:border-blue-800">

@@ -8,7 +8,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "./contexts/AuthContext";
 import { AdminDataProvider } from "./contexts/AdminDataContext";
-import Index from "./pages/Index";
 import RoleSelection from "./pages/RoleSelection";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminSignup from "./pages/admin/AdminSignup";
@@ -47,8 +46,7 @@ const App: React.FC = () => {
               <AuthProvider>
                 <AdminDataProvider>
                   <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/select-role" element={<RoleSelection />} />
+                    <Route path="/" element={<RoleSelection />} />
                     
                     {/* Admin Routes */}
                     <Route path="/admin/login" element={<AdminLogin />} />
@@ -70,6 +68,9 @@ const App: React.FC = () => {
                     <Route path="/add-asset" element={<AddAsset />} />
                     <Route path="/asset/:id" element={<AssetDetail />} />
                     <Route path="/analytics" element={<Analytics />} />
+                    
+                    {/* Redirect old routes */}
+                    <Route path="/select-role" element={<Navigate to="/" replace />} />
                     
                     {/* Catch all route */}
                     <Route path="*" element={<NotFound />} />
